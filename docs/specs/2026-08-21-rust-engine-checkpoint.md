@@ -6,9 +6,9 @@ Build only the deterministic Rust rules engine and a headless random simulation 
 
 The Flutter and Flame scaffold remains outside this checkpoint.
 
-## Sources and Scope
+## Scope
 
-This specification normalizes the v0.1 rules agreed in [the preserved design conversation](../../.claude/cache/push_push.md).
+The [stable rules](#stable-rules) in this tracked specification are the source of truth for the v0.1 checkpoint.
 
 It implements the three requested checkpoint outcomes: an `engine` crate containing `GameState`, `Move`, and `apply_move()`; executable rule specifications; and a seeded `simulate` CLI that can run 100,000 rounds.
 
