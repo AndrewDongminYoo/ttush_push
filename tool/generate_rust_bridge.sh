@@ -15,4 +15,5 @@ fi
 
 cd "${project_root}"
 flutter_rust_bridge_codegen generate --stop-on-error
+bash "${project_root}/tool/verify_cargokit_gradle_plugin.sh"
 rustfmt --edition 2024 engine/src/lib.rs engine/src/api.rs engine/src/frb_generated.rs
