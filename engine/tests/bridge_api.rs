@@ -78,3 +78,14 @@ fn value_api_preserves_a_snapshot_across_move_calls() {
         "the snapshot must retain the immediate counter-push restriction",
     );
 }
+
+#[test]
+fn value_api_rejects_a_snapshot_with_a_mismatched_hash() {
+    let mut snapshot = initial_state();
+    snapshot.pieces[0].x = 0;
+
+    assert_eq!(
+        legal_moves(snapshot).unwrap_err(),
+        "snapshot hash does not match its value fields",
+    );
+}

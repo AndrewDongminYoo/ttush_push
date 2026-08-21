@@ -140,6 +140,10 @@ fn snapshot_from_state(state: &GameState) -> GameSnapshot {
 }
 
 fn state_from_snapshot(snapshot: GameSnapshot) -> Result<GameState, String> {
+    if snapshot.snapshot_hash != snapshot_hash(&snapshot) {
+        return Err("snapshot hash does not match its value fields".to_owned());
+    }
+
     let tiles = snapshot
         .tiles
         .iter()
