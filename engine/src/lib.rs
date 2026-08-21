@@ -293,12 +293,15 @@ pub struct MatchState {
 
 impl MatchState {
     pub fn new(board: BoardConfig, starting_player: Player) -> Result<Self, StateError> {
-        Ok(Self {
+        let mut state = Self {
             round: GameState::new(board.clone(), starting_player)?,
             board,
             round_wins: [0, 0],
             outcome: MatchOutcome::Ongoing,
-        })
+        };
+        state.settle_terminal_rounds();
+
+        Ok(state)
     }
 
     pub fn apply_move(&self, mv: Move) -> Result<Self, IllegalMove> {
@@ -306,24 +309,27 @@ impl MatchState {
             return Err(IllegalMove::MatchFinished);
         }
 
-        let completed_round = apply_move(&self.round, mv)?;
         let mut next = self.clone();
-        next.round = completed_round.clone();
-        if let Outcome::Winner(winner, _) = outcome(&completed_round) {
+        next.round = apply_move(&self.round, mv)?;
+        next.settle_terminal_rounds();
+
+        Ok(next)
+    }
+
+    fn settle_terminal_rounds(&mut self) {
+        while let Outcome::Winner(winner, _) = outcome(&self.round) {
             let winner_index = match winner {
                 Player::First => 0,
                 Player::Second => 1,
             };
-            next.round_wins[winner_index] += 1;
-            if next.round_wins[winner_index] == 2 {
-                next.outcome = MatchOutcome::Winner(winner);
-            } else {
-                next.round = GameState::new(self.board.clone(), winner.opponent())
-                    .expect("a previously valid board must reset into a valid round");
+            self.round_wins[winner_index] += 1;
+            if self.round_wins[winner_index] == 2 {
+                self.outcome = MatchOutcome::Winner(winner);
+                return;
             }
+            self.round = GameState::new(self.board.clone(), winner.opponent())
+                .expect("a previously valid board must reset into a valid round");
         }
-
-        Ok(next)
     }
 
     pub const fn round(&self) -> &GameState {

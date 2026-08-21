@@ -211,6 +211,26 @@ fn a_prohibited_only_counter_push_causes_immobilization() {
 }
 
 #[test]
+fn match_settles_an_initially_immobilized_round() {
+    let board = BoardConfig::new(
+        [position(0, 0), position(3, 2), position(3, 3)]
+            .into_iter()
+            .collect::<BTreeSet<_>>(),
+        vec![
+            Piece::new(PieceId(1), Player::First, position(3, 3)),
+            Piece::new(PieceId(2), Player::Second, position(0, 0)),
+        ],
+    )
+    .unwrap();
+
+    let state = MatchState::new(board, Player::Second).unwrap();
+
+    assert_eq!(state.round_wins(Player::First), 2);
+    assert_eq!(state.round_wins(Player::Second), 0);
+    assert_eq!(state.outcome(), MatchOutcome::Winner(Player::First));
+}
+
+#[test]
 fn match_resets_the_board_with_the_loser_starting_and_ends_after_two_round_wins() {
     let attacker = PieceId(1);
     let target = PieceId(2);
