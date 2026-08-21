@@ -35,13 +35,7 @@
   "allowCompoundWords": false,
   "enableGlobDot": true,
   "useGitignore": true,
-  "ignoreWords": [
-    "meta-data",
-    "plaintext"
-  ],
-  "ignorePaths": [
-    ".git",
-    ".gitignore"
-  ],
+  "ignoreWords": ["meta-data", "plaintext"],
+  "ignorePaths": [".git", ".gitignore", "rust_builder/**"],
   "words": ["ttush_push"]
 }
