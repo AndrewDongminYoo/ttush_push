@@ -58,6 +58,20 @@ void main() {
       expect(state.bgm, same(bgm));
     });
 
+    test('copyWith keeps the current volume when volume is omitted', () {
+      final state = AudioState(
+        effectPlayer: effectPlayer,
+        bgm: bgm,
+        volume: 0.5,
+      );
+
+      final next = state.copyWith();
+
+      expect(next.volume, 0.5);
+      expect(next.effectPlayer, same(effectPlayer));
+      expect(next.bgm, same(bgm));
+    });
+
     blocTest<AudioCubit, AudioState>(
       'toggleVolume mutes the volume when the volume is not 0',
       setUp: () {
