@@ -214,14 +214,19 @@ impl GameState {
             return Err(StateError::PieceOnHole);
         }
 
-        Ok(Self {
+        let mut state = Self {
             board,
             tiles,
             pieces,
             current_player,
             counter_push: None,
             outcome: Outcome::Ongoing,
-        })
+        };
+        if legal_moves(&state).is_empty() {
+            state.outcome = Outcome::Winner(current_player.opponent(), WinReason::Immobilization);
+        }
+
+        Ok(state)
     }
 
     pub fn piece(&self, id: PieceId) -> Option<&Piece> {

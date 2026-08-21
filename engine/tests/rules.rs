@@ -164,6 +164,53 @@ fn leaving_the_next_player_without_any_legal_move_wins_by_immobilization() {
 }
 
 #[test]
+fn initially_immobilized_player_loses_the_round() {
+    let pieces = vec![
+        Piece::new(PieceId(1), Player::First, position(3, 3)),
+        Piece::new(PieceId(2), Player::Second, position(0, 0)),
+    ];
+    let board = BoardConfig::rectangular(5, 5, pieces).unwrap();
+    let mut tiles = (0..5)
+        .flat_map(|x| (0..5).map(move |y| (position(x, y), Tile::Normal)))
+        .collect::<BTreeMap<_, _>>();
+    tiles.insert(position(0, 1), Tile::Hole);
+    tiles.insert(position(1, 0), Tile::Hole);
+
+    let state = GameState::from_parts(board, tiles, Player::Second).unwrap();
+
+    assert_eq!(
+        outcome(&state),
+        Outcome::Winner(Player::First, WinReason::Immobilization),
+    );
+    assert!(legal_moves(&state).is_empty());
+}
+
+#[test]
+fn a_prohibited_only_counter_push_causes_immobilization() {
+    let attacker = PieceId(1);
+    let pushed = PieceId(2);
+    let board = BoardConfig::new(
+        [position(1, 0), position(2, 0), position(3, 0)]
+            .into_iter()
+            .collect::<BTreeSet<_>>(),
+        vec![
+            Piece::new(attacker, Player::First, position(1, 0)),
+            Piece::new(pushed, Player::Second, position(2, 0)),
+        ],
+    )
+    .unwrap();
+    let state = GameState::new(board, Player::First).unwrap();
+
+    let next = apply_move(&state, Move::new(attacker, Direction::Right)).unwrap();
+
+    assert_eq!(
+        outcome(&next),
+        Outcome::Winner(Player::First, WinReason::Immobilization),
+    );
+    assert!(legal_moves(&next).is_empty());
+}
+
+#[test]
 fn match_resets_the_board_with_the_loser_starting_and_ends_after_two_round_wins() {
     let attacker = PieceId(1);
     let target = PieceId(2);

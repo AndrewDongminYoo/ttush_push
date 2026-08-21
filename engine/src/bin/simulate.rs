@@ -130,6 +130,10 @@ fn simulate(options: &Options) -> Statistics {
         let mut turns = 0;
 
         loop {
+            if let Outcome::Winner(player, reason) = outcome(&state) {
+                record_winner(&mut statistics, player, reason);
+                break;
+            }
             if !seen_states.insert(state.clone()) {
                 statistics.repetitions += 1;
                 break;
