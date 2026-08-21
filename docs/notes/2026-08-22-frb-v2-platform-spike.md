@@ -65,15 +65,19 @@ It initialized the generated iOS Rust library and verified the initial snapshot 
 Flutter created temporary Xcode, CocoaPods, and Swift Package Manager migrations during that run.
 Those generated migrations were reverted after the test, so the tracked iOS project remains unchanged.
 
-Android remains unverified.
+The Android debug APK now builds with `flutter build apk --debug --flavor development --target lib/main_development.dart`.
+
+Android parity remains unverified because no Android device is currently connected for the integration test.
 
 The Kotlin Gradle plugin was raised from 2.2.10 to 2.2.20, the minimum accepted by the local Flutter SDK.
 
-`flutter build apk --debug --flavor development --target lib/main_development.dart` still fails before installation because Cargokit's generated Gradle plugin calls `Project.exec()`, which Gradle 9.0.0 no longer provides.
+The vendored Cargokit Gradle plugin is synchronized to `fzyzcjy/cargokit` commit `8e2cfa1710503b596f1ca552ecb98ad43d71ebef`, which injects `ExecOperations` into `CargoKitBuildTask` instead of calling the removed Gradle 9 `Project.exec()` API.
 
-The local Flutter tool selects Java 25 from Android Studio even when `JAVA_HOME` points to the installed Java 17.
+`tool/verify_cargokit_gradle_plugin.sh` pins that exact upstream plugin blob, and `tool/generate_rust_bridge.sh` runs it after FRB code generation so an incompatible Cargokit regeneration fails loudly.
 
-No emulator cleanup, Gradle update, Java toolchain change, or generated Cargokit patch is included in this spike.
+The local Flutter tool selects Java 25 from Android Studio even when `JAVA_HOME` points to the installed Java 17, and the APK build succeeds without a Java toolchain change.
+
+No emulator cleanup or Java toolchain change is included in this spike.
 
 ## Re-entry Criteria
 
@@ -81,4 +85,4 @@ Revisit Web only in an explicitly approved dependency update that uses a stable 
 
 Rerun the Chrome parity integration test before adding Web back to the MVP target list.
 
-Use a Cargokit-supported Gradle and Java combination, then run the Android parity integration test before treating Android as verified.
+Connect an Android device, then run the Android parity integration test before treating Android as verified.
