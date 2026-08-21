@@ -3,12 +3,24 @@ part of 'preload_cubit.dart';
 /// State for [PreloadCubit].
 class PreloadState extends Equatable {
   /// Create a [PreloadState] with initial conditions.
-  const PreloadState.initial()
+  const PreloadState.initial({required this.images, required this.audio})
     : totalCount = 0,
       loadedCount = 0,
       currentLabel = '';
 
-  const PreloadState._(this.loadedCount, this.currentLabel, this.totalCount);
+  const PreloadState._({
+    required this.images,
+    required this.audio,
+    required this.loadedCount,
+    required this.currentLabel,
+    required this.totalCount,
+  });
+
+  /// The image cache populated during preloading.
+  final Images images;
+
+  /// The audio cache populated during preloading.
+  final AudioCache audio;
 
   /// The total count of load phases to be completed
   final int totalCount;
@@ -24,7 +36,13 @@ class PreloadState extends Equatable {
   bool get isComplete => progress == 1.0;
 
   @override
-  List<Object?> get props => [totalCount, loadedCount, currentLabel];
+  List<Object?> get props => [
+    images,
+    audio,
+    totalCount,
+    loadedCount,
+    currentLabel,
+  ];
 
   PreloadState copyWith({
     int? loadedCount,
@@ -32,9 +50,11 @@ class PreloadState extends Equatable {
     int? totalCount,
   }) {
     return PreloadState._(
-      loadedCount ?? this.loadedCount,
-      currentLabel ?? this.currentLabel,
-      totalCount ?? this.totalCount,
+      images: images,
+      audio: audio,
+      loadedCount: loadedCount ?? this.loadedCount,
+      currentLabel: currentLabel ?? this.currentLabel,
+      totalCount: totalCount ?? this.totalCount,
     );
   }
 }
