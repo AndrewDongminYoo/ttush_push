@@ -1,6 +1,6 @@
 use engine::api::{
-    GameDirection, GameMove, GamePiece, GamePlayer, GameTileKind, apply_move, initial_state,
-    legal_moves,
+    apply_move, initial_state, legal_moves, GameDirection, GameMove, GamePiece, GamePlayer,
+    GameTileKind,
 };
 
 fn game_move(piece_id: u8, direction: GameDirection) -> GameMove {
@@ -53,12 +53,10 @@ fn value_api_preserves_a_snapshot_across_move_calls() {
 
     assert_eq!(after_first_move.current_player, GamePlayer::Second);
     assert_eq!(after_first_move.snapshot_hash, "540736b5048c5f9f");
-    assert!(
-        after_first_move
-            .tiles
-            .iter()
-            .any(|tile| { tile.x == 1 && tile.y == 0 && tile.kind == GameTileKind::Damaged })
-    );
+    assert!(after_first_move
+        .tiles
+        .iter()
+        .any(|tile| { tile.x == 1 && tile.y == 0 && tile.kind == GameTileKind::Damaged }));
     assert!(after_first_move.pieces.contains(&GamePiece {
         id: 0,
         owner: GamePlayer::First,
