@@ -30,9 +30,13 @@ Applying piece `0` down produces `540736b5048c5f9f`.
 
 ## Web Result
 
-`flutter_rust_bridge_codegen build-web --rust-root engine` completed and produced the Wasm package.
+The local Web build attempt used `flutter_rust_bridge_codegen build-web --rust-root engine`.
 
-Chrome integration compilation then failed before the parity test ran.
+Its Wasm output and command log are ignored build products, so the build result is [UNVERIFIED] exact-head review evidence.
+
+The local Chrome integration attempt failed during compilation before the parity test ran.
+
+The tracked generated source contains the same constructor mismatch, but the local command output is not committed as an artifact.
 
 ```plaintext
 Error: A value of type 'RustLibWire Function()' can't be returned from a function with return type 'RustLibWire Function(ExternalLibrary)'.
@@ -40,7 +44,9 @@ Error: A value of type 'RustLibWire Function()' can't be returned from a functio
 
 The failing generated `frb_generated.web.dart` constructor takes no `ExternalLibrary` argument while the 2.12.0 Dart runtime expects one.
 
-Both the code generator and Dart dependency were pinned to 2.12.0.
+`tool/generate_rust_bridge.sh` requires `flutter_rust_bridge_codegen 2.12.0` before generating glue.
+
+The Dart and Rust dependencies are pinned to 2.12.0 in their manifests.
 
 `web: false` records the MVP scope in `flutter_rust_bridge.yaml`.
 
@@ -48,15 +54,17 @@ Version 2.12.0 still emits conditional Web glue even with that setting, so the g
 
 ## Native Verification Boundary
 
-`cargo test --manifest-path engine/Cargo.toml --test bridge_api` passed the value API parity fixture.
+`cargo test --manifest-path engine/Cargo.toml --test bridge_api` is the reproducible value API parity fixture.
 
-The iOS development build produced `Runner.app` containing `Frameworks/engine.framework/engine`.
+The local iOS attempt reached `simctl install` after Xcode built an untracked `Runner.app` containing `Frameworks/engine.framework/engine`.
 
-The iOS runtime test could not install because the local CoreSimulator service stopped responding to `simctl install`.
+That untracked output is link evidence only and is not native parity success.
 
-The Android runtime test could not install because the emulator had 406 MiB free on `/data` and package management could not free the requested space.
+The iOS runtime parity test is unverified because the local CoreSimulator service stopped responding to `simctl install`.
 
-An Android package rebuild was also blocked before FRB compilation because the current Flutter SDK requires Kotlin 2.2.20 while the project pins 2.2.10, and its Java 25 runtime is incompatible with Gradle 9.0.0.
+The Android runtime parity test is unverified because the emulator had 406 MiB free on `/data` and package management could not free the requested space.
+
+An Android package rebuild is also unverified because the current Flutter SDK requires Kotlin 2.2.20 while the project pins 2.2.10, and its Java 25 runtime is incompatible with Gradle 9.0.0.
 
 No simulator reset, emulator cleanup, Kotlin update, Gradle update, or Java toolchain change is included in this spike.
 
