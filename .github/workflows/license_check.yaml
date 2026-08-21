@@ -9,14 +9,14 @@ on:
     branches:
       - main
     paths:
-      - "pubspec.yaml"
-      - ".github/workflows/license_check.yaml"
+      - pubspec.yaml
+      - .github/workflows/license_check.yaml
   push:
     branches:
       - main
     paths:
-      - "pubspec.yaml"
-      - ".github/workflows/license_check.yaml"
+      - pubspec.yaml
+      - .github/workflows/license_check.yaml
 
 jobs:
   license_check:
@@ -24,4 +24,4 @@ jobs:
     with:
       flutter_version: 3.47.1
       skip_packages: pubspec_lock_parse
-      allowed: "MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0"
+      allowed: MIT,BSD-3-Clause,BSD-2-Clause,Apache-2.0
