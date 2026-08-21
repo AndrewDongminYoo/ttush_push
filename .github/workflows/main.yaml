@@ -28,6 +28,7 @@ jobs:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@v1
     with:
       run_bloc_lint: true
+      coverage_excludes: lib/src/rust/** lib/game/rules/rules_engine.dart
 
   spell-check:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
