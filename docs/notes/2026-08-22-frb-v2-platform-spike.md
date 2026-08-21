@@ -1,5 +1,7 @@
 # flutter_rust_bridge v2 Platform Spike
 
+<!-- cspell:words Cargokit -->
+
 ## Decision
 
 The first MVP targets Android and iOS only.
@@ -56,20 +58,27 @@ Version 2.12.0 still emits conditional Web glue even with that setting, so the g
 
 `cargo test --manifest-path engine/Cargo.toml --test bridge_api` is the reproducible value API parity fixture.
 
-The local iOS attempt reached `simctl install` after Xcode built an untracked `Runner.app` containing `Frameworks/engine.framework/engine`.
+The iOS parity integration test passed on an iPhone 17 Pro Max simulator with `flutter test integration_test/rules_engine_parity_test.dart -d <simulator-id> --flavor development`.
 
-That untracked output is link evidence only and is not native parity success.
+It initialized the generated iOS Rust library and verified the initial snapshot hash and the hash after applying the same move as the Rust fixture.
 
-The iOS runtime parity test is unverified because the local CoreSimulator service stopped responding to `simctl install`.
+Flutter created temporary Xcode, CocoaPods, and Swift Package Manager migrations during that run.
+Those generated migrations were reverted after the test, so the tracked iOS project remains unchanged.
 
-The Android runtime parity test is unverified because the emulator had 406 MiB free on `/data` and package management could not free the requested space.
+Android remains unverified.
 
-An Android package rebuild is also unverified because the current Flutter SDK requires Kotlin 2.2.20 while the project pins 2.2.10, and its Java 25 runtime is incompatible with Gradle 9.0.0.
+The Kotlin Gradle plugin was raised from 2.2.10 to 2.2.20, the minimum accepted by the local Flutter SDK.
 
-No simulator reset, emulator cleanup, Kotlin update, Gradle update, or Java toolchain change is included in this spike.
+`flutter build apk --debug --flavor development --target lib/main_development.dart` still fails before installation because Cargokit's generated Gradle plugin calls `Project.exec()`, which Gradle 9.0.0 no longer provides.
+
+The local Flutter tool selects Java 25 from Android Studio even when `JAVA_HOME` points to the installed Java 17.
+
+No emulator cleanup, Gradle update, Java toolchain change, or generated Cargokit patch is included in this spike.
 
 ## Re-entry Criteria
 
 Revisit Web only in an explicitly approved dependency update that uses a stable FRB release with compatible generated Web glue.
 
 Rerun the Chrome parity integration test before adding Web back to the MVP target list.
+
+Use a Cargokit-supported Gradle and Java combination, then run the Android parity integration test before treating Android as verified.
