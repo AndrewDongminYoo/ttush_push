@@ -21,7 +21,7 @@ class GamePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) {
-        final audioCache = context.read<PreloadCubit>().audio;
+        final audioCache = context.read<PreloadCubit>().state.audio;
         return AudioCubit(
           audioPlayer: AudioPlayer()..audioCache = audioCache,
           backgroundMusic: Bgm(audioCache: audioCache),
@@ -49,7 +49,7 @@ class _GameViewState extends State<GameView> {
   @override
   void initState() {
     super.initState();
-    bgm = context.read<AudioCubit>().bgm;
+    bgm = context.read<AudioCubit>().state.bgm;
     unawaited(bgm.play(Assets.audio.background));
   }
 
@@ -69,9 +69,9 @@ class _GameViewState extends State<GameView> {
         widget.game ??
         TtushPush(
           l10n: context.l10n,
-          effectPlayer: context.read<AudioCubit>().effectPlayer,
+          effectPlayer: context.read<AudioCubit>().state.effectPlayer,
           textStyle: textStyle,
-          images: context.read<PreloadCubit>().images,
+          images: context.read<PreloadCubit>().state.images,
         );
     return Stack(
       children: [

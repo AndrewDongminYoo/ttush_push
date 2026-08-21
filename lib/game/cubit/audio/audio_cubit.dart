@@ -1,31 +1,23 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flame_audio/bgm.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 part 'audio_state.dart';
 
 class AudioCubit extends Cubit<AudioState> {
   AudioCubit({required AudioPlayer audioPlayer, required Bgm backgroundMusic})
-    : effectPlayer = audioPlayer,
-      bgm = backgroundMusic,
-      super(const AudioState());
+    : super(AudioState(effectPlayer: audioPlayer, bgm: backgroundMusic));
 
-  @visibleForTesting
   AudioCubit.test({
-    required this.effectPlayer,
-    required this.bgm,
+    required AudioPlayer effectPlayer,
+    required Bgm bgm,
     double volume = 1.0,
-  }) : super(AudioState(volume: volume));
-
-  final AudioPlayer effectPlayer;
-
-  final Bgm bgm;
+  }) : super(AudioState(effectPlayer: effectPlayer, bgm: bgm, volume: volume));
 
   Future<void> _changeVolume(double volume) async {
-    await effectPlayer.setVolume(volume);
-    await bgm.audioPlayer.setVolume(volume);
+    await state.effectPlayer.setVolume(volume);
+    await state.bgm.audioPlayer.setVolume(volume);
     if (!isClosed) {
       emit(state.copyWith(volume: volume));
     }
@@ -40,8 +32,8 @@ class AudioCubit extends Cubit<AudioState> {
 
   @override
   Future<void> close() async {
-    await effectPlayer.dispose();
-    await bgm.dispose();
+    await state.effectPlayer.dispose();
+    await state.bgm.dispose();
     return super.close();
   }
 }

@@ -16,6 +16,15 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group(PreloadCubit, () {
+    test('keeps preload runtime resources in state', () {
+      final images = _MockImages();
+      final audio = _MockAudioCache();
+      final state = PreloadCubit(images, audio).state;
+
+      expect(state.images, same(images));
+      expect(state.audio, same(audio));
+    });
+
     group('loadSequentially', () {
       late Images images;
       late AudioCache audio;

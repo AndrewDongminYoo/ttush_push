@@ -60,6 +60,7 @@ void main() {
   group('GamePage', () {
     late PreloadCubit preloadCubit;
     late Images images;
+    late AudioCache audioCache;
 
     setUpAll(() {
       registerFallbackValue(_FakeAssetSource());
@@ -70,8 +71,10 @@ void main() {
       when(() => images.fromCache(any())).thenReturn(_FakeImage());
 
       preloadCubit = _MockPreloadCubit();
-      when(() => preloadCubit.audio).thenReturn(AudioCache(prefix: ''));
-      when(() => preloadCubit.images).thenReturn(images);
+      audioCache = AudioCache(prefix: '');
+      when(() => preloadCubit.state).thenReturn(
+        PreloadState.initial(images: images, audio: audioCache),
+      );
     });
 
     testWidgets('is routable', (tester) async {
@@ -104,22 +107,27 @@ void main() {
 
   group('GameView', () {
     late AudioCubit audioCubit;
+    late AudioPlayer effectPlayer;
+    late Bgm bgm;
 
     setUp(() {
       audioCubit = _MockAudioCubit();
-      when(() => audioCubit.state).thenReturn(AudioState());
-
-      final effectPlayer = _MockAudioPlayer();
-      when(() => audioCubit.effectPlayer).thenReturn(effectPlayer);
-      final bgm = _MockBgm();
-      when(() => audioCubit.bgm).thenReturn(bgm);
+      effectPlayer = _MockAudioPlayer();
+      bgm = _MockBgm();
+      when(() => audioCubit.state).thenReturn(
+        AudioState(effectPlayer: effectPlayer, bgm: bgm),
+      );
       when(() => bgm.play(any())).thenAnswer((_) async {});
       when(bgm.pause).thenAnswer((_) async {});
     });
 
     testWidgets('toggles mute button correctly', (tester) async {
       final controller = StreamController<AudioState>();
-      whenListen(audioCubit, controller.stream, initialState: AudioState());
+      whenListen(
+        audioCubit,
+        controller.stream,
+        initialState: AudioState(effectPlayer: effectPlayer, bgm: bgm),
+      );
 
       final game = TestGame();
       await tester.pumpApp(
@@ -131,12 +139,14 @@ void main() {
 
       expect(find.byIcon(Icons.volume_up), findsOneWidget);
 
-      controller.add(AudioState(volume: 0));
+      controller.add(
+        AudioState(effectPlayer: effectPlayer, bgm: bgm, volume: 0),
+      );
       await tester.pump();
 
       expect(find.byIcon(Icons.volume_off), findsOneWidget);
 
-      controller.add(AudioState());
+      controller.add(AudioState(effectPlayer: effectPlayer, bgm: bgm));
       await tester.pump();
 
       expect(find.byIcon(Icons.volume_up), findsOneWidget);
@@ -145,7 +155,11 @@ void main() {
     testWidgets('calls correct method based on state', (tester) async {
       final controller = StreamController<AudioState>();
       when(audioCubit.toggleVolume).thenAnswer((_) async {});
-      whenListen(audioCubit, controller.stream, initialState: AudioState());
+      whenListen(
+        audioCubit,
+        controller.stream,
+        initialState: AudioState(effectPlayer: effectPlayer, bgm: bgm),
+      );
 
       final game = TestGame();
       await tester.pumpApp(
@@ -156,12 +170,14 @@ void main() {
       );
 
       await tester.tap(find.byIcon(Icons.volume_up));
-      controller.add(AudioState(volume: 0));
+      controller.add(
+        AudioState(effectPlayer: effectPlayer, bgm: bgm, volume: 0),
+      );
       await tester.pump();
       verify(audioCubit.toggleVolume).called(1);
 
       await tester.tap(find.byIcon(Icons.volume_off));
-      controller.add(AudioState());
+      controller.add(AudioState(effectPlayer: effectPlayer, bgm: bgm));
       await tester.pump();
       verify(audioCubit.toggleVolume).called(1);
     });

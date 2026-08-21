@@ -48,6 +48,30 @@ void main() {
       ),
     );
 
+    test('keeps audio runtime resources in state', () {
+      final state = AudioCubit(
+        audioPlayer: effectPlayer,
+        backgroundMusic: bgm,
+      ).state;
+
+      expect(state.effectPlayer, same(effectPlayer));
+      expect(state.bgm, same(bgm));
+    });
+
+    test('copyWith keeps the current volume when volume is omitted', () {
+      final state = AudioState(
+        effectPlayer: effectPlayer,
+        bgm: bgm,
+        volume: 0.5,
+      );
+
+      final next = state.copyWith();
+
+      expect(next.volume, 0.5);
+      expect(next.effectPlayer, same(effectPlayer));
+      expect(next.bgm, same(bgm));
+    });
+
     blocTest<AudioCubit, AudioState>(
       'toggleVolume mutes the volume when the volume is not 0',
       setUp: () {
@@ -56,7 +80,9 @@ void main() {
       },
       build: () => AudioCubit.test(effectPlayer: effectPlayer, bgm: bgm),
       act: (cubit) => cubit.toggleVolume(),
-      expect: () => [const AudioState(volume: 0)],
+      expect: () => [
+        AudioState(effectPlayer: effectPlayer, bgm: bgm, volume: 0),
+      ],
       verify: (_) {
         verify(() => effectPlayer.setVolume(any(that: equals(0)))).called(1);
         verify(() => bgmPlayer.setVolume(any(that: equals(0)))).called(1);
@@ -73,7 +99,7 @@ void main() {
         return AudioCubit.test(effectPlayer: effectPlayer, bgm: bgm, volume: 0);
       },
       act: (cubit) => cubit.toggleVolume(),
-      expect: () => [const AudioState()],
+      expect: () => [AudioState(effectPlayer: effectPlayer, bgm: bgm)],
       verify: (_) {
         verify(() => effectPlayer.setVolume(any(that: equals(1)))).called(1);
         verify(() => bgmPlayer.setVolume(any(that: equals(1)))).called(1);
