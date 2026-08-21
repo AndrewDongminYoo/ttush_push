@@ -6,9 +6,11 @@ Autolayout
 autorecalculates
 Autoresizing
 Buildables
+Cargokit
 dists
 donminzzi
 felixangelov
+fzyzcjy
 FMWK
 HIDPI
 iconcomposer
