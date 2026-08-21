@@ -1,0 +1,3 @@
+# Cargokit copies these upstream assets verbatim.
+rust_builder/cargokit/LICENSE whitespace=-blank-at-eof
+rust_builder/cargokit/README whitespace=-blank-at-eof

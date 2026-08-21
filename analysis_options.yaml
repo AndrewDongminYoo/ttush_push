@@ -5,6 +5,8 @@ analyzer:
   exclude:
     - lib/gen/*
     - lib/l10n/gen/*
+    # flutter_rust_bridge owns and regenerates this glue.
+    - lib/src/rust/**
     - build/**
     - android/**
     - ios/**
