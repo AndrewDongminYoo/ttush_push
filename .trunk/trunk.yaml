@@ -24,6 +24,10 @@ lint:
     - linters: [ALL]
       paths:
         - web/flutter_bootstrap.js
+    # flutter_rust_bridge generates Cargokit glue that is not source-owned here.
+    - linters: [ALL]
+      paths:
+        - rust_builder/**
   disabled:
     - dart
     - pinact

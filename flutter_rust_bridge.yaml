@@ -1,0 +1,5 @@
+rust_input: crate::api
+rust_root: engine/
+dart_output: lib/src/rust
+web: false
+dart_fix: false
