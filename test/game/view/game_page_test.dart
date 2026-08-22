@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/game_page.dart';
@@ -372,6 +373,208 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('feels a selection and then an ordinary move', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'haptic-start',
+    );
+    const afterMove = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 3),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'haptic-moved',
+    );
+    const moveDown = GameMove(pieceId: 0, direction: GameDirection.down);
+    final felt = _recordHaptics(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: _MoveRulesEngine(
+            initialSnapshot: start,
+            nextSnapshot: afterMove,
+            legalMoves: const [moveDown],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.pump();
+
+    expect(felt, ['HapticFeedbackType.selectionClick']);
+
+    felt.clear();
+    await tester.tapAt(cellCenter(2, 3));
+    await tester.pump();
+
+    expect(felt, ['HapticFeedbackType.lightImpact']);
+  });
+
+  testWidgets('feels the won round rather than the push that won it', (
+    tester,
+  ) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'haptic-winning',
+    );
+    const afterPush = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'haptic-won',
+    );
+    const pushUp = GameMove(pieceId: 0, direction: GameDirection.up);
+    final felt = _recordHaptics(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: _MoveRulesEngine(
+            initialSnapshot: start,
+            nextSnapshot: afterPush,
+            legalMoves: const [pushUp],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+
+    expect(felt, [
+      'HapticFeedbackType.selectionClick',
+      'HapticFeedbackType.heavyImpact',
+    ]);
+  });
+
+  testWidgets('feels a push that leaves the round ongoing', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'push-ongoing',
+    );
+    const afterPush = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 0),
+      ],
+      snapshotHash: 'push-ongoing-next',
+    );
+    const pushUp = GameMove(pieceId: 0, direction: GameDirection.up);
+    final felt = _recordHaptics(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: _MoveRulesEngine(
+            initialSnapshot: start,
+            nextSnapshot: afterPush,
+            legalMoves: const [pushUp],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+
+    expect(felt, [
+      'HapticFeedbackType.selectionClick',
+      'HapticFeedbackType.mediumImpact',
+    ]);
+  });
+
+  testWidgets('stays silent when a tap changes nothing', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0),
+      ],
+      snapshotHash: 'silent',
+    );
+    final felt = _recordHaptics(tester);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: GamePage(
+          rulesEngine: _FakeRulesEngine(snapshot: start),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+
+    // An empty cell, an opposing piece, and an own piece with no legal move.
+    await tester.tapAt(cellCenter(4, 4));
+    await tester.tapAt(cellCenter(0, 0));
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.pump();
+
+    expect(felt, isEmpty);
+  });
+
+  testWidgets('stays silent when applying a move fails', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2)],
+      snapshotHash: 'failing',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final felt = _recordHaptics(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: _SequencedMoveRulesEngine(
+            initialSnapshot: start,
+            moves: const [move],
+            moveResults: [StateError('bridge unavailable')],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+
+    await tester.tapAt(cellCenter(2, 2));
+    felt.clear();
+    await tester.tapAt(cellCenter(2, 3));
+    await tester.pump();
+
+    expect(felt, isEmpty);
+  });
+
   testWidgets('keeps a valid board visible and retries a failed move', (
     tester,
   ) async {
@@ -420,6 +623,36 @@ void main() {
     _expectActiveTurn(GamePlayer.second);
     expect(find.textContaining('Unable to update round'), findsNothing);
   });
+}
+
+/// Maps a board cell to the point to tap for it.
+Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
+  final board = tester.getRect(find.byKey(const Key('round-board-canvas')));
+  return (x, y) => Offset(
+    board.left + board.width * (x + 0.5) / 5,
+    board.top + board.height * (y + 0.5) / 5,
+  );
+}
+
+/// Collects the haptic requests the page sends to the platform.
+List<String> _recordHaptics(WidgetTester tester) {
+  final felt = <String>[];
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    SystemChannels.platform,
+    (call) async {
+      if (call.method == 'HapticFeedback.vibrate') {
+        felt.add(call.arguments as String);
+      }
+      return null;
+    },
+  );
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      null,
+    ),
+  );
+  return felt;
 }
 
 void _expectActiveTurn(GamePlayer player) {

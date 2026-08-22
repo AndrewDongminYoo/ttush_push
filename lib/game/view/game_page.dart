@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ttush_push/game/round/round_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/round_board.dart';
@@ -65,7 +68,7 @@ class _GamePageState extends State<GamePage> {
                       snapshot: snapshot,
                       legalMoves: _controller.legalMoves,
                       selectedPieceId: _controller.selectedPieceId,
-                      onCellTap: _onCellTap,
+                      onCellTap: (x, y) => _onCellTap(snapshot, x, y),
                     ),
                   ),
                   if (winner != null)
@@ -91,29 +94,48 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  void _onCellTap(int x, int y) {
-    setState(() {
-      // Destination resolution precedes selection, so tapping an opposing
-      // piece that is also a legal push destination pushes it.
-      final move = _controller.moveForTappedDestination(x, y);
-      if (move != null) {
-        _controller.applyMove(move);
-        return;
-      }
-
-      final snapshot = _controller.snapshot;
-      final pieceIndex = snapshot?.pieces.indexWhere(
-        (piece) =>
-            piece.x == x &&
-            piece.y == y &&
-            piece.owner == snapshot.currentPlayer,
+  void _onCellTap(GameSnapshot snapshot, int x, int y) {
+    // Destination resolution precedes selection, so tapping an opposing
+    // piece that is also a legal push destination pushes it.
+    final move = _controller.moveForTappedDestination(x, y);
+    if (move != null) {
+      // Read before the move is applied: a destination someone stands on is
+      // a push. This is the same read the board's markers use.
+      final isPush = snapshot.pieces.any(
+        (piece) => piece.x == x && piece.y == y,
       );
-      if (pieceIndex == null || pieceIndex == -1) {
-        _controller.clearSelection();
-        return;
+      setState(() => _controller.applyMove(move));
+      if (_controller.error == null) {
+        _feedbackForAppliedMove(isPush: isPush);
       }
-      _controller.selectPiece(snapshot!.pieces[pieceIndex].id);
-    });
+      return;
+    }
+
+    final pieceIndex = snapshot.pieces.indexWhere(
+      (piece) =>
+          piece.x == x && piece.y == y && piece.owner == snapshot.currentPlayer,
+    );
+    if (pieceIndex == -1) {
+      setState(_controller.clearSelection);
+      return;
+    }
+
+    setState(() => _controller.selectPiece(snapshot.pieces[pieceIndex].id));
+    if (_controller.selectedPieceId != null) {
+      unawaited(HapticFeedback.selectionClick());
+    }
+  }
+
+  /// A won round outranks how the move was made, so it is felt as one event
+  /// rather than two.
+  void _feedbackForAppliedMove({required bool isPush}) {
+    if (_controller.snapshot?.winner != null) {
+      unawaited(HapticFeedback.heavyImpact());
+      return;
+    }
+    unawaited(
+      isPush ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact(),
+    );
   }
 
   void _restart() {
