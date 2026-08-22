@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/app/app.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
@@ -21,7 +22,13 @@ void main() {
     );
 
     expect(find.byType(GamePage), findsOneWidget);
-    expect(find.text("First player's turn"), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('player-panel-first')),
+        matching: find.text('Your turn'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('exposes application localizations from the game context', (
