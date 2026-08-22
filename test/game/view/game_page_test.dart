@@ -143,6 +143,101 @@ void main() {
     expect(engine.appliedMoves, [move]);
     expect(find.text("Second player's turn"), findsOneWidget);
   });
+
+  testWidgets(
+    'clears selection after a tap outside the current player pieces',
+    (
+      tester,
+    ) async {
+      const initialSnapshot = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [],
+        pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+        snapshotHash: 'clear-selection',
+      );
+      const nextSnapshot = GameSnapshot(
+        currentPlayer: GamePlayer.second,
+        tiles: [],
+        pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
+        snapshotHash: 'should-not-apply',
+      );
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final engine = _MoveRulesEngine(
+        initialSnapshot: initialSnapshot,
+        nextSnapshot: nextSnapshot,
+        legalMoves: [move],
+      );
+
+      await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+      final boardRect = tester.getRect(
+        find.byKey(const Key('round-board-canvas')),
+      );
+      Offset cellCenter(int x, int y) {
+        return Offset(
+          boardRect.left + boardRect.width * (x + 0.5) / 5,
+          boardRect.top + boardRect.height * (y + 0.5) / 5,
+        );
+      }
+
+      await tester.tapAt(cellCenter(0, 0));
+      await tester.tapAt(cellCenter(1, 0));
+      await tester.tapAt(cellCenter(0, 1));
+      await tester.pump();
+
+      expect(engine.appliedMoves, isEmpty);
+      expect(find.text("First player's turn"), findsOneWidget);
+    },
+  );
+
+  testWidgets('keeps a valid board visible and retries a failed move', (
+    tester,
+  ) async {
+    const initialSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'retry-move',
+    );
+    const nextSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
+      snapshotHash: 'move-retried',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = _SequencedMoveRulesEngine(
+      initialSnapshot: initialSnapshot,
+      moves: [move],
+      moveResults: [StateError('bridge unavailable'), nextSnapshot],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+    final boardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
+    Offset cellCenter(int x, int y) {
+      return Offset(
+        boardRect.left + boardRect.width * (x + 0.5) / 5,
+        boardRect.top + boardRect.height * (y + 0.5) / 5,
+      );
+    }
+
+    await tester.tapAt(cellCenter(0, 0));
+    await tester.tapAt(cellCenter(0, 1));
+    await tester.pump();
+
+    expect(find.text("First player's turn"), findsOneWidget);
+    expect(find.textContaining('Unable to update round'), findsOneWidget);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    expect(engine.appliedMoves, [move, move]);
+    expect(find.text("Second player's turn"), findsOneWidget);
+    expect(find.textContaining('Unable to update round'), findsNothing);
+  });
 }
 
 final class _FakeRulesEngine implements RulesEngine {
@@ -225,4 +320,36 @@ final class _MoveRulesEngine implements RulesEngine {
         ? _legalMoves
         : const [];
   }
+}
+
+final class _SequencedMoveRulesEngine implements RulesEngine {
+  _SequencedMoveRulesEngine({
+    required this.initialSnapshot,
+    required this.moves,
+    required this.moveResults,
+  });
+
+  final GameSnapshot initialSnapshot;
+  final List<GameMove> moves;
+  final List<Object> moveResults;
+  final List<GameMove> appliedMoves = [];
+
+  @override
+  GameSnapshot applyMove(GameSnapshot state, GameMove move) {
+    appliedMoves.add(move);
+    final result = moveResults.removeAt(0);
+    if (result case final GameSnapshot snapshot) {
+      return snapshot;
+    }
+    if (result case final Error error) {
+      throw error;
+    }
+    throw StateError('move result must be a GameSnapshot or Error');
+  }
+
+  @override
+  GameSnapshot initialState() => initialSnapshot;
+
+  @override
+  List<GameMove> legalMoves(GameSnapshot state) => moves;
 }

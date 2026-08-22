@@ -94,6 +94,49 @@ void main() {
       expect(controller.selectedPieceId, isNull);
     });
 
+    test('maps selected horizontal legal moves to distinct destinations', () {
+      const initialSnapshot = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [],
+        pieces: [
+          GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        ],
+        snapshotHash: 'horizontal-moves',
+      );
+      const left = GameMove(pieceId: 0, direction: GameDirection.left);
+      const right = GameMove(pieceId: 0, direction: GameDirection.right);
+      final controller =
+          RoundController(
+              _FakeRulesEngine(
+                initialSnapshot: initialSnapshot,
+                legalMoves: const [left, right],
+              ),
+            )
+            ..initialize()
+            ..selectPiece(0);
+
+      expect(controller.moveForTappedDestination(1, 2), left);
+      expect(controller.moveForTappedDestination(3, 2), right);
+    });
+
+    test('restart initializes a controller without a current snapshot', () {
+      const initialSnapshot = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [],
+        pieces: [],
+        snapshotHash: 'restart-from-initializing',
+      );
+      final controller = RoundController(
+        _FakeRulesEngine(
+          initialSnapshot: initialSnapshot,
+          legalMoves: const [],
+        ),
+      )..restart();
+
+      expect(controller.status, RoundStatus.ready);
+      expect(controller.snapshot, initialSnapshot);
+    });
+
     test(
       'replaces the snapshot only with the result returned by applyMove',
       () {
