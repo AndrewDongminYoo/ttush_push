@@ -1,0 +1,22 @@
+PODS:
+  - engine (0.0.1):
+    - Flutter
+  - Flutter (1.0.0)
+
+DEPENDENCIES:
+  - engine (from `.symlinks/plugins/engine/ios`)
+  - Flutter (from `Flutter`)
+
+EXTERNAL SOURCES:
+  engine:
+    :path: ".symlinks/plugins/engine/ios"
+  Flutter:
+    :path: Flutter
+
+SPEC CHECKSUMS:
+  engine: de7f3f7fcb1dd620e8a202448826c39d63ef31b9
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
+
+PODFILE CHECKSUM: d7c5db7569d20591025ec1469c70123492cca077
+
+COCOAPODS: 1.17.0
