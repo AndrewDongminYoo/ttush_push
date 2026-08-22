@@ -26,6 +26,13 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   late final RoundController _controller;
 
+  /// How the move awaiting application should be felt.
+  ///
+  /// A move can be applied by a tap or by retrying one the bridge rejected,
+  /// and both must feel the same, so the classification outlives the tap that
+  /// produced it until the move actually lands.
+  bool? _pendingMoveIsPush;
+
   @override
   void initState() {
     super.initState();
@@ -104,10 +111,9 @@ class _GamePageState extends State<GamePage> {
       final isPush = snapshot.pieces.any(
         (piece) => piece.x == x && piece.y == y,
       );
+      _pendingMoveIsPush = isPush;
       setState(() => _controller.applyMove(move));
-      if (_controller.error == null) {
-        _feedbackForAppliedMove(isPush: isPush);
-      }
+      _feedbackForAppliedMove();
       return;
     }
 
@@ -120,15 +126,26 @@ class _GamePageState extends State<GamePage> {
       return;
     }
 
+    final previousSelection = _controller.selectedPieceId;
     setState(() => _controller.selectPiece(snapshot.pieces[pieceIndex].id));
-    if (_controller.selectedPieceId != null) {
+    final selection = _controller.selectedPieceId;
+    // Re-tapping the piece already selected changes nothing.
+    if (selection != null && selection != previousSelection) {
       unawaited(HapticFeedback.selectionClick());
     }
   }
 
+  /// Fires once the pending move has actually been applied.
+  ///
   /// A won round outranks how the move was made, so it is felt as one event
   /// rather than two.
-  void _feedbackForAppliedMove({required bool isPush}) {
+  void _feedbackForAppliedMove() {
+    final isPush = _pendingMoveIsPush;
+    if (isPush == null || _controller.error != null) {
+      return;
+    }
+    _pendingMoveIsPush = null;
+
     if (_controller.snapshot?.winner != null) {
       unawaited(HapticFeedback.heavyImpact());
       return;
@@ -139,11 +156,13 @@ class _GamePageState extends State<GamePage> {
   }
 
   void _restart() {
+    _pendingMoveIsPush = null;
     setState(_controller.restart);
   }
 
   void _retry() {
     setState(_controller.retry);
+    _feedbackForAppliedMove();
   }
 }
 

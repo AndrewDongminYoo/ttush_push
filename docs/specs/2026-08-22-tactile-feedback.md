@@ -25,7 +25,9 @@ Four distinct sensations, each tied to an action the player performs.
 - Applying a move onto a destination an opposing piece occupies, felt more strongly than an ordinary move.
 - Ending a round, felt as the strongest of the four.
 
-Nothing fires for a rejected tap, a cleared selection, or a bridge failure.
+A move applied by retrying one the bridge rejected feels the same as one applied by a tap, because the board advances either way.
+
+Nothing fires for a rejected tap, a cleared selection, a re-tap of the piece already selected, a bridge failure, or a retry of initialization.
 
 ## Non-Goals
 
@@ -41,10 +43,15 @@ No settings screen to turn haptics off, and no change to the Rust rules, the bri
 Distinguishing a push from an ordinary move reuses the rule already stated for the board's destination markers: a destination occupied by any piece in the current snapshot is a push.
 This is a read of the snapshot before the move is applied, not a computation of what the push does.
 
+Because a rejected move can still be applied later through Retry, that classification is held until the move actually lands, then consumed.
+It is cleared on restart. This is the one piece of state that outlives the tap, and it describes an action rather than a board position, so it does not reintroduce diffing between snapshots.
+
 Ending a round is read from the snapshot the engine returns, by the same `winner` field the result overlay uses.
 
 ## Acceptance Criteria
 
 - Selecting, moving, pushing, and winning each produce a different platform feedback call.
-- A tap that changes nothing produces none.
+- A tap that changes nothing produces none, including a re-tap of the selected piece.
+- A move that lands on retry feels the same as one that landed on the first attempt.
+- The four sensations are distinguishable in the hand on a physical device. No test can assert this; it is confirmed by a device pass.
 - Every branch is covered, and `merry run check` passes.

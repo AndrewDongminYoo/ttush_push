@@ -575,6 +575,116 @@ void main() {
     expect(felt, isEmpty);
   });
 
+  testWidgets('says nothing when the same piece is tapped again', (
+    tester,
+  ) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2)],
+      snapshotHash: 'reselect',
+    );
+    const moveDown = GameMove(pieceId: 0, direction: GameDirection.down);
+    final felt = _recordHaptics(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: _MoveRulesEngine(
+            initialSnapshot: start,
+            nextSnapshot: start,
+            legalMoves: const [moveDown],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.pump();
+
+    expect(felt, ['HapticFeedbackType.selectionClick']);
+
+    felt.clear();
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.pump();
+
+    expect(felt, isEmpty);
+  });
+
+  testWidgets('feels a move that lands on retry', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'retry-feel',
+    );
+    const afterPush = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 0),
+      ],
+      snapshotHash: 'retry-feel-next',
+    );
+    const pushUp = GameMove(pieceId: 0, direction: GameDirection.up);
+    final felt = _recordHaptics(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: _SequencedMoveRulesEngine(
+            initialSnapshot: start,
+            moves: const [pushUp],
+            moveResults: [StateError('bridge unavailable'), afterPush],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    felt.clear();
+
+    // The board advances on retry, so it must feel like the push it is.
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    expect(felt, ['HapticFeedbackType.mediumImpact']);
+  });
+
+  testWidgets('says nothing when retrying initialization', (tester) async {
+    const ready = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'init-retry',
+    );
+    final felt = _recordHaptics(tester);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: _SequencedRulesEngine(
+            initialStateResults: [StateError('bridge unavailable'), ready],
+            legalMoves: const [],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    expect(felt, isEmpty);
+  });
+
   testWidgets('keeps a valid board visible and retries a failed move', (
     tester,
   ) async {
