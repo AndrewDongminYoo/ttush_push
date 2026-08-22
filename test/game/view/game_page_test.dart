@@ -824,6 +824,107 @@ void main() {
     }
   });
 
+  testWidgets('cycles the opponent from the second seat panel', (tester) async {
+    const board = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'opponent',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine.playing(initial: matchOf(board)),
+        ),
+      ),
+    );
+
+    expect(_inPanel('second', 'Player 2'), findsOneWidget);
+
+    for (final label in const ['Random bot', 'Greedy bot', 'Minimax bot']) {
+      await tester.tap(find.byKey(const Key('player-panel-second')));
+      await tester.pump();
+
+      expect(_inPanel('second', label), findsOneWidget, reason: label);
+    }
+
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+
+    expect(_inPanel('second', 'Player 2'), findsOneWidget);
+    // The first seat is always the person and never changes.
+    expect(_inPanel('first', 'Player 1'), findsOneWidget);
+  });
+
+  testWidgets('lets the bot answer after a pause, not instantly', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-turn',
+    );
+    const answered = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-answered',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [matchOf(answered, hash: 'answered-match')],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+
+    // The board must not change while the person is still reading it.
+    expect(engine.appliedMoves, isEmpty);
+
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(engine.appliedMoves, [move]);
+    expect(engine.botRequests, [BotPolicy.random]);
+    _expectActiveTurn(GamePlayer.first);
+  });
+
+  testWidgets('cancels a pending bot move when the opponent changes', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'cancelled',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [matchOf(botTurn, hash: 'unused')],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+    // Hand the seat back to a person before the pause elapses.
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(engine.appliedMoves, isEmpty);
+    expect(_inPanel('second', 'Player 2'), findsOneWidget);
+  });
+
   testWidgets('keeps a valid board visible and retries a failed move', (
     tester,
   ) async {
@@ -883,6 +984,14 @@ Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
   return (x, y) => Offset(
     board.left + board.width * (x + 0.5) / 5,
     board.top + board.height * (y + 0.5) / 5,
+  );
+}
+
+/// Scopes a text finder to one player's panel.
+Finder _inPanel(String seat, String text) {
+  return find.descendant(
+    of: find.byKey(Key('player-panel-$seat')),
+    matching: find.text(text),
   );
 }
 

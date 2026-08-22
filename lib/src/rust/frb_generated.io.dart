@@ -22,6 +22,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   String dco_decode_String(dynamic raw);
 
   @protected
+  BotPolicy dco_decode_bot_policy(dynamic raw);
+
+  @protected
   CounterPushRestriction dco_decode_box_autoadd_counter_push_restriction(
     dynamic raw,
   );
@@ -92,6 +95,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GameMove? dco_decode_opt_box_autoadd_game_move(dynamic raw);
+
+  @protected
   GamePlayer? dco_decode_opt_box_autoadd_game_player(dynamic raw);
 
   @protected
@@ -105,6 +111,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   String sse_decode_String(SseDeserializer deserializer);
+
+  @protected
+  BotPolicy sse_decode_bot_policy(SseDeserializer deserializer);
 
   @protected
   CounterPushRestriction sse_decode_box_autoadd_counter_push_restriction(
@@ -183,6 +192,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GameMove? sse_decode_opt_box_autoadd_game_move(SseDeserializer deserializer);
+
+  @protected
   GamePlayer? sse_decode_opt_box_autoadd_game_player(
     SseDeserializer deserializer,
   );
@@ -203,6 +215,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_String(String self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_bot_policy(BotPolicy self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_counter_push_restriction(
@@ -297,6 +312,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_counter_push_restriction(
     CounterPushRestriction? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_game_move(
+    GameMove? self,
     SseSerializer serializer,
   );
 

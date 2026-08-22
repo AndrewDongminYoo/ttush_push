@@ -33,6 +33,12 @@ class _GamePageState extends State<GamePage> {
   /// and both must feel the same, so the classification outlives the tap that
   /// produced it until the move actually lands.
   bool? _pendingMoveIsPush;
+  Timer? _botTimer;
+
+  /// Long enough that the board does not change while the person is still
+  /// reading it. This delays a move the engine has already chosen; it does
+  /// not interpolate between two states.
+  static const _botPause = Duration(milliseconds: 450);
   late final RoundFeedback _feedback;
   PlatformRoundFeedback? _ownedFeedback;
 
@@ -50,12 +56,35 @@ class _GamePageState extends State<GamePage> {
 
   @override
   void dispose() {
+    _botTimer?.cancel();
     unawaited(_ownedFeedback?.dispose());
     super.dispose();
   }
 
+  /// Schedules the opponent's move when it is their turn.
+  ///
+  /// Called after every rebuild, so a bot answers a human move, its own
+  /// advance into a new round, and a change of opponent alike.
+  void _scheduleBotMove() {
+    if (!_controller.isBotTurn || (_botTimer?.isActive ?? false)) {
+      return;
+    }
+
+    _botTimer = Timer(_botPause, () {
+      if (!mounted || !_controller.isBotTurn) {
+        return;
+      }
+      setState(_controller.playBotMove);
+      if (_controller.error == null) {
+        _feedback.moveApplied();
+      }
+      _scheduleBotMove();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    _scheduleBotMove();
     final snapshot = _controller.snapshot;
     if (snapshot == null) {
       return Scaffold(
@@ -110,6 +139,8 @@ class _GamePageState extends State<GamePage> {
               wins: snapshot.secondPlayerWins,
               isActive:
                   playing && round.currentPlayer == rust.GamePlayer.second,
+              label: _controller.opponent.label,
+              onTap: _cycleOpponent,
             ),
           ],
         ),
@@ -119,6 +150,11 @@ class _GamePageState extends State<GamePage> {
 
   void _advanceRound() {
     setState(_controller.advanceRound);
+  }
+
+  void _cycleOpponent() {
+    _botTimer?.cancel();
+    setState(_controller.cycleOpponent);
   }
 
   void _onCellTap(GameSnapshot snapshot, int x, int y) {
@@ -211,49 +247,59 @@ class _PlayerPanel extends StatelessWidget {
     required this.player,
     required this.wins,
     required this.isActive,
+    this.label,
+    this.onTap,
   });
 
   final rust.GamePlayer player;
   final int wins;
   final bool isActive;
 
+  /// Overrides the player's name, so the second seat can say which opponent
+  /// is playing it.
+  final String? label;
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final color = _playerColor(player);
-    return Container(
-      key: Key('player-panel-${player.name}'),
-      width: double.infinity,
-      color: isActive ? color : _panelColor,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: Row(
-        children: [
-          _PlayerMark(player: player, isActive: isActive),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _playerLabel(player),
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: isActive ? Colors.white : _mutedTextColor,
-              ),
-            ),
-          ),
-          if (isActive)
-            const Padding(
-              padding: EdgeInsets.only(right: 12),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        key: Key('player-panel-${player.name}'),
+        width: double.infinity,
+        color: isActive ? color : _panelColor,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        child: Row(
+          children: [
+            _PlayerMark(player: player, isActive: isActive),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
-                'Your turn',
+                label ?? _playerLabel(player),
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white,
+                  color: isActive ? Colors.white : _mutedTextColor,
                 ),
               ),
             ),
-          _RoundWins(player: player, wins: wins, isActive: isActive),
-        ],
+            if (isActive)
+              const Padding(
+                padding: EdgeInsets.only(right: 12),
+                child: Text(
+                  'Your turn',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            _RoundWins(player: player, wins: wins, isActive: isActive),
+          ],
+        ),
       ),
     );
   }
