@@ -24,6 +24,10 @@ lint:
     - linters: [ALL]
       paths:
         - web/flutter_bootstrap.js
+    # OSV Scanner does not support CocoaPods lockfiles.
+    - linters: [osv-scanner]
+      paths:
+        - ios/Podfile.lock
     # flutter_rust_bridge generates Cargokit glue that is not source-owned here.
     - linters: [ALL]
       paths:
