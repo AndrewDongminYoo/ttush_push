@@ -1,26 +1,37 @@
 import 'package:ttush_push/src/rust/api.dart' as rust;
 
-export 'package:ttush_push/src/rust/api.dart' show GameMove, GameSnapshot;
+export 'package:ttush_push/src/rust/api.dart'
+    show GameMatchPhase, GameMove, GameSnapshot, MatchSnapshot;
 
+/// The Dart-side boundary over the Rust match rules.
+///
+/// Every value crossing it is a snapshot Rust produced and can re-verify, so
+/// Dart cannot fabricate a position, a score, or a result.
 abstract interface class RulesEngine {
-  rust.GameSnapshot initialState();
+  rust.MatchSnapshot initialMatch();
 
-  List<rust.GameMove> legalMoves(rust.GameSnapshot state);
+  List<rust.GameMove> legalMoves(rust.MatchSnapshot state);
 
-  rust.GameSnapshot applyMove(rust.GameSnapshot state, rust.GameMove move);
+  rust.MatchSnapshot applyMove(rust.MatchSnapshot state, rust.GameMove move);
+
+  rust.MatchSnapshot advanceRound(rust.MatchSnapshot state);
 }
 
 final class FrbRulesEngine implements RulesEngine {
   const FrbRulesEngine();
 
   @override
-  rust.GameSnapshot initialState() => rust.initialState();
+  rust.MatchSnapshot initialMatch() => rust.initialMatch();
 
   @override
-  List<rust.GameMove> legalMoves(rust.GameSnapshot state) =>
-      rust.legalMoves(snapshot: state);
+  List<rust.GameMove> legalMoves(rust.MatchSnapshot state) =>
+      rust.matchLegalMoves(snapshot: state);
 
   @override
-  rust.GameSnapshot applyMove(rust.GameSnapshot state, rust.GameMove move) =>
-      rust.applyMove(snapshot: state, gameMove: move);
+  rust.MatchSnapshot applyMove(rust.MatchSnapshot state, rust.GameMove move) =>
+      rust.matchApplyMove(snapshot: state, gameMove: move);
+
+  @override
+  rust.MatchSnapshot advanceRound(rust.MatchSnapshot state) =>
+      rust.advanceRound(snapshot: state);
 }

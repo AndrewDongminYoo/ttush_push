@@ -1,9 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/app/app.dart';
-import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/game_page.dart';
 import 'package:ttush_push/src/rust/api.dart';
+
+import '../../support/match_fixtures.dart';
 
 void main() {
   testWidgets('opens directly to the playable round', (tester) async {
@@ -15,8 +16,8 @@ void main() {
     );
 
     await tester.pumpWidget(
-      const App(
-        rulesEngine: _FakeRulesEngine(snapshot: snapshot),
+      App(
+        rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot)),
       ),
     );
 
@@ -29,21 +30,4 @@ void main() {
       findsOneWidget,
     );
   });
-}
-
-final class _FakeRulesEngine implements RulesEngine {
-  const _FakeRulesEngine({required this.snapshot});
-
-  final GameSnapshot snapshot;
-
-  @override
-  GameSnapshot applyMove(GameSnapshot state, GameMove move) {
-    throw UnsupportedError('applyMove is not used by this test');
-  }
-
-  @override
-  GameSnapshot initialState() => snapshot;
-
-  @override
-  List<GameMove> legalMoves(GameSnapshot state) => const [];
 }

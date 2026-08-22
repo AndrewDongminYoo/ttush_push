@@ -13,7 +13,7 @@ void main() {
     await RustLib.init();
     const rulesEngine = FrbRulesEngine();
 
-    var snapshot = rulesEngine.initialState();
+    var match = rulesEngine.initialMatch();
     const fixtureMoves = [
       GameMove(pieceId: 0, direction: GameDirection.down),
       GameMove(pieceId: 2, direction: GameDirection.up),
@@ -22,13 +22,16 @@ void main() {
     ];
 
     for (final move in fixtureMoves) {
-      expect(rulesEngine.legalMoves(snapshot), contains(move));
-      snapshot = rulesEngine.applyMove(snapshot, move);
+      expect(rulesEngine.legalMoves(match), contains(move));
+      match = rulesEngine.applyMove(match, move);
     }
 
-    expect(snapshot.snapshotHash, '7044880ea390e9a8');
+    // The round hash is the parity evidence: both native runtimes must
+    // derive the same canonical state from the same moves.
+    expect(match.round.snapshotHash, '7044880ea390e9a8');
+    expect(match.phase, GameMatchPhase.playing);
     expect(
-      rulesEngine.legalMoves(snapshot),
+      rulesEngine.legalMoves(match),
       isNot(
         contains(
           const GameMove(pieceId: 0, direction: GameDirection.down),
