@@ -1,6 +1,6 @@
 # Ttush Push
 
-Ttush Push is a Flutter game project with a dependency-free Rust rules engine for deterministic gameplay experiments.
+Ttush Push is a Flutter game project with a Rust rules engine that owns every gameplay rule, so both players see a position that neither client can bypass.
 
 ## Prerequisites
 
@@ -8,33 +8,29 @@ Ttush Push is a Flutter game project with a dependency-free Rust rules engine fo
 - Dart 3.12 or later
 - Rust toolchain
 - iOS 15.0 or later for iOS builds
+- [merry](https://pub.dev/packages/merry) as the script runner: `dart pub global activate merry`
 
-## Run the Flutter App
+## Run the App
 
 ```sh
 flutter pub get
-flutter run --flavor development --target lib/main_development.dart
+merry run dev
 ```
 
-Use the matching `staging` or `production` flavor and entrypoint when required.
+That runs the development flavor. Use the matching `staging` or `production` flavor and entrypoint when required.
 
-## Verify Flutter Changes
+## Verify Changes
 
 ```sh
-dart format --set-exit-if-changed lib/app lib/bootstrap.dart lib/game test integration_test
-flutter analyze
-flutter test
-trunk check --no-progress
+merry run check
 ```
 
-## Run the Rules Engine
+`merry ls` lists every script, including the individual Dart and Rust gates that `check` composes.
 
-```sh
-cargo test --manifest-path engine/Cargo.toml
-TMPDIR="$PWD/engine/target/test-tmp" cargo run --release --manifest-path engine/Cargo.toml -- --games 100000 --seed 42
-```
+## Rules Engine
 
-The Rust engine is intentionally independent from Flutter.
+The Rust engine under `engine/` is the sole rules authority and stays independent from Flutter.
+Run `merry run rust test` for its test suite, and `merry run rust simulate` to replay a fixed seed when comparing balance changes across runs.
 
 ## Documentation
 
