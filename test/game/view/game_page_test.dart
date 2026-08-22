@@ -274,6 +274,14 @@ void main() {
       pieces: [],
       snapshotHash: 'layout',
     );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'layout-terminal',
+    );
     addTearDown(tester.view.reset);
 
     for (final size in const [Size(320, 480), Size(1024, 1280)]) {
@@ -300,6 +308,20 @@ void main() {
         lessThanOrEqualTo(size.width),
         reason: 'at $size',
       );
+      expect(tester.takeException(), isNull, reason: 'ongoing at $size');
+
+      // The overlay carries its own overflow risk, so it is laid out here too.
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: GamePage(
+            key: Key('terminal'),
+            rulesEngine: _FakeRulesEngine(snapshot: terminalSnapshot),
+          ),
+        ),
+      );
+
+      expect(find.text('Play Again'), findsOneWidget, reason: 'at $size');
+      expect(tester.takeException(), isNull, reason: 'terminal at $size');
     }
   });
 

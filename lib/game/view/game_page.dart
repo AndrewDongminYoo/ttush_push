@@ -49,15 +49,18 @@ class _GamePageState extends State<GamePage> {
       body: SafeArea(
         child: Column(
           children: [
-            _PlayerPanel(
-              player: rust.GamePlayer.second,
-              isActive:
-                  winner == null &&
-                  snapshot.currentPlayer == rust.GamePlayer.second,
+            Expanded(
+              child: _PlayerPanel(
+                player: rust.GamePlayer.second,
+                isActive:
+                    winner == null &&
+                    snapshot.currentPlayer == rust.GamePlayer.second,
+              ),
             ),
             if (_controller.error != null)
               _ActionError(onRetry: _retry, error: _controller.error!),
             Expanded(
+              flex: 6,
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -79,11 +82,13 @@ class _GamePageState extends State<GamePage> {
                 ],
               ),
             ),
-            _PlayerPanel(
-              player: rust.GamePlayer.first,
-              isActive:
-                  winner == null &&
-                  snapshot.currentPlayer == rust.GamePlayer.first,
+            Expanded(
+              child: _PlayerPanel(
+                player: rust.GamePlayer.first,
+                isActive:
+                    winner == null &&
+                    snapshot.currentPlayer == rust.GamePlayer.first,
+              ),
             ),
           ],
         ),
@@ -231,31 +236,44 @@ class _ResultOverlay extends StatelessWidget {
     return ColoredBox(
       color: _surfaceColor.withValues(alpha: 0.78),
       child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '${_playerLabel(winner)} wins',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: _playerColor(winner),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _PlayerMark(player: winner, isActive: false),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      '${_playerLabel(winner)} wins',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              switch (reason) {
-                rust.GameWinReason.knockout => 'by knockout',
-                rust.GameWinReason.immobilization => 'by immobilization',
-              },
-              style: const TextStyle(fontSize: 16, color: _mutedTextColor),
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: onPlayAgain,
-              child: const Text('Play Again'),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                switch (reason) {
+                  rust.GameWinReason.knockout => 'by knockout',
+                  rust.GameWinReason.immobilization => 'by immobilization',
+                },
+                style: const TextStyle(fontSize: 16, color: _mutedTextColor),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: onPlayAgain,
+                child: const Text('Play Again'),
+              ),
+            ],
+          ),
         ),
       ),
     );
