@@ -51,10 +51,10 @@ class _GamePageState extends State<GamePage> {
           children: [
             Expanded(
               child: _PlayerPanel(
-                player: rust.GamePlayer.second,
+                player: rust.GamePlayer.first,
                 isActive:
                     winner == null &&
-                    snapshot.currentPlayer == rust.GamePlayer.second,
+                    snapshot.currentPlayer == rust.GamePlayer.first,
               ),
             ),
             if (_controller.error != null)
@@ -84,10 +84,10 @@ class _GamePageState extends State<GamePage> {
             ),
             Expanded(
               child: _PlayerPanel(
-                player: rust.GamePlayer.first,
+                player: rust.GamePlayer.second,
                 isActive:
                     winner == null &&
-                    snapshot.currentPlayer == rust.GamePlayer.first,
+                    snapshot.currentPlayer == rust.GamePlayer.second,
               ),
             ),
           ],

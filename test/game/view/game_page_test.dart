@@ -26,6 +26,14 @@ void main() {
 
     _expectActiveTurn(GamePlayer.first);
     expect(find.byType(RoundBoard), findsOneWidget);
+    // The engine starts the first player on row 0, so their panel has to be
+    // the top one for each player to sit behind their own pieces.
+    expect(
+      tester.getRect(find.byKey(const Key('player-panel-first'))).top,
+      lessThan(
+        tester.getRect(find.byKey(const Key('player-panel-second'))).top,
+      ),
+    );
   });
 
   testWidgets('retries an initial bridge failure', (tester) async {

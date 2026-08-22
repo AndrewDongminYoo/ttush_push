@@ -68,7 +68,8 @@ The board takes most of the vertical space and the panels share what is left.
 On a tall screen the board is bounded by the screen width, so the surplus height goes to the panels rather than to empty background, which makes the active player's color readable from further away.
 Text inside a panel and inside the result overlay must flex rather than size itself first, because at 320pt neither fits its row otherwise.
 
-The bottom panel represents the first player and the top panel represents the second player, so each player faces their own panel across a shared device.
+The top panel represents the first player and the bottom panel the second, following the engine's starting layout, which places the first player's pieces on row 0 and the second player's on row 4.
+Each player therefore sits behind their own pieces rather than opposite them.
 
 ### Result overlay
 
