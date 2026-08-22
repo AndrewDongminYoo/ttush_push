@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/game_page.dart';
 import 'package:ttush_push/game/view/round_board.dart';
@@ -372,6 +373,334 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('feels a selection and then an ordinary move', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'haptic-start',
+    );
+    const afterMove = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 3),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'haptic-moved',
+    );
+    const moveDown = GameMove(pieceId: 0, direction: GameDirection.down);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          feedback: feedback,
+          rulesEngine: _MoveRulesEngine(
+            initialSnapshot: start,
+            nextSnapshot: afterMove,
+            legalMoves: const [moveDown],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.pump();
+
+    expect(felt, ['select']);
+
+    felt.clear();
+    await tester.tapAt(cellCenter(2, 3));
+    await tester.pump();
+
+    expect(felt, ['move']);
+  });
+
+  testWidgets('feels the won round rather than the push that won it', (
+    tester,
+  ) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'haptic-winning',
+    );
+    const afterPush = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'haptic-won',
+    );
+    const pushUp = GameMove(pieceId: 0, direction: GameDirection.up);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          feedback: feedback,
+          rulesEngine: _MoveRulesEngine(
+            initialSnapshot: start,
+            nextSnapshot: afterPush,
+            legalMoves: const [pushUp],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+
+    expect(felt, [
+      'select',
+      'win',
+    ]);
+  });
+
+  testWidgets('feels a push that leaves the round ongoing', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'push-ongoing',
+    );
+    const afterPush = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 0),
+      ],
+      snapshotHash: 'push-ongoing-next',
+    );
+    const pushUp = GameMove(pieceId: 0, direction: GameDirection.up);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          feedback: feedback,
+          rulesEngine: _MoveRulesEngine(
+            initialSnapshot: start,
+            nextSnapshot: afterPush,
+            legalMoves: const [pushUp],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+
+    expect(felt, [
+      'select',
+      'push',
+    ]);
+  });
+
+  testWidgets('stays silent when a tap changes nothing', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0),
+      ],
+      snapshotHash: 'silent',
+    );
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          feedback: feedback,
+          rulesEngine: const _FakeRulesEngine(snapshot: start),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+
+    // An empty cell, an opposing piece, and an own piece with no legal move.
+    await tester.tapAt(cellCenter(4, 4));
+    await tester.tapAt(cellCenter(0, 0));
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.pump();
+
+    expect(felt, isEmpty);
+  });
+
+  testWidgets('stays silent when applying a move fails', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2)],
+      snapshotHash: 'failing',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          feedback: feedback,
+          rulesEngine: _SequencedMoveRulesEngine(
+            initialSnapshot: start,
+            moves: const [move],
+            moveResults: [StateError('bridge unavailable')],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+
+    await tester.tapAt(cellCenter(2, 2));
+    felt.clear();
+    await tester.tapAt(cellCenter(2, 3));
+    await tester.pump();
+
+    expect(felt, isEmpty);
+  });
+
+  testWidgets('says nothing when the same piece is tapped again', (
+    tester,
+  ) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2)],
+      snapshotHash: 'reselect',
+    );
+    const moveDown = GameMove(pieceId: 0, direction: GameDirection.down);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          feedback: feedback,
+          rulesEngine: _MoveRulesEngine(
+            initialSnapshot: start,
+            nextSnapshot: start,
+            legalMoves: const [moveDown],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.pump();
+
+    expect(felt, ['select']);
+
+    felt.clear();
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.pump();
+
+    expect(felt, isEmpty);
+  });
+
+  testWidgets('feels a move that lands on retry', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'retry-feel',
+    );
+    const afterPush = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 0),
+      ],
+      snapshotHash: 'retry-feel-next',
+    );
+    const pushUp = GameMove(pieceId: 0, direction: GameDirection.up);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          feedback: feedback,
+          rulesEngine: _SequencedMoveRulesEngine(
+            initialSnapshot: start,
+            moves: const [pushUp],
+            moveResults: [StateError('bridge unavailable'), afterPush],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    felt.clear();
+
+    // The board advances on retry, so it must feel like the push it is.
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    expect(felt, ['push']);
+  });
+
+  testWidgets('says nothing when retrying initialization', (tester) async {
+    const ready = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'init-retry',
+    );
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          feedback: feedback,
+          rulesEngine: _SequencedRulesEngine(
+            initialStateResults: [StateError('bridge unavailable'), ready],
+            legalMoves: const [],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    expect(felt, isEmpty);
+  });
+
   testWidgets('keeps a valid board visible and retries a failed move', (
     tester,
   ) async {
@@ -420,6 +749,32 @@ void main() {
     _expectActiveTurn(GamePlayer.second);
     expect(find.textContaining('Unable to update round'), findsNothing);
   });
+}
+
+/// Maps a board cell to the point to tap for it.
+Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
+  final board = tester.getRect(find.byKey(const Key('round-board-canvas')));
+  return (x, y) => Offset(
+    board.left + board.width * (x + 0.5) / 5,
+    board.top + board.height * (y + 0.5) / 5,
+  );
+}
+
+/// Records what the page reported, without asserting how it is felt.
+final class _RecordingFeedback implements RoundFeedback {
+  final List<String> events = [];
+
+  @override
+  void pieceSelected() => events.add('select');
+
+  @override
+  void moveApplied() => events.add('move');
+
+  @override
+  void pushApplied() => events.add('push');
+
+  @override
+  void roundWon() => events.add('win');
 }
 
 void _expectActiveTurn(GamePlayer player) {

@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/round/round_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/round_board.dart';
@@ -11,10 +14,11 @@ const _firstPlayerColor = Color(0xFF2A48DF);
 const _secondPlayerColor = Color(0xFFE14B4B);
 
 class GamePage extends StatefulWidget {
-  const GamePage({super.key, RulesEngine? rulesEngine})
+  const GamePage({super.key, RulesEngine? rulesEngine, this._feedback})
     : _rulesEngine = rulesEngine ?? const FrbRulesEngine();
 
   final RulesEngine _rulesEngine;
+  final RoundFeedback? _feedback;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -23,10 +27,31 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   late final RoundController _controller;
 
+  /// How the move awaiting application should be felt.
+  ///
+  /// A move can be applied by a tap or by retrying one the bridge rejected,
+  /// and both must feel the same, so the classification outlives the tap that
+  /// produced it until the move actually lands.
+  bool? _pendingMoveIsPush;
+  late final RoundFeedback _feedback;
+  PlatformRoundFeedback? _ownedFeedback;
+
   @override
   void initState() {
     super.initState();
     _controller = RoundController(widget._rulesEngine)..initialize();
+    final injected = widget._feedback;
+    if (injected != null) {
+      _feedback = injected;
+    } else {
+      _feedback = _ownedFeedback = PlatformRoundFeedback();
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_ownedFeedback?.dispose());
+    super.dispose();
   }
 
   @override
@@ -65,7 +90,7 @@ class _GamePageState extends State<GamePage> {
                       snapshot: snapshot,
                       legalMoves: _controller.legalMoves,
                       selectedPieceId: _controller.selectedPieceId,
-                      onCellTap: _onCellTap,
+                      onCellTap: (x, y) => _onCellTap(snapshot, x, y),
                     ),
                   ),
                   if (winner != null)
@@ -91,37 +116,70 @@ class _GamePageState extends State<GamePage> {
     );
   }
 
-  void _onCellTap(int x, int y) {
-    setState(() {
-      // Destination resolution precedes selection, so tapping an opposing
-      // piece that is also a legal push destination pushes it.
-      final move = _controller.moveForTappedDestination(x, y);
-      if (move != null) {
-        _controller.applyMove(move);
-        return;
-      }
-
-      final snapshot = _controller.snapshot;
-      final pieceIndex = snapshot?.pieces.indexWhere(
-        (piece) =>
-            piece.x == x &&
-            piece.y == y &&
-            piece.owner == snapshot.currentPlayer,
+  void _onCellTap(GameSnapshot snapshot, int x, int y) {
+    // Destination resolution precedes selection, so tapping an opposing
+    // piece that is also a legal push destination pushes it.
+    final move = _controller.moveForTappedDestination(x, y);
+    if (move != null) {
+      // Read before the move is applied: a destination someone stands on is
+      // a push. This is the same read the board's markers use.
+      final isPush = snapshot.pieces.any(
+        (piece) => piece.x == x && piece.y == y,
       );
-      if (pieceIndex == null || pieceIndex == -1) {
-        _controller.clearSelection();
-        return;
-      }
-      _controller.selectPiece(snapshot!.pieces[pieceIndex].id);
-    });
+      _pendingMoveIsPush = isPush;
+      setState(() => _controller.applyMove(move));
+      _feedbackForAppliedMove();
+      return;
+    }
+
+    final pieceIndex = snapshot.pieces.indexWhere(
+      (piece) =>
+          piece.x == x && piece.y == y && piece.owner == snapshot.currentPlayer,
+    );
+    if (pieceIndex == -1) {
+      setState(_controller.clearSelection);
+      return;
+    }
+
+    final previousSelection = _controller.selectedPieceId;
+    setState(() => _controller.selectPiece(snapshot.pieces[pieceIndex].id));
+    final selection = _controller.selectedPieceId;
+    // Re-tapping the piece already selected changes nothing.
+    if (selection != null && selection != previousSelection) {
+      _feedback.pieceSelected();
+    }
+  }
+
+  /// Fires once the pending move has actually been applied.
+  ///
+  /// A won round outranks how the move was made, so it is felt as one event
+  /// rather than two.
+  void _feedbackForAppliedMove() {
+    final isPush = _pendingMoveIsPush;
+    if (isPush == null || _controller.error != null) {
+      return;
+    }
+    _pendingMoveIsPush = null;
+
+    if (_controller.snapshot?.winner != null) {
+      _feedback.roundWon();
+      return;
+    }
+    if (isPush) {
+      _feedback.pushApplied();
+    } else {
+      _feedback.moveApplied();
+    }
   }
 
   void _restart() {
+    _pendingMoveIsPush = null;
     setState(_controller.restart);
   }
 
   void _retry() {
     setState(_controller.retry);
+    _feedbackForAppliedMove();
   }
 }
 
