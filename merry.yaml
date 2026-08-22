@@ -1,0 +1,79 @@
+# Script definitions for `merry run <name>`. Run `merry ls` to list them.
+
+# --- Development ------------------------------------------------------------
+dev:
+  (description): Runs the development flavor on the connected device.
+  (scripts): flutter run --flavor development --target lib/main_development.dart
+
+# --- Dart gates -------------------------------------------------------------
+format:
+  (description): Formats the hand-written Dart sources.
+  (default): dart format lib test integration_test test_driver
+
+  check:
+    (description): Fails when the hand-written Dart sources are not formatted.
+    (scripts): dart format --output=none --set-exit-if-changed lib test integration_test test_driver
+
+analyze:
+  (description): Runs very_good_analysis over the Dart sources.
+  (scripts): flutter analyze
+
+test:
+  (description): Runs the Flutter unit and widget tests.
+  (scripts): flutter test
+
+coverage:
+  (aliases): cov
+  (description): Runs the Flutter tests under the same coverage gate as CI.
+  (scripts): very_good test -j 4 --optimization --coverage --min-coverage 100 --exclude-coverage 'lib/src/rust/** lib/game/rules/rules_engine.dart' --report-on lib
+
+# --- Rust engine gates ------------------------------------------------------
+rust:
+  (description): Gates for the rules engine crate.
+  (default): $rust:test
+
+  format:
+    (description): Formats the whole engine crate.
+    (default): cargo fmt --manifest-path engine/Cargo.toml
+
+    check:
+      (description): Fails when the engine crate is not formatted.
+      (scripts): cargo fmt --manifest-path engine/Cargo.toml -- --check
+
+  lint:
+    (description): Runs clippy over every engine target with warnings denied.
+    (scripts): cargo clippy --manifest-path engine/Cargo.toml --all-targets -- -D warnings
+
+  test:
+    (description): Runs the engine rules, bridge, and simulation tests.
+    (scripts): cargo test --manifest-path engine/Cargo.toml
+
+  simulate:
+    (description): Replays a fixed seed so balance changes can be diffed run to run.
+    (scripts): cargo run --release --manifest-path engine/Cargo.toml -- --games 100000 --seed 42
+
+# --- Code generation --------------------------------------------------------
+generate:
+  (description): Regenerates code that is owned by a generator, never by hand.
+  (default): $generate:bridge
+
+  bridge:
+    (description): Regenerates the flutter_rust_bridge glue after an engine/src/api.rs change.
+    (scripts): tool/generate_rust_bridge.sh
+
+  l10n:
+    (description): Regenerates localizations from the ARB files.
+    (scripts): flutter gen-l10n
+
+# --- Aggregate gate ---------------------------------------------------------
+check:
+  (description): The full local gate before committing.
+  (execution): once
+  (scripts):
+    - $format:check
+    - $analyze
+    - $coverage
+    - $rust:format:check
+    - $rust:lint
+    - $rust:test
+    - trunk check --no-progress
