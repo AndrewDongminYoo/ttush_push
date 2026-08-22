@@ -73,8 +73,12 @@ final class PlatformRoundFeedback implements RoundFeedback {
         created.setAudioContext(
           AudioContext(
             iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
+            // Android routes USAGE_GAME to the media stream, which the
+            // ringer does not silence. The notification stream is the one
+            // that follows it, and sonification is what these actually are.
             android: const AudioContextAndroid(
-              usageType: AndroidUsageType.game,
+              usageType: AndroidUsageType.notificationEvent,
+              contentType: AndroidContentType.sonification,
               audioFocus: AndroidAudioFocus.none,
             ),
           ),

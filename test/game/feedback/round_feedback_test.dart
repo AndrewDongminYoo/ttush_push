@@ -47,8 +47,16 @@ void main() {
       ['sfx/push.wav'],
       ['sfx/win.wav'],
     ]);
-    // Decoration, not content: the ringer switch has to win.
-    expect(players.every((player) => player.contextSet), isTrue);
+    // Decoration, not content: the ringer switch has to win. Asserting the
+    // routing rather than merely that some context was set, because the wrong
+    // routing is silent on every gate but audible on the device.
+    for (final player in players) {
+      final context = player.context;
+      expect(context, isNotNull);
+      expect(context!.iOS.category, AVAudioSessionCategory.ambient);
+      expect(context.android.usageType, AndroidUsageType.notificationEvent);
+      expect(context.android.contentType, AndroidContentType.sonification);
+    }
   });
 
   test('reuses one player per effect and releases them on dispose', () async {
@@ -86,7 +94,7 @@ void main() {
 
 final class _FakeAudioPlayer implements AudioPlayer {
   final List<String> played = [];
-  bool contextSet = false;
+  AudioContext? context;
   bool disposed = false;
   int stopCount = 0;
 
@@ -95,7 +103,7 @@ final class _FakeAudioPlayer implements AudioPlayer {
 
   @override
   Future<void> setAudioContext(AudioContext ctx) async {
-    contextSet = true;
+    context = ctx;
   }
 
   @override
