@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use engine::{
-    BoardConfig, Direction, GameState, IllegalMove, MatchOutcome, MatchState, Move, Outcome, Piece,
+    BoardConfig, Direction, GameState, IllegalMove, MatchPhase, MatchState, Move, Outcome, Piece,
     PieceId, Player, Position, Tile, WinReason, apply_move, legal_moves, outcome,
 };
 
@@ -225,9 +225,35 @@ fn match_settles_an_initially_immobilized_round() {
 
     let state = MatchState::new(board, Player::Second).unwrap();
 
-    assert_eq!(state.round_wins(Player::First), 2);
+    // The opening board is already immobilized, so the first round is over
+    // before anyone moves. It is a state the caller can show, not a step
+    // hidden inside construction.
+    assert_eq!(state.round_wins(Player::First), 1);
     assert_eq!(state.round_wins(Player::Second), 0);
-    assert_eq!(state.outcome(), MatchOutcome::Winner(Player::First));
+    assert_eq!(
+        state.phase(),
+        MatchPhase::RoundOver {
+            winner: Player::First,
+            reason: WinReason::Immobilization,
+        },
+    );
+
+    // The reset board is immobilized on arrival too, which settles the match.
+    let settled = state.advance_round().unwrap();
+
+    assert_eq!(settled.round_wins(Player::First), 2);
+    assert_eq!(
+        settled.phase(),
+        MatchPhase::MatchOver {
+            winner: Player::First,
+            reason: WinReason::Immobilization,
+        },
+    );
+    assert_eq!(
+        settled.apply_move(Move::new(PieceId(1), Direction::Up)),
+        Err(IllegalMove::MatchFinished)
+    );
+    assert_eq!(settled.advance_round(), Err(IllegalMove::MatchFinished));
 }
 
 #[test]
@@ -247,29 +273,60 @@ fn match_resets_the_board_with_the_loser_starting_and_ends_after_two_round_wins(
     .unwrap();
     let state = MatchState::new(board, Player::First).unwrap();
 
-    let after_first_round = state
+    let round_over = state
         .apply_move(Move::new(attacker, Direction::Right))
         .unwrap();
 
-    assert_eq!(after_first_round.round_wins(Player::First), 1);
-    assert_eq!(after_first_round.round().current_player(), Player::Second);
+    assert_eq!(round_over.round_wins(Player::First), 1);
     assert_eq!(
-        after_first_round.round().tile_at(position(3, 2)),
+        round_over.phase(),
+        MatchPhase::RoundOver {
+            winner: Player::First,
+            reason: WinReason::Knockout,
+        },
+    );
+    // The board that ended the round is still the one on show.
+    assert_eq!(
+        round_over.round().piece(attacker).unwrap().position,
+        position(4, 2)
+    );
+    assert_eq!(
+        round_over.round().tile_at(position(3, 2)),
+        Some(Tile::Damaged)
+    );
+    // Neither a move nor a second advance is accepted from here.
+    assert_eq!(
+        round_over.apply_move(Move::new(responder, Direction::Down)),
+        Err(IllegalMove::RoundFinished),
+    );
+
+    let second_round = round_over.advance_round().unwrap();
+
+    assert_eq!(second_round.phase(), MatchPhase::Playing);
+    // The loser starts, on a board reset to its opening state.
+    assert_eq!(second_round.round().current_player(), Player::Second);
+    assert_eq!(
+        second_round.round().tile_at(position(3, 2)),
         Some(Tile::Normal)
     );
-    assert_eq!(after_first_round.outcome(), MatchOutcome::Ongoing);
+    assert_eq!(
+        second_round.advance_round(),
+        Err(IllegalMove::RoundInProgress)
+    );
 
-    let before_second_round_finish = after_first_round
+    let completed_match = second_round
         .apply_move(Move::new(responder, Direction::Down))
-        .unwrap();
-    let completed_match = before_second_round_finish
+        .unwrap()
         .apply_move(Move::new(attacker, Direction::Right))
         .unwrap();
 
     assert_eq!(completed_match.round_wins(Player::First), 2);
     assert_eq!(
-        completed_match.outcome(),
-        MatchOutcome::Winner(Player::First),
+        completed_match.phase(),
+        MatchPhase::MatchOver {
+            winner: Player::First,
+            reason: WinReason::Knockout,
+        },
     );
 }
 

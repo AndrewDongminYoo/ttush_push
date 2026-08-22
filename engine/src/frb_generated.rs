@@ -38,7 +38,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1459521354;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 22879724;
 
 // Section: executor
 
@@ -46,14 +46,14 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
-fn wire__crate__api__apply_move_impl(
+fn wire__crate__api__advance_round_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "apply_move",
+            debug_name: "advance_round",
             port: None,
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
         },
@@ -67,24 +67,23 @@ fn wire__crate__api__apply_move_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_snapshot = <crate::api::GameSnapshot>::sse_decode(&mut deserializer);
-            let api_game_move = <crate::api::GameMove>::sse_decode(&mut deserializer);
+            let api_snapshot = <crate::api::MatchSnapshot>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, String>((move || {
-                let output_ok = crate::api::apply_move(api_snapshot, api_game_move)?;
+                let output_ok = crate::api::advance_round(api_snapshot)?;
                 Ok(output_ok)
             })())
         },
     )
 }
-fn wire__crate__api__initial_state_impl(
+fn wire__crate__api__initial_match_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "initial_state",
+            debug_name: "initial_match",
             port: None,
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
         },
@@ -100,20 +99,20 @@ fn wire__crate__api__initial_state_impl(
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
             deserializer.end();
             transform_result_sse::<_, ()>((move || {
-                let output_ok = Result::<_, ()>::Ok(crate::api::initial_state())?;
+                let output_ok = Result::<_, ()>::Ok(crate::api::initial_match())?;
                 Ok(output_ok)
             })())
         },
     )
 }
-fn wire__crate__api__legal_moves_impl(
+fn wire__crate__api__match_apply_move_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "legal_moves",
+            debug_name: "match_apply_move",
             port: None,
             mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
         },
@@ -127,10 +126,41 @@ fn wire__crate__api__legal_moves_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_snapshot = <crate::api::GameSnapshot>::sse_decode(&mut deserializer);
+            let api_snapshot = <crate::api::MatchSnapshot>::sse_decode(&mut deserializer);
+            let api_game_move = <crate::api::GameMove>::sse_decode(&mut deserializer);
             deserializer.end();
             transform_result_sse::<_, String>((move || {
-                let output_ok = crate::api::legal_moves(api_snapshot)?;
+                let output_ok = crate::api::match_apply_move(api_snapshot, api_game_move)?;
+                Ok(output_ok)
+            })())
+        },
+    )
+}
+fn wire__crate__api__match_legal_moves_impl(
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "match_legal_moves",
+            port: None,
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_snapshot = <crate::api::MatchSnapshot>::sse_decode(&mut deserializer);
+            deserializer.end();
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::match_legal_moves(api_snapshot)?;
                 Ok(output_ok)
             })())
         },
@@ -169,6 +199,19 @@ impl SseDecode for crate::api::GameDirection {
             2 => crate::api::GameDirection::Left,
             3 => crate::api::GameDirection::Right,
             _ => unreachable!("Invalid variant for GameDirection: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::GameMatchPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::GameMatchPhase::Playing,
+            1 => crate::api::GameMatchPhase::RoundOver,
+            2 => crate::api::GameMatchPhase::MatchOver,
+            _ => unreachable!("Invalid variant for GameMatchPhase: {}", inner),
         };
     }
 }
@@ -330,6 +373,32 @@ impl SseDecode for Vec<u8> {
     }
 }
 
+impl SseDecode for crate::api::MatchSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_round = <crate::api::GameSnapshot>::sse_decode(deserializer);
+        let mut var_startingPieces = <Vec<crate::api::GamePiece>>::sse_decode(deserializer);
+        let mut var_firstPlayerWins = <u8>::sse_decode(deserializer);
+        let mut var_secondPlayerWins = <u8>::sse_decode(deserializer);
+        let mut var_phase = <crate::api::GameMatchPhase>::sse_decode(deserializer);
+        let mut var_roundWinner = <Option<crate::api::GamePlayer>>::sse_decode(deserializer);
+        let mut var_roundWinReason = <Option<crate::api::GameWinReason>>::sse_decode(deserializer);
+        let mut var_matchWinner = <Option<crate::api::GamePlayer>>::sse_decode(deserializer);
+        let mut var_snapshotHash = <String>::sse_decode(deserializer);
+        return crate::api::MatchSnapshot {
+            round: var_round,
+            starting_pieces: var_startingPieces,
+            first_player_wins: var_firstPlayerWins,
+            second_player_wins: var_secondPlayerWins,
+            phase: var_phase,
+            round_winner: var_roundWinner,
+            round_win_reason: var_roundWinReason,
+            match_winner: var_matchWinner,
+            snapshot_hash: var_snapshotHash,
+        };
+    }
+}
+
 impl SseDecode for Option<crate::api::CounterPushRestriction> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -405,9 +474,10 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__apply_move_impl(ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__initial_state_impl(ptr, rust_vec_len, data_len),
-        3 => wire__crate__api__legal_moves_impl(ptr, rust_vec_len, data_len),
+        1 => wire__crate__api__advance_round_impl(ptr, rust_vec_len, data_len),
+        2 => wire__crate__api__initial_match_impl(ptr, rust_vec_len, data_len),
+        3 => wire__crate__api__match_apply_move_impl(ptr, rust_vec_len, data_len),
+        4 => wire__crate__api__match_legal_moves_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -450,6 +520,23 @@ impl flutter_rust_bridge::IntoDart for crate::api::GameDirection {
 impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::GameDirection {}
 impl flutter_rust_bridge::IntoIntoDart<crate::api::GameDirection> for crate::api::GameDirection {
     fn into_into_dart(self) -> crate::api::GameDirection {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::GameMatchPhase {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Playing => 0.into_dart(),
+            Self::RoundOver => 1.into_dart(),
+            Self::MatchOver => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::GameMatchPhase {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::GameMatchPhase> for crate::api::GameMatchPhase {
+    fn into_into_dart(self) -> crate::api::GameMatchPhase {
         self
     }
 }
@@ -574,6 +661,29 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::GameWinReason> for crate::api
         self
     }
 }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::MatchSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.round.into_into_dart().into_dart(),
+            self.starting_pieces.into_into_dart().into_dart(),
+            self.first_player_wins.into_into_dart().into_dart(),
+            self.second_player_wins.into_into_dart().into_dart(),
+            self.phase.into_into_dart().into_dart(),
+            self.round_winner.into_into_dart().into_dart(),
+            self.round_win_reason.into_into_dart().into_dart(),
+            self.match_winner.into_into_dart().into_dart(),
+            self.snapshot_hash.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::MatchSnapshot {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::MatchSnapshot> for crate::api::MatchSnapshot {
+    fn into_into_dart(self) -> crate::api::MatchSnapshot {
+        self
+    }
+}
 
 impl SseEncode for String {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -599,6 +709,23 @@ impl SseEncode for crate::api::GameDirection {
                 crate::api::GameDirection::Down => 1,
                 crate::api::GameDirection::Left => 2,
                 crate::api::GameDirection::Right => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::GameMatchPhase {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::GameMatchPhase::Playing => 0,
+                crate::api::GameMatchPhase::RoundOver => 1,
+                crate::api::GameMatchPhase::MatchOver => 2,
                 _ => {
                     unimplemented!("");
                 }
@@ -741,6 +868,21 @@ impl SseEncode for Vec<u8> {
         for item in self {
             <u8>::sse_encode(item, serializer);
         }
+    }
+}
+
+impl SseEncode for crate::api::MatchSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::GameSnapshot>::sse_encode(self.round, serializer);
+        <Vec<crate::api::GamePiece>>::sse_encode(self.starting_pieces, serializer);
+        <u8>::sse_encode(self.first_player_wins, serializer);
+        <u8>::sse_encode(self.second_player_wins, serializer);
+        <crate::api::GameMatchPhase>::sse_encode(self.phase, serializer);
+        <Option<crate::api::GamePlayer>>::sse_encode(self.round_winner, serializer);
+        <Option<crate::api::GameWinReason>>::sse_encode(self.round_win_reason, serializer);
+        <Option<crate::api::GamePlayer>>::sse_encode(self.match_winner, serializer);
+        <String>::sse_encode(self.snapshot_hash, serializer);
     }
 }
 

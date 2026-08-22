@@ -68,7 +68,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -1459521354;
+  int get rustContentHash => 22879724;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -80,14 +80,16 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
-  GameSnapshot crateApiApplyMove({
-    required GameSnapshot snapshot,
+  MatchSnapshot crateApiAdvanceRound({required MatchSnapshot snapshot});
+
+  MatchSnapshot crateApiInitialMatch();
+
+  MatchSnapshot crateApiMatchApplyMove({
+    required MatchSnapshot snapshot,
     required GameMove gameMove,
   });
 
-  GameSnapshot crateApiInitialState();
-
-  List<GameMove> crateApiLegalMoves({required GameSnapshot snapshot});
+  List<GameMove> crateApiMatchLegalMoves({required MatchSnapshot snapshot});
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -99,36 +101,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
-  GameSnapshot crateApiApplyMove({
-    required GameSnapshot snapshot,
-    required GameMove gameMove,
-  }) {
+  MatchSnapshot crateApiAdvanceRound({required MatchSnapshot snapshot}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_game_snapshot(snapshot, serializer);
-          sse_encode_box_autoadd_game_move(gameMove, serializer);
+          sse_encode_box_autoadd_match_snapshot(snapshot, serializer);
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_game_snapshot,
+          decodeSuccessData: sse_decode_match_snapshot,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiApplyMoveConstMeta,
-        argValues: [snapshot, gameMove],
+        constMeta: kCrateApiAdvanceRoundConstMeta,
+        argValues: [snapshot],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiApplyMoveConstMeta => const TaskConstMeta(
-    debugName: "apply_move",
-    argNames: ["snapshot", "gameMove"],
+  TaskConstMeta get kCrateApiAdvanceRoundConstMeta => const TaskConstMeta(
+    debugName: "advance_round",
+    argNames: ["snapshot"],
   );
 
   @override
-  GameSnapshot crateApiInitialState() {
+  MatchSnapshot crateApiInitialMatch() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
@@ -136,43 +134,72 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_game_snapshot,
+          decodeSuccessData: sse_decode_match_snapshot,
           decodeErrorData: null,
         ),
-        constMeta: kCrateApiInitialStateConstMeta,
+        constMeta: kCrateApiInitialMatchConstMeta,
         argValues: [],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiInitialStateConstMeta => const TaskConstMeta(
-    debugName: "initial_state",
+  TaskConstMeta get kCrateApiInitialMatchConstMeta => const TaskConstMeta(
+    debugName: "initial_match",
     argNames: [],
   );
 
   @override
-  List<GameMove> crateApiLegalMoves({required GameSnapshot snapshot}) {
+  MatchSnapshot crateApiMatchApplyMove({
+    required MatchSnapshot snapshot,
+    required GameMove gameMove,
+  }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_box_autoadd_game_snapshot(snapshot, serializer);
+          sse_encode_box_autoadd_match_snapshot(snapshot, serializer);
+          sse_encode_box_autoadd_game_move(gameMove, serializer);
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_match_snapshot,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiMatchApplyMoveConstMeta,
+        argValues: [snapshot, gameMove],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiMatchApplyMoveConstMeta => const TaskConstMeta(
+    debugName: "match_apply_move",
+    argNames: ["snapshot", "gameMove"],
+  );
+
+  @override
+  List<GameMove> crateApiMatchLegalMoves({required MatchSnapshot snapshot}) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_match_snapshot(snapshot, serializer);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_game_move,
           decodeErrorData: sse_decode_String,
         ),
-        constMeta: kCrateApiLegalMovesConstMeta,
+        constMeta: kCrateApiMatchLegalMovesConstMeta,
         argValues: [snapshot],
         apiImpl: this,
       ),
     );
   }
 
-  TaskConstMeta get kCrateApiLegalMovesConstMeta => const TaskConstMeta(
-    debugName: "legal_moves",
+  TaskConstMeta get kCrateApiMatchLegalMovesConstMeta => const TaskConstMeta(
+    debugName: "match_legal_moves",
     argNames: ["snapshot"],
   );
 
@@ -203,15 +230,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  GameSnapshot dco_decode_box_autoadd_game_snapshot(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_game_snapshot(raw);
-  }
-
-  @protected
   GameWinReason dco_decode_box_autoadd_game_win_reason(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_game_win_reason(raw);
+  }
+
+  @protected
+  MatchSnapshot dco_decode_box_autoadd_match_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_match_snapshot(raw);
   }
 
   @protected
@@ -230,6 +257,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GameDirection dco_decode_game_direction(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return GameDirection.values[raw as int];
+  }
+
+  @protected
+  GameMatchPhase dco_decode_game_match_phase(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return GameMatchPhase.values[raw as int];
   }
 
   @protected
@@ -337,6 +370,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  MatchSnapshot dco_decode_match_snapshot(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return MatchSnapshot(
+      round: dco_decode_game_snapshot(arr[0]),
+      startingPieces: dco_decode_list_game_piece(arr[1]),
+      firstPlayerWins: dco_decode_u_8(arr[2]),
+      secondPlayerWins: dco_decode_u_8(arr[3]),
+      phase: dco_decode_game_match_phase(arr[4]),
+      roundWinner: dco_decode_opt_box_autoadd_game_player(arr[5]),
+      roundWinReason: dco_decode_opt_box_autoadd_game_win_reason(arr[6]),
+      matchWinner: dco_decode_opt_box_autoadd_game_player(arr[7]),
+      snapshotHash: dco_decode_String(arr[8]),
+    );
+  }
+
+  @protected
   CounterPushRestriction? dco_decode_opt_box_autoadd_counter_push_restriction(
     dynamic raw,
   ) {
@@ -398,19 +450,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  GameSnapshot sse_decode_box_autoadd_game_snapshot(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_game_snapshot(deserializer));
-  }
-
-  @protected
   GameWinReason sse_decode_box_autoadd_game_win_reason(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_game_win_reason(deserializer));
+  }
+
+  @protected
+  MatchSnapshot sse_decode_box_autoadd_match_snapshot(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_match_snapshot(deserializer));
   }
 
   @protected
@@ -431,6 +483,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return GameDirection.values[inner];
+  }
+
+  @protected
+  GameMatchPhase sse_decode_game_match_phase(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return GameMatchPhase.values[inner];
   }
 
   @protected
@@ -556,6 +615,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  MatchSnapshot sse_decode_match_snapshot(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_round = sse_decode_game_snapshot(deserializer);
+    var var_startingPieces = sse_decode_list_game_piece(deserializer);
+    var var_firstPlayerWins = sse_decode_u_8(deserializer);
+    var var_secondPlayerWins = sse_decode_u_8(deserializer);
+    var var_phase = sse_decode_game_match_phase(deserializer);
+    var var_roundWinner = sse_decode_opt_box_autoadd_game_player(deserializer);
+    var var_roundWinReason = sse_decode_opt_box_autoadd_game_win_reason(
+      deserializer,
+    );
+    var var_matchWinner = sse_decode_opt_box_autoadd_game_player(deserializer);
+    var var_snapshotHash = sse_decode_String(deserializer);
+    return MatchSnapshot(
+      round: var_round,
+      startingPieces: var_startingPieces,
+      firstPlayerWins: var_firstPlayerWins,
+      secondPlayerWins: var_secondPlayerWins,
+      phase: var_phase,
+      roundWinner: var_roundWinner,
+      roundWinReason: var_roundWinReason,
+      matchWinner: var_matchWinner,
+      snapshotHash: var_snapshotHash,
+    );
+  }
+
+  @protected
   CounterPushRestriction? sse_decode_opt_box_autoadd_counter_push_restriction(
     SseDeserializer deserializer,
   ) {
@@ -645,21 +731,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_encode_box_autoadd_game_snapshot(
-    GameSnapshot self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_game_snapshot(self, serializer);
-  }
-
-  @protected
   void sse_encode_box_autoadd_game_win_reason(
     GameWinReason self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_game_win_reason(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_match_snapshot(
+    MatchSnapshot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_match_snapshot(self, serializer);
   }
 
   @protected
@@ -674,6 +760,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void sse_encode_game_direction(GameDirection self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_game_match_phase(
+    GameMatchPhase self,
+    SseSerializer serializer,
+  ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
   }
@@ -788,6 +883,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
     serializer.buffer.putUint8List(self);
+  }
+
+  @protected
+  void sse_encode_match_snapshot(MatchSnapshot self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_game_snapshot(self.round, serializer);
+    sse_encode_list_game_piece(self.startingPieces, serializer);
+    sse_encode_u_8(self.firstPlayerWins, serializer);
+    sse_encode_u_8(self.secondPlayerWins, serializer);
+    sse_encode_game_match_phase(self.phase, serializer);
+    sse_encode_opt_box_autoadd_game_player(self.roundWinner, serializer);
+    sse_encode_opt_box_autoadd_game_win_reason(self.roundWinReason, serializer);
+    sse_encode_opt_box_autoadd_game_player(self.matchWinner, serializer);
+    sse_encode_String(self.snapshotHash, serializer);
   }
 
   @protected

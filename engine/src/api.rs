@@ -3,13 +3,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use flutter_rust_bridge::frb;
 
 use super::{
-    BoardConfig, CounterPush, Direction, GameState, IllegalMove, Move, Outcome, Piece, PieceId,
-    Player, Position, StateError, Tile, WinReason,
+    BoardConfig, CounterPush, Direction, GameState, IllegalMove, MatchPhase, MatchState, Move,
+    Outcome, Piece, PieceId, Player, Position, StateError, Tile, WinReason,
 };
 
 const SNAPSHOT_HASH_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
 const SNAPSHOT_HASH_PRIME: u64 = 0x0000_0100_0000_01b3;
 const SNAPSHOT_HASH_PREFIX: &[u8] = b"ttush-push:snapshot:v1\0";
+const MATCH_HASH_PREFIX: &[u8] = b"ttush-push:match:v1\0";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GamePlayer {
@@ -76,27 +77,186 @@ pub struct GameSnapshot {
     pub snapshot_hash: String,
 }
 
-#[frb(sync)]
-pub fn initial_state() -> GameSnapshot {
-    snapshot_from_state(&GameState::baseline())
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GameMatchPhase {
+    Playing,
+    RoundOver,
+    MatchOver,
+}
+
+/// A best-of-three match, carried across the bridge by value.
+///
+/// `starting_pieces` is the layout each round resets to. The round's own
+/// tiles cannot stand in for it: they carry the damage taken since, not the
+/// board a reset restores.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MatchSnapshot {
+    pub round: GameSnapshot,
+    pub starting_pieces: Vec<GamePiece>,
+    pub first_player_wins: u8,
+    pub second_player_wins: u8,
+    pub phase: GameMatchPhase,
+    pub round_winner: Option<GamePlayer>,
+    pub round_win_reason: Option<GameWinReason>,
+    pub match_winner: Option<GamePlayer>,
+    pub snapshot_hash: String,
 }
 
 #[frb(sync)]
-pub fn legal_moves(snapshot: GameSnapshot) -> Result<Vec<GameMove>, String> {
-    let state = state_from_snapshot(snapshot)?;
+pub fn initial_match() -> MatchSnapshot {
+    match_snapshot_from_state(
+        &MatchState::new(BoardConfig::baseline(), Player::First)
+            .expect("the baseline board configuration must produce a valid match"),
+    )
+}
 
-    Ok(super::legal_moves(&state)
+#[frb(sync)]
+pub fn match_legal_moves(snapshot: MatchSnapshot) -> Result<Vec<GameMove>, String> {
+    let state = match_state_from_snapshot(snapshot)?;
+
+    Ok(super::legal_moves(state.round())
         .into_iter()
         .map(game_move_from_engine)
         .collect())
 }
 
 #[frb(sync)]
-pub fn apply_move(snapshot: GameSnapshot, game_move: GameMove) -> Result<GameSnapshot, String> {
-    let state = state_from_snapshot(snapshot)?;
-    let next = super::apply_move(&state, move_to_engine(game_move)).map_err(illegal_move_error)?;
+pub fn match_apply_move(
+    snapshot: MatchSnapshot,
+    game_move: GameMove,
+) -> Result<MatchSnapshot, String> {
+    let state = match_state_from_snapshot(snapshot)?;
+    let next = state
+        .apply_move(move_to_engine(game_move))
+        .map_err(illegal_move_error)?;
 
-    Ok(snapshot_from_state(&next))
+    Ok(match_snapshot_from_state(&next))
+}
+
+#[frb(sync)]
+pub fn advance_round(snapshot: MatchSnapshot) -> Result<MatchSnapshot, String> {
+    let state = match_state_from_snapshot(snapshot)?;
+    let next = state.advance_round().map_err(illegal_move_error)?;
+
+    Ok(match_snapshot_from_state(&next))
+}
+
+fn match_snapshot_from_state(state: &MatchState) -> MatchSnapshot {
+    let (phase, round_winner, round_win_reason, match_winner) = match state.phase() {
+        MatchPhase::Playing => (GameMatchPhase::Playing, None, None, None),
+        MatchPhase::RoundOver { winner, reason } => (
+            GameMatchPhase::RoundOver,
+            Some(winner.into()),
+            Some(reason.into()),
+            None,
+        ),
+        MatchPhase::MatchOver { winner, reason } => (
+            GameMatchPhase::MatchOver,
+            Some(winner.into()),
+            Some(reason.into()),
+            Some(winner.into()),
+        ),
+    };
+
+    let mut snapshot = MatchSnapshot {
+        round: snapshot_from_state(state.round()),
+        starting_pieces: state
+            .board()
+            .initial_pieces()
+            .iter()
+            .map(|piece| GamePiece {
+                id: piece.id.0,
+                owner: piece.owner.into(),
+                x: piece.position.x,
+                y: piece.position.y,
+            })
+            .collect(),
+        first_player_wins: state.round_wins(Player::First),
+        second_player_wins: state.round_wins(Player::Second),
+        phase,
+        round_winner,
+        round_win_reason,
+        match_winner,
+        snapshot_hash: String::new(),
+    };
+    snapshot.snapshot_hash = match_hash(&snapshot);
+    snapshot
+}
+
+fn match_state_from_snapshot(snapshot: MatchSnapshot) -> Result<MatchState, String> {
+    if snapshot.snapshot_hash != match_hash(&snapshot) {
+        return Err("match snapshot hash does not match its value fields".to_owned());
+    }
+
+    let playable_cells = snapshot
+        .round
+        .tiles
+        .iter()
+        .map(|tile| Position::new(tile.x, tile.y))
+        .collect::<BTreeSet<_>>();
+    let starting_pieces = snapshot
+        .starting_pieces
+        .iter()
+        .map(|piece| {
+            Piece::new(
+                PieceId(piece.id),
+                piece.owner.into(),
+                Position::new(piece.x, piece.y),
+            )
+        })
+        .collect::<Vec<_>>();
+    let board = BoardConfig::new(playable_cells, starting_pieces).map_err(state_error)?;
+    let round = state_from_snapshot(snapshot.round)?;
+
+    MatchState::from_parts(
+        board,
+        round,
+        [snapshot.first_player_wins, snapshot.second_player_wins],
+    )
+    .map_err(state_error)
+}
+
+/// Hashes the match's own fields over the round's hash.
+///
+/// The round hash covers only the round, so reusing it would leave the score
+/// editable while the board stayed tamper-proof.
+fn match_hash(snapshot: &MatchSnapshot) -> String {
+    let mut hash = SNAPSHOT_HASH_OFFSET_BASIS;
+    hash_bytes(&mut hash, MATCH_HASH_PREFIX);
+    hash_bytes(&mut hash, snapshot.round.snapshot_hash.as_bytes());
+    hash_byte(&mut hash, snapshot.starting_pieces.len() as u8);
+    for piece in &snapshot.starting_pieces {
+        hash_bytes(
+            &mut hash,
+            &[piece.id, player_byte(piece.owner), piece.x, piece.y],
+        );
+    }
+    hash_bytes(
+        &mut hash,
+        &[
+            snapshot.first_player_wins,
+            snapshot.second_player_wins,
+            match snapshot.phase {
+                GameMatchPhase::Playing => 0,
+                GameMatchPhase::RoundOver => 1,
+                GameMatchPhase::MatchOver => 2,
+            },
+        ],
+    );
+    match (snapshot.round_winner, snapshot.round_win_reason) {
+        (Some(player), Some(reason)) => hash_bytes(
+            &mut hash,
+            &[1, player_byte(player), win_reason_byte(reason)],
+        ),
+        (None, None) => hash_byte(&mut hash, 0),
+        _ => hash_byte(&mut hash, 0xff),
+    }
+    match snapshot.match_winner {
+        Some(player) => hash_bytes(&mut hash, &[1, player_byte(player)]),
+        None => hash_byte(&mut hash, 0),
+    }
+
+    format!("{hash:016x}")
 }
 
 fn snapshot_from_state(state: &GameState) -> GameSnapshot {
