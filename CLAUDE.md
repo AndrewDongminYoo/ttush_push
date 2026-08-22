@@ -48,7 +48,14 @@ bool isHoleDestination(...)
 TileState damageTile(...)
 bool isCounterPush(...)
 Player? calculateWinner(...)
+void awardRound(...)
+bool isMatchDecided(...)
+Player nextStartingPlayer(...)
 ```
+
+The match is a rule too, so counting round wins, deciding a match is over,
+and choosing who starts the next round belong to Rust for the same reason
+push resolution does.
 
 ### Flutter layering
 

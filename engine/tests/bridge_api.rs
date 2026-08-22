@@ -177,3 +177,52 @@ fn value_api_holds_a_finished_round_until_it_is_advanced() {
         "illegal move: RoundInProgress",
     );
 }
+
+#[test]
+fn value_api_carries_a_won_match_back_without_reopening_it() {
+    // Always taking the first legal move drives a real match to its end
+    // through the value API alone, without pinning a move order that the
+    // loser-starts rule would invalidate on the next round.
+    let mut state = initial_match();
+    let mut steps = 0;
+    while state.phase != GameMatchPhase::MatchOver {
+        assert!(steps < 500, "a match must reach an end");
+        steps += 1;
+        state = match state.phase {
+            GameMatchPhase::Playing => {
+                let moves = match_legal_moves(state.clone()).unwrap();
+                assert!(!moves.is_empty(), "a playing round must offer a move");
+                match_apply_move(state, moves[0].clone()).unwrap()
+            }
+            GameMatchPhase::RoundOver => advance_round(state).unwrap(),
+            GameMatchPhase::MatchOver => unreachable!(),
+        };
+    }
+
+    let winner = state
+        .match_winner
+        .expect("a decided match names its winner");
+    let wins = match winner {
+        GamePlayer::First => state.first_player_wins,
+        GamePlayer::Second => state.second_player_wins,
+    };
+
+    assert_eq!(wins, 2);
+    assert_eq!(state.round_winner, Some(winner));
+    assert!(state.round_win_reason.is_some());
+
+    // A decided match survives the round trip and stays decided: it neither
+    // accepts a move nor reopens into another round.
+    assert_eq!(
+        match_legal_moves(state.clone()).unwrap(),
+        Vec::<GameMove>::new(),
+    );
+    assert_eq!(
+        match_apply_move(state.clone(), game_move(0, GameDirection::Down)).unwrap_err(),
+        "illegal move: MatchFinished",
+    );
+    assert_eq!(
+        advance_round(state).unwrap_err(),
+        "illegal move: MatchFinished",
+    );
+}
