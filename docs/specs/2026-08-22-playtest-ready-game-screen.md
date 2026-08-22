@@ -61,8 +61,12 @@ Reading "is this cell occupied right now" is permitted; deciding "may this piece
 ### Layout contract
 
 The screen is a vertical stack of a top player panel, the board, and a bottom player panel.
-The player panels take their intrinsic height, and the board takes the remaining space while staying square, so a short screen shrinks the board rather than clipping or scrolling it.
 The board keeps its existing `LayoutBuilder` behavior of centering a square derived from the smaller constraint axis, and renders nothing when that constraint is not finite or positive.
+A short screen therefore shrinks the board rather than clipping or scrolling it.
+
+The board takes most of the vertical space and the panels share what is left.
+On a tall screen the board is bounded by the screen width, so the surplus height goes to the panels rather than to empty background, which makes the active player's color readable from further away.
+Text inside a panel and inside the result overlay must flex rather than size itself first, because at 320pt neither fits its row otherwise.
 
 The bottom panel represents the first player and the top panel represents the second player, so each player faces their own panel across a shared device.
 

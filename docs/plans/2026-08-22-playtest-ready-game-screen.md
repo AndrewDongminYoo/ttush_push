@@ -37,10 +37,10 @@
 - Modify: `lib/game/view/round_board.dart`
 - Modify: `test/game/view/round_board_test.dart`
 
-- [ ] Paint `Normal` as an intact foothold inset from its cell, so the gap between footholds reads as structure rather than as a grid line.
-- [ ] Paint `Damaged` as the same foothold carrying a visible crack, so its meaning does not depend on hue.
-- [ ] Paint `Hole` as absent floor: the board background shows through, with no foothold body drawn.
-- [ ] Assert each kind separately, including that a `Hole` cell draws no foothold body.
+- [x] Paint `Normal` as an intact foothold inset from its cell, so the gap between footholds reads as structure rather than as a grid line.
+- [x] Paint `Damaged` as the same foothold carrying a visible crack, so its meaning does not depend on hue.
+- [x] Paint `Hole` as absent floor: the board background shows through, with no foothold body drawn.
+- [x] Assert each kind separately, including that a `Hole` cell draws no foothold body.
 
 ### Task 2: Separate Move Destinations From Push Destinations
 
@@ -49,10 +49,10 @@
 - Modify: `lib/game/view/round_board.dart`
 - Modify: `test/game/view/round_board_test.dart`
 
-- [ ] Derive each legal destination for the selected piece exactly as today, from `move.direction` applied to the selected piece's position.
-- [ ] Classify a destination as a push when any piece in `snapshot.pieces` occupies it, and as a move otherwise.
-- [ ] Render the two classes distinguishably, keeping the existing rule that destination markers paint after pieces so an occupied destination stays visible.
-- [ ] Assert that a destination occupied by an opposing piece renders the push affordance while an empty one does not, and that neither is drawn without a selection.
+- [x] Derive each legal destination for the selected piece exactly as today, from `move.direction` applied to the selected piece's position.
+- [x] Classify a destination as a push when any piece in `snapshot.pieces` occupies it, and as a move otherwise.
+- [x] Render the two classes distinguishably, keeping the existing rule that destination markers paint after pieces so an occupied destination stays visible.
+- [x] Assert that a destination occupied by an opposing piece renders the push affordance while an empty one does not, and that neither is drawn without a selection.
 
 ### Task 3: Strengthen Piece Identity and Selection
 
@@ -61,9 +61,9 @@
 - Modify: `lib/game/view/round_board.dart`
 - Modify: `test/game/view/round_board_test.dart`
 
-- [ ] Give each owner a distinct shape treatment in addition to its color, so the two sides are separable without relying on hue.
-- [ ] Keep the selection marker unmistakable against both owners and against both destination affordances.
-- [ ] Assert owner distinction and selection marking independently of color equality alone.
+- [x] Give each owner a distinct shape treatment in addition to its color, so the two sides are separable without relying on hue.
+- [x] Keep the selection marker unmistakable against both owners and against both destination affordances.
+- [x] Assert owner distinction and selection marking independently of color equality alone.
 
 ### Task 4: Replace the Development Screen With the Full-Screen Layout
 
@@ -73,12 +73,12 @@
 - Modify: `test/game/view/game_page_test.dart`
 - Modify: `test/app/view/app_test.dart`
 
-- [ ] Remove the `AppBar` and lay the screen out as a top player panel, the board, and a bottom player panel inside `SafeArea`.
-- [ ] Give the bottom panel to the first player and the top panel to the second player, so each faces their own panel across a shared device.
-- [ ] Show in each panel whether the turn is that player's, using more than a text label so the active side is visible at a glance.
-- [ ] Let the panels take their intrinsic height and the board take the remaining space while staying square, so a short screen shrinks the board instead of clipping it.
-- [ ] Keep the existing initialization, retry, and action-error presentation reachable.
-- [ ] Assert the layout at a small and a large surface size, and that the board stays square in both.
+- [x] Remove the `AppBar` and lay the screen out as a top player panel, the board, and a bottom player panel inside `SafeArea`.
+- [x] Give the bottom panel to the first player and the top panel to the second player, so each faces their own panel across a shared device.
+- [x] Show in each panel whether the turn is that player's, using more than a text label so the active side is visible at a glance.
+- [x] Let the panels take their intrinsic height and the board take the remaining space while staying square, so a short screen shrinks the board instead of clipping it.
+- [x] Keep the existing initialization, retry, and action-error presentation reachable.
+- [x] Assert the layout at a small and a large surface size, and that the board stays square in both.
 
 ### Task 5: Show the Result Over the Final Board
 
@@ -87,11 +87,11 @@
 - Modify: `lib/game/view/game_page.dart`
 - Modify: `test/game/view/game_page_test.dart`
 
-- [ ] Draw the terminal result as an overlay above the board rather than replacing it, so the final position stays readable.
-- [ ] Name the winning player and whether the win was a knockout or an immobilization.
-- [ ] Offer `Play Again`, wired to the existing `RoundController.restart()`.
-- [ ] Derive the overlay solely from `snapshot.winner` and `snapshot.winReason`, adding no controller state.
-- [ ] Assert both win reasons, that the board remains rendered underneath, that input is refused while terminal, and that `Play Again` starts a new round.
+- [x] Draw the terminal result as an overlay above the board rather than replacing it, so the final position stays readable.
+- [x] Name the winning player and whether the win was a knockout or an immobilization.
+- [x] Offer `Play Again`, wired to the existing `RoundController.restart()`.
+- [x] Derive the overlay solely from `snapshot.winner` and `snapshot.winReason`, adding no controller state.
+- [x] Assert both win reasons, that the board remains rendered underneath, that input is refused while terminal, and that `Play Again` starts a new round.
 
 ### Task 6: Assert the Push Tap Precedence
 
@@ -99,10 +99,10 @@
 
 - Modify: `test/game/view/game_page_test.dart`
 
-- [ ] Add a test naming the case where a cell is both an opposing piece and a legal push destination.
-- [ ] Assert that tapping it applies the push move and never selects the opposing piece.
+- [x] Add a test naming the case where a cell is both an opposing piece and a legal push destination.
+- [x] Assert that tapping it applies the push move and never selects the opposing piece.
 
 ### Task 7: Verify
 
-- [ ] Run `merry run check` and confirm every gate passes, including the 100% coverage gate.
-- [ ] Confirm no new dependency, no controller method, and no animation controller was introduced.
+- [x] Run `merry run check` and confirm every gate passes, including the 100% coverage gate.
+- [x] Confirm no new dependency, no controller method, and no animation controller was introduced.
