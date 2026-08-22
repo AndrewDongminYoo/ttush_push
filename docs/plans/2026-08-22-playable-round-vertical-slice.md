@@ -434,7 +434,7 @@ expect(
 
 - [ ] **Step 2: Run the Rust bridge fixture to verify the expected hash.**
 
-Run: `cargo test -p engine --test bridge_api value_api_preserves_a_snapshot_across_move_calls`
+Run: `cargo test --manifest-path engine/Cargo.toml --test bridge_api value_api_preserves_a_snapshot_across_move_calls`
 
 Expected: PASS with the literal calculated by Rust's canonical snapshot representation.
 
@@ -479,7 +479,7 @@ git commit -m "test: add native rules parity fixture"
 
 - [ ] **Step 1: Run the complete local regression set.**
 
-Run: `dart format --set-exit-if-changed lib test integration_test && flutter analyze && flutter test && cargo test -p engine && trunk check --no-progress`
+Run: `dart format --set-exit-if-changed lib/app lib/bootstrap.dart lib/game test integration_test && flutter analyze && flutter test && cargo test --manifest-path engine/Cargo.toml && trunk check --no-progress`
 
 Expected: all commands exit zero.
 

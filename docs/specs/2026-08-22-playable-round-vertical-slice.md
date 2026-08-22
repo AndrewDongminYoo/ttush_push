@@ -108,4 +108,4 @@ Web remains out of the MVP until a later, separately scoped bridge validation.
 - The native parity integration test passes on iOS and an Android Emulator with final hash `7044880ea390e9a8`.
 - No active app source depends on Flame, Flame Audio, audioplayers, Bloc, flutter_bloc, or their template-specific test tooling.
 - The CI configuration no longer invokes Bloc lint after its tooling is removed.
-- `dart format --set-exit-if-changed lib test integration_test`, `flutter analyze`, `flutter test`, `cargo test -p engine`, and the project quality gate pass.
+- `dart format --set-exit-if-changed lib/app lib/bootstrap.dart lib/game test integration_test`, `flutter analyze`, `flutter test`, `cargo test --manifest-path engine/Cargo.toml`, and the project quality gate pass.
