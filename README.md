@@ -7,6 +7,7 @@ Ttush Push is a Flutter game project with a dependency-free Rust rules engine fo
 - Flutter 3.44 or later
 - Dart 3.12 or later
 - Rust toolchain
+- iOS 15.0 or later for iOS builds
 
 ## Run the Flutter App
 
