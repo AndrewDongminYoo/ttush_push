@@ -292,7 +292,11 @@ void main() {
     );
     addTearDown(tester.view.reset);
 
-    for (final size in const [Size(320, 480), Size(1024, 1280)]) {
+    for (final size in const [
+      Size(320, 480),
+      Size(1024, 1280),
+      Size(568, 320),
+    ]) {
       tester.view
         ..physicalSize = size
         ..devicePixelRatio = 1;
@@ -331,6 +335,41 @@ void main() {
       expect(find.text('Play Again'), findsOneWidget, reason: 'at $size');
       expect(tester.takeException(), isNull, reason: 'terminal at $size');
     }
+  });
+
+  testWidgets('keeps a panel at its own height when space is short', (
+    tester,
+  ) async {
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'landscape',
+    );
+    addTearDown(tester.view.reset);
+    tester.view
+      ..physicalSize = const Size(568, 320)
+      ..devicePixelRatio = 1;
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: GamePage(
+          rulesEngine: _FakeRulesEngine(snapshot: snapshot),
+        ),
+      ),
+    );
+
+    // A panel squeezed below its content height deforms the player mark
+    // before it ever reports an overflow, so the mark is measured directly.
+    final mark = tester.getRect(
+      find.descendant(
+        of: find.byKey(const Key('player-panel-first')),
+        matching: find.byType(DecoratedBox),
+      ),
+    );
+
+    expect(mark.width, mark.height);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('keeps a valid board visible and retries a failed move', (

@@ -64,8 +64,8 @@ The screen is a vertical stack of a top player panel, the board, and a bottom pl
 The board keeps its existing `LayoutBuilder` behavior of centering a square derived from the smaller constraint axis, and renders nothing when that constraint is not finite or positive.
 A short screen therefore shrinks the board rather than clipping or scrolling it.
 
-The board takes most of the vertical space and the panels share what is left.
-On a tall screen the board is bounded by the screen width, so the surplus height goes to the panels rather than to empty background, which makes the active player's color readable from further away.
+Each panel keeps its own content height and the board takes what is left, so surplus height on a tall screen stays board background.
+Giving the panels a flex share of the height instead is not an option: on a short landscape screen it collapses them below their content, and a collapsed panel reports no overflow, it silently deforms the player mark.
 Text inside a panel and inside the result overlay must flex rather than size itself first, because at 320pt neither fits its row otherwise.
 
 The top panel represents the first player and the bottom panel the second, following the engine's starting layout, which places the first player's pieces on row 0 and the second player's on row 4.

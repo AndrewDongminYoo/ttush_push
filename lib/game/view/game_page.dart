@@ -49,18 +49,15 @@ class _GamePageState extends State<GamePage> {
       body: SafeArea(
         child: Column(
           children: [
-            Expanded(
-              child: _PlayerPanel(
-                player: rust.GamePlayer.first,
-                isActive:
-                    winner == null &&
-                    snapshot.currentPlayer == rust.GamePlayer.first,
-              ),
+            _PlayerPanel(
+              player: rust.GamePlayer.first,
+              isActive:
+                  winner == null &&
+                  snapshot.currentPlayer == rust.GamePlayer.first,
             ),
             if (_controller.error != null)
               _ActionError(onRetry: _retry, error: _controller.error!),
             Expanded(
-              flex: 6,
               child: Stack(
                 children: [
                   Positioned.fill(
@@ -82,13 +79,11 @@ class _GamePageState extends State<GamePage> {
                 ],
               ),
             ),
-            Expanded(
-              child: _PlayerPanel(
-                player: rust.GamePlayer.second,
-                isActive:
-                    winner == null &&
-                    snapshot.currentPlayer == rust.GamePlayer.second,
-              ),
+            _PlayerPanel(
+              player: rust.GamePlayer.second,
+              isActive:
+                  winner == null &&
+                  snapshot.currentPlayer == rust.GamePlayer.second,
             ),
           ],
         ),
@@ -161,7 +156,7 @@ class _PlayerPanel extends StatelessWidget {
       key: Key('player-panel-${player.name}'),
       width: double.infinity,
       color: isActive ? color : _panelColor,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       child: Row(
         children: [
           _PlayerMark(player: player, isActive: isActive),
