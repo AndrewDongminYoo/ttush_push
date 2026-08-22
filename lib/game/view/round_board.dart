@@ -34,7 +34,7 @@ final class RoundBoard extends StatelessWidget {
             dimension: side,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
-              onTapDown: (details) {
+              onTapUp: (details) {
                 final cellSize = side / _boardLength;
                 final x = (details.localPosition.dx / cellSize).floor();
                 final y = (details.localPosition.dy / cellSize).floor();
@@ -93,18 +93,6 @@ final class _RoundBoardPainter extends CustomPainter {
         );
     }
 
-    for (final destination in _legalDestinations()) {
-      final center = Offset(
-        (destination.$1 + 0.5) * cellSize,
-        (destination.$2 + 0.5) * cellSize,
-      );
-      canvas.drawCircle(
-        center,
-        cellSize * 0.16,
-        Paint()..color = const Color(0xFF53D769),
-      );
-    }
-
     for (final piece in snapshot.pieces) {
       final center = Offset(
         (piece.x + 0.5) * cellSize,
@@ -130,6 +118,18 @@ final class _RoundBoardPainter extends CustomPainter {
             ..strokeWidth = cellSize * 0.06,
         );
       }
+    }
+
+    for (final destination in _legalDestinations()) {
+      final center = Offset(
+        (destination.$1 + 0.5) * cellSize,
+        (destination.$2 + 0.5) * cellSize,
+      );
+      canvas.drawCircle(
+        center,
+        cellSize * 0.16,
+        Paint()..color = const Color(0xFF53D769),
+      );
     }
   }
 

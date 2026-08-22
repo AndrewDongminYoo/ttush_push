@@ -133,10 +133,11 @@ final class RoundController {
     try {
       final nextSnapshot = _engine.applyMove(snapshot, move);
       _validateTerminalFields(nextSnapshot);
-      _snapshot = nextSnapshot;
-      _legalMoves = nextSnapshot.winner == null
+      final nextLegalMoves = nextSnapshot.winner == null
           ? _engine.legalMoves(nextSnapshot)
-          : const [];
+          : const <GameMove>[];
+      _snapshot = nextSnapshot;
+      _legalMoves = nextLegalMoves;
       _selectedPieceId = null;
       _error = null;
       _retryAction = null;

@@ -273,6 +273,38 @@ void main() {
       expect(controller.error, isNull);
     });
 
+    test('keeps the snapshot atomic when legal move refresh fails', () {
+      const initialSnapshot = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [],
+        pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+        snapshotHash: 'before-legal-move-refresh',
+      );
+      const nextSnapshot = GameSnapshot(
+        currentPlayer: GamePlayer.second,
+        tiles: [],
+        pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
+        snapshotHash: 'after-legal-move-refresh',
+      );
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final controller =
+          RoundController(
+              const _LegalMoveRefreshFailureEngine(
+                initialSnapshot: initialSnapshot,
+                nextSnapshot: nextSnapshot,
+                move: move,
+              ),
+            )
+            ..initialize()
+            ..selectPiece(0)
+            ..applyMove(move);
+
+      expect(controller.snapshot, initialSnapshot);
+      expect(controller.legalMoves, [move]);
+      expect(controller.selectedPieceId, 0);
+      expect(controller.error, isA<StateError>());
+    });
+
     test('does not expose or apply moves from a terminal snapshot', () {
       const terminalSnapshot = GameSnapshot(
         currentPlayer: GamePlayer.second,
@@ -378,4 +410,30 @@ final class _SequencedMoveRulesEngine implements RulesEngine {
 
   @override
   List<GameMove> legalMoves(GameSnapshot state) => _legalMoves;
+}
+
+final class _LegalMoveRefreshFailureEngine implements RulesEngine {
+  const _LegalMoveRefreshFailureEngine({
+    required this.initialSnapshot,
+    required this.nextSnapshot,
+    required this.move,
+  });
+
+  final GameSnapshot initialSnapshot;
+  final GameSnapshot nextSnapshot;
+  final GameMove move;
+
+  @override
+  GameSnapshot applyMove(GameSnapshot state, GameMove move) => nextSnapshot;
+
+  @override
+  GameSnapshot initialState() => initialSnapshot;
+
+  @override
+  List<GameMove> legalMoves(GameSnapshot state) {
+    if (state == nextSnapshot) {
+      throw StateError('legal move refresh failed');
+    }
+    return [move];
+  }
 }
