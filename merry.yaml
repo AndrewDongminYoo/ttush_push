@@ -65,6 +65,10 @@ generate:
     (description): Regenerates localizations from the ARB files.
     (scripts): flutter gen-l10n
 
+  sfx:
+    (description): Re-synthesizes the round's sound effects into assets/sfx.
+    (scripts): dart run tool/generate_sfx.dart
+
 # --- Aggregate gate ---------------------------------------------------------
 check:
   (description): The full local gate before committing.

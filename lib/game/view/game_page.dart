@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/round/round_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/round_board.dart';
@@ -14,10 +14,11 @@ const _firstPlayerColor = Color(0xFF2A48DF);
 const _secondPlayerColor = Color(0xFFE14B4B);
 
 class GamePage extends StatefulWidget {
-  const GamePage({super.key, RulesEngine? rulesEngine})
+  const GamePage({super.key, RulesEngine? rulesEngine, this._feedback})
     : _rulesEngine = rulesEngine ?? const FrbRulesEngine();
 
   final RulesEngine _rulesEngine;
+  final RoundFeedback? _feedback;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -32,11 +33,25 @@ class _GamePageState extends State<GamePage> {
   /// and both must feel the same, so the classification outlives the tap that
   /// produced it until the move actually lands.
   bool? _pendingMoveIsPush;
+  late final RoundFeedback _feedback;
+  PlatformRoundFeedback? _ownedFeedback;
 
   @override
   void initState() {
     super.initState();
     _controller = RoundController(widget._rulesEngine)..initialize();
+    final injected = widget._feedback;
+    if (injected != null) {
+      _feedback = injected;
+    } else {
+      _feedback = _ownedFeedback = PlatformRoundFeedback();
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(_ownedFeedback?.dispose());
+    super.dispose();
   }
 
   @override
@@ -131,7 +146,7 @@ class _GamePageState extends State<GamePage> {
     final selection = _controller.selectedPieceId;
     // Re-tapping the piece already selected changes nothing.
     if (selection != null && selection != previousSelection) {
-      unawaited(HapticFeedback.selectionClick());
+      _feedback.pieceSelected();
     }
   }
 
@@ -147,12 +162,14 @@ class _GamePageState extends State<GamePage> {
     _pendingMoveIsPush = null;
 
     if (_controller.snapshot?.winner != null) {
-      unawaited(HapticFeedback.heavyImpact());
+      _feedback.roundWon();
       return;
     }
-    unawaited(
-      isPush ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact(),
-    );
+    if (isPush) {
+      _feedback.pushApplied();
+    } else {
+      _feedback.moveApplied();
+    }
   }
 
   void _restart() {

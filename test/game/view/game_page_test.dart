@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/game_page.dart';
 import 'package:ttush_push/game/view/round_board.dart';
@@ -393,11 +393,13 @@ void main() {
       snapshotHash: 'haptic-moved',
     );
     const moveDown = GameMove(pieceId: 0, direction: GameDirection.down);
-    final felt = _recordHaptics(tester);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
 
     await tester.pumpWidget(
       MaterialApp(
         home: GamePage(
+          feedback: feedback,
           rulesEngine: _MoveRulesEngine(
             initialSnapshot: start,
             nextSnapshot: afterMove,
@@ -411,13 +413,13 @@ void main() {
     await tester.tapAt(cellCenter(2, 2));
     await tester.pump();
 
-    expect(felt, ['HapticFeedbackType.selectionClick']);
+    expect(felt, ['select']);
 
     felt.clear();
     await tester.tapAt(cellCenter(2, 3));
     await tester.pump();
 
-    expect(felt, ['HapticFeedbackType.lightImpact']);
+    expect(felt, ['move']);
   });
 
   testWidgets('feels the won round rather than the push that won it', (
@@ -441,11 +443,13 @@ void main() {
       snapshotHash: 'haptic-won',
     );
     const pushUp = GameMove(pieceId: 0, direction: GameDirection.up);
-    final felt = _recordHaptics(tester);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
 
     await tester.pumpWidget(
       MaterialApp(
         home: GamePage(
+          feedback: feedback,
           rulesEngine: _MoveRulesEngine(
             initialSnapshot: start,
             nextSnapshot: afterPush,
@@ -461,8 +465,8 @@ void main() {
     await tester.pump();
 
     expect(felt, [
-      'HapticFeedbackType.selectionClick',
-      'HapticFeedbackType.heavyImpact',
+      'select',
+      'win',
     ]);
   });
 
@@ -486,11 +490,13 @@ void main() {
       snapshotHash: 'push-ongoing-next',
     );
     const pushUp = GameMove(pieceId: 0, direction: GameDirection.up);
-    final felt = _recordHaptics(tester);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
 
     await tester.pumpWidget(
       MaterialApp(
         home: GamePage(
+          feedback: feedback,
           rulesEngine: _MoveRulesEngine(
             initialSnapshot: start,
             nextSnapshot: afterPush,
@@ -507,8 +513,8 @@ void main() {
     await tester.pump();
 
     expect(felt, [
-      'HapticFeedbackType.selectionClick',
-      'HapticFeedbackType.mediumImpact',
+      'select',
+      'push',
     ]);
   });
 
@@ -522,12 +528,14 @@ void main() {
       ],
       snapshotHash: 'silent',
     );
-    final felt = _recordHaptics(tester);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
 
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: GamePage(
-          rulesEngine: _FakeRulesEngine(snapshot: start),
+          feedback: feedback,
+          rulesEngine: const _FakeRulesEngine(snapshot: start),
         ),
       ),
     );
@@ -551,11 +559,13 @@ void main() {
       snapshotHash: 'failing',
     );
     const move = GameMove(pieceId: 0, direction: GameDirection.down);
-    final felt = _recordHaptics(tester);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
 
     await tester.pumpWidget(
       MaterialApp(
         home: GamePage(
+          feedback: feedback,
           rulesEngine: _SequencedMoveRulesEngine(
             initialSnapshot: start,
             moves: const [move],
@@ -585,11 +595,13 @@ void main() {
       snapshotHash: 'reselect',
     );
     const moveDown = GameMove(pieceId: 0, direction: GameDirection.down);
-    final felt = _recordHaptics(tester);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
 
     await tester.pumpWidget(
       MaterialApp(
         home: GamePage(
+          feedback: feedback,
           rulesEngine: _MoveRulesEngine(
             initialSnapshot: start,
             nextSnapshot: start,
@@ -603,7 +615,7 @@ void main() {
     await tester.tapAt(cellCenter(2, 2));
     await tester.pump();
 
-    expect(felt, ['HapticFeedbackType.selectionClick']);
+    expect(felt, ['select']);
 
     felt.clear();
     await tester.tapAt(cellCenter(2, 2));
@@ -632,11 +644,13 @@ void main() {
       snapshotHash: 'retry-feel-next',
     );
     const pushUp = GameMove(pieceId: 0, direction: GameDirection.up);
-    final felt = _recordHaptics(tester);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
 
     await tester.pumpWidget(
       MaterialApp(
         home: GamePage(
+          feedback: feedback,
           rulesEngine: _SequencedMoveRulesEngine(
             initialSnapshot: start,
             moves: const [pushUp],
@@ -656,7 +670,7 @@ void main() {
     await tester.tap(find.text('Retry'));
     await tester.pump();
 
-    expect(felt, ['HapticFeedbackType.mediumImpact']);
+    expect(felt, ['push']);
   });
 
   testWidgets('says nothing when retrying initialization', (tester) async {
@@ -666,11 +680,13 @@ void main() {
       pieces: [],
       snapshotHash: 'init-retry',
     );
-    final felt = _recordHaptics(tester);
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
 
     await tester.pumpWidget(
       MaterialApp(
         home: GamePage(
+          feedback: feedback,
           rulesEngine: _SequencedRulesEngine(
             initialStateResults: [StateError('bridge unavailable'), ready],
             legalMoves: const [],
@@ -744,25 +760,21 @@ Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
   );
 }
 
-/// Collects the haptic requests the page sends to the platform.
-List<String> _recordHaptics(WidgetTester tester) {
-  final felt = <String>[];
-  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-    SystemChannels.platform,
-    (call) async {
-      if (call.method == 'HapticFeedback.vibrate') {
-        felt.add(call.arguments as String);
-      }
-      return null;
-    },
-  );
-  addTearDown(
-    () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-      SystemChannels.platform,
-      null,
-    ),
-  );
-  return felt;
+/// Records what the page reported, without asserting how it is felt.
+final class _RecordingFeedback implements RoundFeedback {
+  final List<String> events = [];
+
+  @override
+  void pieceSelected() => events.add('select');
+
+  @override
+  void moveApplied() => events.add('move');
+
+  @override
+  void pushApplied() => events.add('push');
+
+  @override
+  void roundWon() => events.add('win');
 }
 
 void _expectActiveTurn(GamePlayer player) {
