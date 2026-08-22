@@ -30,6 +30,23 @@ jobs:
       run_bloc_lint: false
       coverage_excludes: lib/src/rust/** lib/game/rules/rules_engine.dart
 
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Rust formatter and linter
+        run: rustup component add rustfmt clippy
+
+      - name: Verify formatting
+        run: cargo fmt --manifest-path engine/Cargo.toml -- --check
+
+      - name: Lint
+        run: cargo clippy --manifest-path engine/Cargo.toml --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --manifest-path engine/Cargo.toml
+
   spell-check:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
     with:

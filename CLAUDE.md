@@ -10,7 +10,7 @@ Every command string lives in `merry.yaml`. Run `merry ls` for the current list 
 Note that the CLI separates nested names with a space, while the config file references them as `$rust:test`.
 
 `merry run check` is the full local gate before committing.
-It is stricter than CI: CI runs only the Very Good reusable workflows, so it never formats or lints the Rust crate.
+It covers everything CI does, plus `trunk check`, which CI does not run.
 
 Two things the script list does not tell you:
 
