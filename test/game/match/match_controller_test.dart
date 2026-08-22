@@ -100,6 +100,64 @@ void main() {
       expect(controller.error, isA<FormatException>());
     });
 
+    test('rejects result fields that contradict the phase', () {
+      MatchController controllerFor(MatchSnapshot snapshot) {
+        return MatchController(FakeRulesEngine(initial: [snapshot]))
+          ..initialize();
+      }
+
+      // A finished round with nothing to say about who took it would reach
+      // the result overlay and crash on the missing winner.
+      expect(
+        controllerFor(matchOf(round(), phase: GameMatchPhase.roundOver)).error,
+        isA<FormatException>(),
+      );
+      expect(
+        controllerFor(
+          matchOf(round(), phase: GameMatchPhase.matchOver, firstWins: 2),
+        ).error,
+        isA<FormatException>(),
+      );
+      // A match that is over must name its winner.
+      expect(
+        controllerFor(
+          matchOf(
+            round(),
+            phase: GameMatchPhase.matchOver,
+            firstWins: 2,
+            roundWinner: GamePlayer.first,
+            roundWinReason: GameWinReason.knockout,
+          ),
+        ).error,
+        isA<FormatException>(),
+      );
+      // A round still being played has no result to carry.
+      expect(
+        controllerFor(
+          matchOf(
+            round(),
+            roundWinner: GamePlayer.first,
+            roundWinReason: GameWinReason.knockout,
+          ),
+        ).error,
+        isA<FormatException>(),
+      );
+      // Nor can a round result claim the match while a round is unfinished.
+      expect(
+        controllerFor(
+          matchOf(
+            round(),
+            phase: GameMatchPhase.roundOver,
+            firstWins: 1,
+            roundWinner: GamePlayer.first,
+            roundWinReason: GameWinReason.knockout,
+            matchWinner: GamePlayer.first,
+          ),
+        ).error,
+        isA<FormatException>(),
+      );
+    });
+
     test('maps a selected legal move to its adjacent destination', () {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final controller = MatchController(

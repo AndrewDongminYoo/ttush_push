@@ -179,33 +179,55 @@ final class MatchController {
   /// Checks the shape of what the bridge returned, not the rules behind it.
   ///
   /// A snapshot that breaks one of these is a bridge or schema fault, not a
-  /// game state, so it is treated as an error rather than displayed.
+  /// game state, so it is treated as an error rather than displayed. The
+  /// phase decides which result fields must be present, because the screen
+  /// reads them on the strength of the phase alone.
   void _validateContract(MatchSnapshot snapshot) {
-    if ((snapshot.roundWinner == null) != (snapshot.roundWinReason == null)) {
+    final roundWinner = snapshot.roundWinner;
+    final matchWinner = snapshot.matchWinner;
+    if ((roundWinner == null) != (snapshot.roundWinReason == null)) {
       throw const FormatException(
         'snapshot round winner and reason must either both be present '
         'or absent',
       );
     }
 
-    final matchWinner = snapshot.matchWinner;
-    if (matchWinner == null) {
-      return;
-    }
-    if (snapshot.roundWinner == null) {
-      throw const FormatException(
-        'a match can only be won by a round ending, so a match winner '
-        'requires a round winner',
-      );
-    }
-    final wins = switch (matchWinner) {
-      rust.GamePlayer.first => snapshot.firstPlayerWins,
-      rust.GamePlayer.second => snapshot.secondPlayerWins,
-    };
-    if (wins != 2) {
-      throw const FormatException(
-        'a match winner must hold the round wins that ended the match',
-      );
+    switch (snapshot.phase) {
+      case rust.GameMatchPhase.playing:
+        if (roundWinner != null || matchWinner != null) {
+          throw const FormatException(
+            'a round still being played carries no result',
+          );
+        }
+      case rust.GameMatchPhase.roundOver:
+        if (roundWinner == null) {
+          throw const FormatException(
+            'a finished round must name who took it and how',
+          );
+        }
+        if (matchWinner != null) {
+          throw const FormatException(
+            'a match winner ends the match, so the phase cannot be roundOver',
+          );
+        }
+      case rust.GameMatchPhase.matchOver:
+        if (roundWinner == null) {
+          throw const FormatException(
+            'a match ends by a round ending, so it must name that round',
+          );
+        }
+        if (matchWinner == null) {
+          throw const FormatException('a finished match must name its winner');
+        }
+        final wins = switch (matchWinner) {
+          rust.GamePlayer.first => snapshot.firstPlayerWins,
+          rust.GamePlayer.second => snapshot.secondPlayerWins,
+        };
+        if (wins != 2) {
+          throw const FormatException(
+            'a match winner must hold the round wins that ended the match',
+          );
+        }
     }
   }
 }

@@ -2,7 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use engine::{
     BoardConfig, Direction, GameState, IllegalMove, MatchPhase, MatchState, Move, Outcome, Piece,
-    PieceId, Player, Position, Tile, WinReason, apply_move, legal_moves, outcome,
+    PieceId, Player, Position, StateError, Tile, WinReason, apply_move, legal_moves, outcome,
 };
 
 fn position(x: u8, y: u8) -> Position {
@@ -487,4 +487,31 @@ fn board_config_accepts_a_non_rectangular_topology() {
         outcome(&next),
         Outcome::Winner(Player::First, WinReason::Knockout)
     );
+}
+
+#[test]
+fn match_rejects_a_score_that_no_play_could_reach() {
+    let board = BoardConfig::baseline();
+    let ongoing = GameState::new(board.clone(), Player::First).unwrap();
+
+    // Two wins ends a match, so it cannot coexist with a round still being
+    // played; nor can both players hold the winning score.
+    assert_eq!(
+        MatchState::from_parts(board.clone(), ongoing.clone(), [2, 0]),
+        Err(StateError::ImpossibleScore),
+    );
+    assert_eq!(
+        MatchState::from_parts(board.clone(), ongoing.clone(), [2, 2]),
+        Err(StateError::ImpossibleScore),
+    );
+    assert_eq!(
+        MatchState::from_parts(board.clone(), ongoing.clone(), [3, 0]),
+        Err(StateError::ImpossibleScore),
+    );
+
+    // A match still in progress rebuilds unchanged.
+    let rebuilt = MatchState::from_parts(board, ongoing, [1, 0]).unwrap();
+
+    assert_eq!(rebuilt.phase(), MatchPhase::Playing);
+    assert_eq!(rebuilt.round_wins(Player::First), 1);
 }

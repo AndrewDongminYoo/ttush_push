@@ -374,7 +374,7 @@ impl MatchState {
             Player::Second => 1,
         };
         self.round_wins[winner_index] += 1;
-        self.phase = if self.round_wins[winner_index] == Self::WINS_REQUIRED {
+        self.phase = if self.round_wins[winner_index] >= Self::WINS_REQUIRED {
             MatchPhase::MatchOver { winner, reason }
         } else {
             MatchPhase::RoundOver { winner, reason }
@@ -411,7 +411,13 @@ impl MatchState {
         round: GameState,
         round_wins: [u8; 2],
     ) -> Result<Self, StateError> {
-        if round_wins.iter().any(|wins| *wins > Self::WINS_REQUIRED) {
+        let decided = round_wins
+            .iter()
+            .filter(|wins| **wins >= Self::WINS_REQUIRED)
+            .count();
+        // Two wins ends a match, so no play reaches a higher score, and only
+        // one player can hold the winning one.
+        if round_wins.iter().any(|wins| *wins > Self::WINS_REQUIRED) || decided > 1 {
             return Err(StateError::ImpossibleScore);
         }
 
@@ -430,11 +436,15 @@ impl MatchState {
             if state.round_wins[winner_index] == 0 {
                 return Err(StateError::ImpossibleScore);
             }
-            state.phase = if state.round_wins[winner_index] == Self::WINS_REQUIRED {
+            state.phase = if state.round_wins[winner_index] >= Self::WINS_REQUIRED {
                 MatchPhase::MatchOver { winner, reason }
             } else {
                 MatchPhase::RoundOver { winner, reason }
             };
+        } else if decided > 0 {
+            // A decided score cannot sit on a round still being played: the
+            // match would already have ended.
+            return Err(StateError::ImpossibleScore);
         }
 
         Ok(state)
