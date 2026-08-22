@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/view/game_page.dart';
@@ -89,7 +90,8 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
-    expect(find.text('Player 1 wins the match'), findsOneWidget);
+    expect(_inOverlay('Player 1'), findsOneWidget);
+    expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
     final boardRect = tester.getRect(
       find.byKey(const Key('round-board-canvas')),
@@ -272,7 +274,8 @@ void main() {
       ),
     );
 
-    expect(find.text('Player 2 wins the match'), findsOneWidget);
+    expect(_inOverlay('Player 2'), findsOneWidget);
+    expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by immobilization'), findsOneWidget);
     // The position that ended the round stays readable underneath.
     expect(find.byType(RoundBoard), findsOneWidget);
@@ -729,7 +732,8 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
-    expect(find.text('Player 1 takes the round'), findsOneWidget);
+    expect(_inOverlay('Player 1'), findsOneWidget);
+    expect(find.text('takes the round'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
     expect(find.text('1 - 0'), findsOneWidget);
     // The board that ended the round is what the result sits over.
@@ -765,6 +769,59 @@ void main() {
 
     expect(find.byKey(const Key('round-wins-first-1')), findsOneWidget);
     expect(find.byKey(const Key('round-wins-second-0')), findsOneWidget);
+  });
+
+  testWidgets('states the result without truncating it', (tester) async {
+    const finalBoard = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      winner: GamePlayer.second,
+      winReason: GameWinReason.immobilization,
+      snapshotHash: 'legible',
+    );
+    addTearDown(tester.view.reset);
+
+    for (final size in const [Size(320, 480), Size(390, 844)]) {
+      tester.view
+        ..physicalSize = size
+        ..devicePixelRatio = 1;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GamePage(
+            key: ValueKey(size),
+            rulesEngine: FakeRulesEngine.playing(
+              initial: roundOverMatch(
+                finalBoard,
+                winner: GamePlayer.second,
+                reason: GameWinReason.immobilization,
+                firstWins: 0,
+                secondWins: 1,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Ellipsis is silent: it raises no exception and passes every layout
+      // assertion while removing the half that says what happened.
+      for (final text in const [
+        'Player 2',
+        'takes the round',
+        'by immobilization',
+      ]) {
+        final paragraph = tester.renderObject<RenderParagraph>(
+          _inOverlay(text),
+        );
+
+        expect(
+          paragraph.didExceedMaxLines,
+          isFalse,
+          reason: '"$text" is cut off at $size',
+        );
+      }
+    }
   });
 
   testWidgets('keeps a valid board visible and retries a failed move', (
@@ -826,6 +883,15 @@ Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
   return (x, y) => Offset(
     board.left + board.width * (x + 0.5) / 5,
     board.top + board.height * (y + 0.5) / 5,
+  );
+}
+
+/// Scopes a text finder to the result overlay, since the panels carry the
+/// player names too.
+Finder _inOverlay(String text) {
+  return find.descendant(
+    of: find.byKey(const Key('result-overlay')),
+    matching: find.text(text),
   );
 }
 

@@ -346,55 +346,72 @@ class _ResultOverlay extends StatelessWidget {
       color: _surfaceColor.withValues(alpha: 0.78),
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _PlayerMark(player: winner, isActive: false),
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: Text(
-                      matchWinner == null
-                          ? '${_playerLabel(winner)} takes the round'
-                          : '${_playerLabel(winner)} wins the match',
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          // A short screen scales the result down rather than clipping it,
+          // for the same reason the board shrinks instead of being cut.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              key: const Key('result-overlay'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Who won and what they won are separate lines. On one line
+                // the sentence runs past a phone's width and ellipsis eats
+                // exactly the half that says what happened.
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _PlayerMark(player: winner, isActive: false),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        _playerLabel(winner),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  matchWinner == null ? 'takes the round' : 'wins the match',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                switch (snapshot.roundWinReason!) {
-                  rust.GameWinReason.knockout => 'by knockout',
-                  rust.GameWinReason.immobilization => 'by immobilization',
-                },
-                style: const TextStyle(fontSize: 16, color: _mutedTextColor),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${snapshot.firstPlayerWins} - ${snapshot.secondPlayerWins}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: _mutedTextColor,
                 ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: onContinue,
-                child: Text(
-                  matchWinner == null ? 'Next Round' : 'New Match',
+                const SizedBox(height: 8),
+                Text(
+                  switch (snapshot.roundWinReason!) {
+                    rust.GameWinReason.knockout => 'by knockout',
+                    rust.GameWinReason.immobilization => 'by immobilization',
+                  },
+                  style: const TextStyle(fontSize: 16, color: _mutedTextColor),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.firstPlayerWins} - ${snapshot.secondPlayerWins}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: _mutedTextColor,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: onContinue,
+                  child: Text(
+                    matchWinner == null ? 'Next Round' : 'New Match',
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
