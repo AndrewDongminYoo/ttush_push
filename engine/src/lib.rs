@@ -441,9 +441,13 @@ impl MatchState {
             } else {
                 MatchPhase::RoundOver { winner, reason }
             };
-        } else if decided > 0 {
-            // A decided score cannot sit on a round still being played: the
-            // match would already have ended.
+        }
+
+        // A winning score exists only in a match that has ended. Stated once
+        // against the derived phase, this covers a live round and a round
+        // played after the opponent had already won alike, rather than
+        // checking the score of whoever happened to take this round.
+        if decided > 0 && !matches!(state.phase, MatchPhase::MatchOver { .. }) {
             return Err(StateError::ImpossibleScore);
         }
 

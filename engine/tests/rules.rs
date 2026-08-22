@@ -515,3 +515,37 @@ fn match_rejects_a_score_that_no_play_could_reach() {
     assert_eq!(rebuilt.phase(), MatchPhase::Playing);
     assert_eq!(rebuilt.round_wins(Player::First), 1);
 }
+
+#[test]
+fn match_rejects_a_round_played_after_the_match_was_decided() {
+    // Second cannot move from here, so the round is already won by First.
+    let board = BoardConfig::new(
+        [position(0, 0), position(3, 2), position(3, 3)]
+            .into_iter()
+            .collect::<BTreeSet<_>>(),
+        vec![
+            Piece::new(PieceId(1), Player::First, position(3, 3)),
+            Piece::new(PieceId(2), Player::Second, position(0, 0)),
+        ],
+    )
+    .unwrap();
+    let finished = GameState::new(board.clone(), Player::Second).unwrap();
+
+    // Second already holding two wins means the match ended before this
+    // round could be played, whoever won it.
+    assert_eq!(
+        MatchState::from_parts(board.clone(), finished.clone(), [1, 2]),
+        Err(StateError::ImpossibleScore),
+    );
+
+    // The same round with the win that ends the match is a real state.
+    let decided = MatchState::from_parts(board, finished, [2, 0]).unwrap();
+
+    assert_eq!(
+        decided.phase(),
+        MatchPhase::MatchOver {
+            winner: Player::First,
+            reason: WinReason::Immobilization,
+        },
+    );
+}
