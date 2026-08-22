@@ -1,185 +1,228 @@
-// Not needed for test files
-// ignore_for_file: prefer_const_constructors
-
-import 'dart:async';
-import 'dart:io';
-import 'dart:ui' as ui;
-
-import 'package:audioplayers/audioplayers.dart';
-import 'package:bloc_test/bloc_test.dart';
-import 'package:flame/cache.dart';
-import 'package:flame_audio/bgm.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
-import 'package:ttush_push/game/game.dart';
-import 'package:ttush_push/loading/cubit/cubit.dart';
-
-import '../../helpers/helpers.dart';
-
-class _FakeAssetSource extends Fake implements AssetSource {}
-
-class _FakeImage extends Fake implements ui.Image {}
-
-class _MockAudioCubit extends MockCubit<AudioState> implements AudioCubit {}
-
-class _MockAudioPlayer extends Mock implements AudioPlayer {}
-
-class _MockImages extends Mock implements Images {}
-
-class _MockBgm extends Mock implements Bgm {}
-
-class _MockPreloadCubit extends MockCubit<PreloadState>
-    implements PreloadCubit {}
+import 'package:ttush_push/game/rules/rules_engine.dart';
+import 'package:ttush_push/game/view/game_page.dart';
+import 'package:ttush_push/game/view/round_board.dart';
+import 'package:ttush_push/src/rust/api.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-  // https://github.com/material-foundation/flutter-packages/issues/286#issuecomment-1406343761
-  HttpOverrides.global = null;
+  testWidgets('renders the current player and board from RulesEngine', (
+    tester,
+  ) async {
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [GameTile(x: 0, y: 0, kind: GameTileKind.normal)],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'initial',
+    );
 
-  setUpAll(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-          MethodChannel('xyz.luan/audioplayers'),
-          (message) => null,
-        );
-
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-          const MethodChannel('plugins.flutter.io/path_provider'),
-          (message) async => switch (message.method) {
-            ('getTemporaryDirectory' || 'getApplicationSupportDirectory') =>
-              Directory.systemTemp.createTempSync('fake').path,
-            _ => null,
-          },
-        );
-  });
-
-  group('GamePage', () {
-    late PreloadCubit preloadCubit;
-    late Images images;
-    late AudioCache audioCache;
-
-    setUpAll(() {
-      registerFallbackValue(_FakeAssetSource());
-    });
-
-    setUp(() {
-      images = _MockImages();
-      when(() => images.fromCache(any())).thenReturn(_FakeImage());
-
-      preloadCubit = _MockPreloadCubit();
-      audioCache = AudioCache(prefix: '');
-      when(() => preloadCubit.state).thenReturn(
-        PreloadState.initial(images: images, audio: audioCache),
-      );
-    });
-
-    testWidgets('is routable', (tester) async {
-      await tester.pumpApp(
-        Builder(
-          builder: (context) => Scaffold(
-            floatingActionButton: FloatingActionButton(
-              onPressed: () => Navigator.of(context).push(GamePage.route()),
-            ),
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: GamePage(
+          rulesEngine: _FakeRulesEngine(
+            snapshot: snapshot,
+            legalMoves: [],
           ),
         ),
-        preloadCubit: preloadCubit,
-      );
+      ),
+    );
 
-      await tester.tap(find.byType(FloatingActionButton));
-
-      await tester.pump();
-      await tester.pump();
-
-      expect(find.byType(GamePage), findsOneWidget);
-
-      await tester.pumpWidget(Container());
-    });
-
-    testWidgets('renders GameView', (tester) async {
-      await tester.pumpApp(const GamePage(), preloadCubit: preloadCubit);
-      expect(find.byType(GameView), findsOneWidget);
-    });
+    expect(find.text("First player's turn"), findsOneWidget);
+    expect(find.byType(RoundBoard), findsOneWidget);
   });
 
-  group('GameView', () {
-    late AudioCubit audioCubit;
-    late AudioPlayer effectPlayer;
-    late Bgm bgm;
+  testWidgets('retries an initial bridge failure', (tester) async {
+    const readySnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'ready',
+    );
 
-    setUp(() {
-      audioCubit = _MockAudioCubit();
-      effectPlayer = _MockAudioPlayer();
-      bgm = _MockBgm();
-      when(() => audioCubit.state).thenReturn(
-        AudioState(effectPlayer: effectPlayer, bgm: bgm),
-      );
-      when(() => bgm.play(any())).thenAnswer((_) async {});
-      when(bgm.pause).thenAnswer((_) async {});
-    });
-
-    testWidgets('toggles mute button correctly', (tester) async {
-      final controller = StreamController<AudioState>();
-      whenListen(
-        audioCubit,
-        controller.stream,
-        initialState: AudioState(effectPlayer: effectPlayer, bgm: bgm),
-      );
-
-      final game = TestGame();
-      await tester.pumpApp(
-        BlocProvider.value(
-          value: audioCubit,
-          child: Material(child: GameView(game: game)),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: _SequencedRulesEngine(
+            initialStateResults: [
+              StateError('bridge unavailable'),
+              readySnapshot,
+            ],
+            legalMoves: const [],
+          ),
         ),
-      );
+      ),
+    );
 
-      expect(find.byIcon(Icons.volume_up), findsOneWidget);
+    expect(find.text('Unable to start round'), findsOneWidget);
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
 
-      controller.add(
-        AudioState(effectPlayer: effectPlayer, bgm: bgm, volume: 0),
-      );
-      await tester.pump();
-
-      expect(find.byIcon(Icons.volume_off), findsOneWidget);
-
-      controller.add(AudioState(effectPlayer: effectPlayer, bgm: bgm));
-      await tester.pump();
-
-      expect(find.byIcon(Icons.volume_up), findsOneWidget);
-    });
-
-    testWidgets('calls correct method based on state', (tester) async {
-      final controller = StreamController<AudioState>();
-      when(audioCubit.toggleVolume).thenAnswer((_) async {});
-      whenListen(
-        audioCubit,
-        controller.stream,
-        initialState: AudioState(effectPlayer: effectPlayer, bgm: bgm),
-      );
-
-      final game = TestGame();
-      await tester.pumpApp(
-        BlocProvider.value(
-          value: audioCubit,
-          child: Material(child: GameView(game: game)),
-        ),
-      );
-
-      await tester.tap(find.byIcon(Icons.volume_up));
-      controller.add(
-        AudioState(effectPlayer: effectPlayer, bgm: bgm, volume: 0),
-      );
-      await tester.pump();
-      verify(audioCubit.toggleVolume).called(1);
-
-      await tester.tap(find.byIcon(Icons.volume_off));
-      controller.add(AudioState(effectPlayer: effectPlayer, bgm: bgm));
-      await tester.pump();
-      verify(audioCubit.toggleVolume).called(1);
-    });
+    expect(find.text("First player's turn"), findsOneWidget);
   });
+
+  testWidgets('blocks terminal board input and restarts the round', (
+    tester,
+  ) async {
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'terminal',
+    );
+    const restartedSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'restarted',
+    );
+    final engine = _SequencedRulesEngine(
+      initialStateResults: [terminalSnapshot, restartedSnapshot],
+      legalMoves: const [],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+    expect(find.text('First wins by knockout'), findsOneWidget);
+    final boardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
+    await tester.tapAt(boardRect.center);
+
+    expect(engine.appliedMoves, isEmpty);
+
+    await tester.tap(find.text('Restart round'));
+    await tester.pump();
+
+    expect(find.text("First player's turn"), findsOneWidget);
+  });
+
+  testWidgets('applies only the selected legal destination', (tester) async {
+    const initialSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'initial',
+    );
+    const nextSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
+      snapshotHash: 'next',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = _MoveRulesEngine(
+      initialSnapshot: initialSnapshot,
+      nextSnapshot: nextSnapshot,
+      legalMoves: [move],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+    final boardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
+    Offset cellCenter(int x, int y) {
+      return Offset(
+        boardRect.left + boardRect.width * (x + 0.5) / 5,
+        boardRect.top + boardRect.height * (y + 0.5) / 5,
+      );
+    }
+
+    await tester.tapAt(cellCenter(0, 0));
+    await tester.tapAt(cellCenter(0, 1));
+    await tester.pump();
+
+    expect(engine.appliedMoves, [move]);
+    expect(find.text("Second player's turn"), findsOneWidget);
+  });
+}
+
+final class _FakeRulesEngine implements RulesEngine {
+  const _FakeRulesEngine({
+    required this.snapshot,
+    required this._legalMoves,
+  });
+
+  final GameSnapshot snapshot;
+  final List<GameMove> _legalMoves;
+
+  @override
+  GameSnapshot applyMove(GameSnapshot state, GameMove move) {
+    throw UnsupportedError('applyMove is not used by this test');
+  }
+
+  @override
+  GameSnapshot initialState() => snapshot;
+
+  @override
+  List<GameMove> legalMoves(GameSnapshot state) => _legalMoves;
+}
+
+final class _SequencedRulesEngine implements RulesEngine {
+  _SequencedRulesEngine({
+    required this._initialStateResults,
+    required this._legalMoves,
+  });
+
+  final List<Object> _initialStateResults;
+  final List<GameMove> _legalMoves;
+  final List<GameMove> appliedMoves = [];
+
+  @override
+  GameSnapshot applyMove(GameSnapshot state, GameMove move) {
+    appliedMoves.add(move);
+    return state;
+  }
+
+  @override
+  GameSnapshot initialState() {
+    final result = _initialStateResults.removeAt(0);
+    if (result case final GameSnapshot snapshot) {
+      return snapshot;
+    }
+    if (result case final Error error) {
+      throw error;
+    }
+    throw StateError('initial state result must be a GameSnapshot or Error');
+  }
+
+  @override
+  List<GameMove> legalMoves(GameSnapshot state) => _legalMoves;
+}
+
+final class _MoveRulesEngine implements RulesEngine {
+  _MoveRulesEngine({
+    required this.initialSnapshot,
+    required this.nextSnapshot,
+    required this._legalMoves,
+  });
+
+  final GameSnapshot initialSnapshot;
+  final GameSnapshot nextSnapshot;
+  final List<GameMove> _legalMoves;
+  final List<GameMove> appliedMoves = [];
+
+  @override
+  GameSnapshot applyMove(GameSnapshot state, GameMove move) {
+    appliedMoves.add(move);
+    return nextSnapshot;
+  }
+
+  @override
+  GameSnapshot initialState() => initialSnapshot;
+
+  @override
+  List<GameMove> legalMoves(GameSnapshot state) {
+    return state.snapshotHash == initialSnapshot.snapshotHash
+        ? _legalMoves
+        : const [];
+  }
 }
