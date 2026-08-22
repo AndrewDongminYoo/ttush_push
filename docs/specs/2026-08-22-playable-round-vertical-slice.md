@@ -43,11 +43,17 @@ abstract interface class RulesEngine {
 Flutter owns presentation, local input state, and error display only.
 A plain Dart `RoundController` owns the current snapshot, the currently selected piece identifier, the legal moves for that snapshot, and any recoverable bridge error.
 It receives a `RulesEngine` instance so widget and controller tests can supply a deterministic fake without a native library.
+It is Flutter-independent and does not extend `ChangeNotifier` or any other Flutter presentation type.
 It clears the selection after each accepted move and refreshes legal moves from the snapshot returned by Rust.
 It does not duplicate any game rule or mutate snapshot value objects.
-An unexpected bridge error leaves the last valid snapshot visible and presents a recoverable error message.
+The controller starts in `initializing`, then transitions to `ready(snapshot)` or `initializationError`.
+Initialization failure displays an error with a retry action and no board because no valid snapshot exists.
+An error after a valid snapshot leaves that snapshot visible and presents a retry action.
+If restart fails, the terminal snapshot remains visible with the error and retry action.
+Every snapshot received from the bridge must satisfy `winner == null` if and only if `winReason == null`.
+A snapshot with only one terminal field is a bridge or schema error, not an ongoing or terminal game state.
 
-`GamePage` is a Flutter `StatefulWidget` that observes the controller and is responsible for layout and interaction wiring.
+`GamePage` is a Flutter `StatefulWidget` that owns the controller, calls its methods from user actions within `setState()`, and rebuilds after controller mutations.
 A `CustomPainter` is sufficient for the 5-by-5 board because it needs only tile, piece, selection, and legal-destination rendering.
 No Flame game loop, component tree, asset preload, or audio state is retained.
 
@@ -85,6 +91,8 @@ applyMove(piece 2, Up)
 
 The last move pushes piece 0 and creates the immediate counter-push restriction from piece 2 to piece 0.
 The final snapshot hash is `7044880ea390e9a8`.
+The expected hash is derived by Rust from its canonical snapshot representation and is independent of Dart serialization and generated bridge implementation details.
+Before each `applyMove` call, the test asserts that the selected move is present in `legalMoves` for the current snapshot.
 The test also verifies that piece 0 cannot immediately move `Down` to counter-push piece 2.
 The same test must pass against the fixed expected hash on iOS and an Android Emulator, proving that the native process on each platform executes the same Rust value API.
 This is a bridge smoke test, not a UI automation test.
