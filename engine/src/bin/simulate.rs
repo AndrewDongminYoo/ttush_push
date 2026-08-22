@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::env;
 use std::process;
 
-use engine::{apply_move, legal_moves, outcome, GameState, Outcome, Player, WinReason};
+use engine::{GameState, Outcome, Player, WinReason, apply_move, legal_moves, outcome};
 
 #[derive(Debug)]
 struct Options {

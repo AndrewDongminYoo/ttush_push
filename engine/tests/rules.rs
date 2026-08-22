@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use engine::{
-    apply_move, legal_moves, outcome, BoardConfig, Direction, GameState, IllegalMove, MatchOutcome,
-    MatchState, Move, Outcome, Piece, PieceId, Player, Position, Tile, WinReason,
+    BoardConfig, Direction, GameState, IllegalMove, MatchOutcome, MatchState, Move, Outcome, Piece,
+    PieceId, Player, Position, Tile, WinReason, apply_move, legal_moves, outcome,
 };
 
 fn position(x: u8, y: u8) -> Position {
