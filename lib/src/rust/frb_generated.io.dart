@@ -33,16 +33,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GamePlayer dco_decode_box_autoadd_game_player(dynamic raw);
 
   @protected
-  GameSnapshot dco_decode_box_autoadd_game_snapshot(dynamic raw);
+  GameWinReason dco_decode_box_autoadd_game_win_reason(dynamic raw);
 
   @protected
-  GameWinReason dco_decode_box_autoadd_game_win_reason(dynamic raw);
+  MatchSnapshot dco_decode_box_autoadd_match_snapshot(dynamic raw);
 
   @protected
   CounterPushRestriction dco_decode_counter_push_restriction(dynamic raw);
 
   @protected
   GameDirection dco_decode_game_direction(dynamic raw);
+
+  @protected
+  GameMatchPhase dco_decode_game_match_phase(dynamic raw);
 
   @protected
   GameMove dco_decode_game_move(dynamic raw);
@@ -81,6 +84,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  MatchSnapshot dco_decode_match_snapshot(dynamic raw);
+
+  @protected
   CounterPushRestriction? dco_decode_opt_box_autoadd_counter_push_restriction(
     dynamic raw,
   );
@@ -112,12 +118,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GamePlayer sse_decode_box_autoadd_game_player(SseDeserializer deserializer);
 
   @protected
-  GameSnapshot sse_decode_box_autoadd_game_snapshot(
+  GameWinReason sse_decode_box_autoadd_game_win_reason(
     SseDeserializer deserializer,
   );
 
   @protected
-  GameWinReason sse_decode_box_autoadd_game_win_reason(
+  MatchSnapshot sse_decode_box_autoadd_match_snapshot(
     SseDeserializer deserializer,
   );
 
@@ -128,6 +134,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GameDirection sse_decode_game_direction(SseDeserializer deserializer);
+
+  @protected
+  GameMatchPhase sse_decode_game_match_phase(SseDeserializer deserializer);
 
   @protected
   GameMove sse_decode_game_move(SseDeserializer deserializer);
@@ -164,6 +173,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  MatchSnapshot sse_decode_match_snapshot(SseDeserializer deserializer);
 
   @protected
   CounterPushRestriction? sse_decode_opt_box_autoadd_counter_push_restriction(
@@ -211,14 +223,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
-  void sse_encode_box_autoadd_game_snapshot(
-    GameSnapshot self,
+  void sse_encode_box_autoadd_game_win_reason(
+    GameWinReason self,
     SseSerializer serializer,
   );
 
   @protected
-  void sse_encode_box_autoadd_game_win_reason(
-    GameWinReason self,
+  void sse_encode_box_autoadd_match_snapshot(
+    MatchSnapshot self,
     SseSerializer serializer,
   );
 
@@ -230,6 +242,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_game_direction(GameDirection self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_game_match_phase(
+    GameMatchPhase self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_game_move(GameMove self, SseSerializer serializer);
@@ -272,6 +290,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     Uint8List self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_match_snapshot(MatchSnapshot self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_counter_push_restriction(

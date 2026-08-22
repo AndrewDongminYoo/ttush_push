@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
-import 'package:ttush_push/game/round/round_controller.dart';
+import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/src/rust/api.dart' as rust;
@@ -25,7 +25,7 @@ class GamePage extends StatefulWidget {
 }
 
 class _GamePageState extends State<GamePage> {
-  late final RoundController _controller;
+  late final MatchController _controller;
 
   /// How the move awaiting application should be felt.
   ///
@@ -39,7 +39,7 @@ class _GamePageState extends State<GamePage> {
   @override
   void initState() {
     super.initState();
-    _controller = RoundController(widget._rulesEngine)..initialize();
+    _controller = MatchController(widget._rulesEngine)..initialize();
     final injected = widget._feedback;
     if (injected != null) {
       _feedback = injected;
@@ -61,14 +61,15 @@ class _GamePageState extends State<GamePage> {
       return Scaffold(
         backgroundColor: _surfaceColor,
         body: Center(
-          child: _controller.status == RoundStatus.initializationError
+          child: _controller.status == MatchStatus.initializationError
               ? _InitialError(onRetry: _retry)
               : const CircularProgressIndicator(),
         ),
       );
     }
 
-    final winner = snapshot.winner;
+    final round = snapshot.round;
+    final playing = _controller.isPlaying;
     return Scaffold(
       backgroundColor: _surfaceColor,
       body: SafeArea(
@@ -76,9 +77,8 @@ class _GamePageState extends State<GamePage> {
           children: [
             _PlayerPanel(
               player: rust.GamePlayer.first,
-              isActive:
-                  winner == null &&
-                  snapshot.currentPlayer == rust.GamePlayer.first,
+              wins: snapshot.firstPlayerWins,
+              isActive: playing && round.currentPlayer == rust.GamePlayer.first,
             ),
             if (_controller.error != null)
               _ActionError(onRetry: _retry, error: _controller.error!),
@@ -87,18 +87,19 @@ class _GamePageState extends State<GamePage> {
                 children: [
                   Positioned.fill(
                     child: RoundBoard(
-                      snapshot: snapshot,
+                      snapshot: round,
                       legalMoves: _controller.legalMoves,
                       selectedPieceId: _controller.selectedPieceId,
-                      onCellTap: (x, y) => _onCellTap(snapshot, x, y),
+                      onCellTap: (x, y) => _onCellTap(round, x, y),
                     ),
                   ),
-                  if (winner != null)
+                  if (!playing)
                     Positioned.fill(
                       child: _ResultOverlay(
-                        winner: winner,
-                        reason: snapshot.winReason!,
-                        onPlayAgain: _restart,
+                        snapshot: snapshot,
+                        onContinue: _controller.isMatchOver
+                            ? _restart
+                            : _advanceRound,
                       ),
                     ),
                 ],
@@ -106,14 +107,18 @@ class _GamePageState extends State<GamePage> {
             ),
             _PlayerPanel(
               player: rust.GamePlayer.second,
+              wins: snapshot.secondPlayerWins,
               isActive:
-                  winner == null &&
-                  snapshot.currentPlayer == rust.GamePlayer.second,
+                  playing && round.currentPlayer == rust.GamePlayer.second,
             ),
           ],
         ),
       ),
     );
+  }
+
+  void _advanceRound() {
+    setState(_controller.advanceRound);
   }
 
   void _onCellTap(GameSnapshot snapshot, int x, int y) {
@@ -161,7 +166,7 @@ class _GamePageState extends State<GamePage> {
     }
     _pendingMoveIsPush = null;
 
-    if (_controller.snapshot?.winner != null) {
+    if (!_controller.isPlaying) {
       _feedback.roundWon();
       return;
     }
@@ -202,9 +207,14 @@ Color _playerColor(rust.GamePlayer player) {
 /// The active side is filled with that player's color rather than only
 /// labeled, so whose turn it is survives a glance from across the device.
 class _PlayerPanel extends StatelessWidget {
-  const _PlayerPanel({required this.player, required this.isActive});
+  const _PlayerPanel({
+    required this.player,
+    required this.wins,
+    required this.isActive,
+  });
 
   final rust.GamePlayer player;
+  final int wins;
   final bool isActive;
 
   @override
@@ -231,16 +241,64 @@ class _PlayerPanel extends StatelessWidget {
             ),
           ),
           if (isActive)
-            const Text(
-              'Your turn',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: Text(
+                'Your turn',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
+          _RoundWins(player: player, wins: wins, isActive: isActive),
         ],
       ),
+    );
+  }
+}
+
+/// The rounds a player has taken, as pips rather than a number, so the score
+/// is legible at a glance from across the device.
+class _RoundWins extends StatelessWidget {
+  const _RoundWins({
+    required this.player,
+    required this.wins,
+    required this.isActive,
+  });
+
+  static const _roundsToWin = 2;
+
+  final rust.GamePlayer player;
+  final int wins;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      key: Key('round-wins-${player.name}-$wins'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var round = 0; round < _roundsToWin; round++)
+          Padding(
+            padding: const EdgeInsets.only(left: 6),
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: round < wins
+                    ? (isActive ? Colors.white : _mutedTextColor)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: isActive ? Colors.white : _mutedTextColor,
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -256,6 +314,7 @@ class _PlayerMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: Key('player-mark-${player.name}'),
       width: 20,
       height: 20,
       decoration: BoxDecoration(
@@ -274,58 +333,85 @@ class _PlayerMark extends StatelessWidget {
 /// Sits above the final board rather than replacing it, so the position that
 /// ended the round stays readable while the result is read.
 class _ResultOverlay extends StatelessWidget {
-  const _ResultOverlay({
-    required this.winner,
-    required this.reason,
-    required this.onPlayAgain,
-  });
+  const _ResultOverlay({required this.snapshot, required this.onContinue});
 
-  final rust.GamePlayer winner;
-  final rust.GameWinReason reason;
-  final VoidCallback onPlayAgain;
+  final MatchSnapshot snapshot;
+  final VoidCallback onContinue;
 
   @override
   Widget build(BuildContext context) {
+    final winner = snapshot.roundWinner!;
+    final matchWinner = snapshot.matchWinner;
     return ColoredBox(
       color: _surfaceColor.withValues(alpha: 0.78),
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _PlayerMark(player: winner, isActive: false),
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: Text(
-                      '${_playerLabel(winner)} wins',
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          // A short screen scales the result down rather than clipping it,
+          // for the same reason the board shrinks instead of being cut.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              key: const Key('result-overlay'),
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Who won and what they won are separate lines. On one line
+                // the sentence runs past a phone's width and ellipsis eats
+                // exactly the half that says what happened.
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _PlayerMark(player: winner, isActive: false),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Text(
+                        _playerLabel(winner),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  matchWinner == null ? 'takes the round' : 'wins the match',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                switch (reason) {
-                  rust.GameWinReason.knockout => 'by knockout',
-                  rust.GameWinReason.immobilization => 'by immobilization',
-                },
-                style: const TextStyle(fontSize: 16, color: _mutedTextColor),
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: onPlayAgain,
-                child: const Text('Play Again'),
-              ),
-            ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  switch (snapshot.roundWinReason!) {
+                    rust.GameWinReason.knockout => 'by knockout',
+                    rust.GameWinReason.immobilization => 'by immobilization',
+                  },
+                  style: const TextStyle(fontSize: 16, color: _mutedTextColor),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${snapshot.firstPlayerWins} - ${snapshot.secondPlayerWins}',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: _mutedTextColor,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: onContinue,
+                  child: Text(
+                    matchWinner == null ? 'Next Round' : 'New Match',
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
-import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/game_page.dart';
 import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/src/rust/api.dart';
+
+import '../../support/match_fixtures.dart';
 
 void main() {
   testWidgets('renders the current player and board from RulesEngine', (
@@ -18,9 +20,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: GamePage(
-          rulesEngine: _FakeRulesEngine(snapshot: snapshot),
+          rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot)),
         ),
       ),
     );
@@ -48,12 +50,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: GamePage(
-          rulesEngine: _SequencedRulesEngine(
-            initialStateResults: [
-              StateError('bridge unavailable'),
-              readySnapshot,
-            ],
-            legalMoves: const [],
+          rulesEngine: FakeRulesEngine(
+            initial: [StateError('bridge unavailable'), matchOf(readySnapshot)],
           ),
         ),
       ),
@@ -83,14 +81,17 @@ void main() {
       pieces: [],
       snapshotHash: 'restarted',
     );
-    final engine = _SequencedRulesEngine(
-      initialStateResults: [terminalSnapshot, restartedSnapshot],
-      legalMoves: const [],
+    final engine = FakeRulesEngine(
+      initial: [
+        matchOverMatch(terminalSnapshot, winner: GamePlayer.first),
+        matchOf(restartedSnapshot),
+      ],
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
-    expect(find.text('Player 1 wins'), findsOneWidget);
+    expect(_inOverlay('Player 1'), findsOneWidget);
+    expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
     final boardRect = tester.getRect(
       find.byKey(const Key('round-board-canvas')),
@@ -99,7 +100,7 @@ void main() {
 
     expect(engine.appliedMoves, isEmpty);
 
-    await tester.tap(find.text('Play Again'));
+    await tester.tap(find.text('New Match'));
     await tester.pump();
 
     _expectActiveTurn(GamePlayer.first);
@@ -125,10 +126,10 @@ void main() {
       snapshotHash: 'next',
     );
     const move = GameMove(pieceId: 0, direction: GameDirection.down);
-    final engine = _MoveRulesEngine(
-      initialSnapshot: initialSnapshot,
-      nextSnapshot: nextSnapshot,
-      legalMoves: [move],
+    final engine = FakeRulesEngine.playing(
+      initial: matchOf(initialSnapshot),
+      next: matchOf(nextSnapshot, hash: 'next'),
+      legalMoves: const [move],
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
@@ -169,10 +170,10 @@ void main() {
         snapshotHash: 'should-not-apply',
       );
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
-      final engine = _MoveRulesEngine(
-        initialSnapshot: initialSnapshot,
-        nextSnapshot: nextSnapshot,
-        legalMoves: [move],
+      final engine = FakeRulesEngine.playing(
+        initial: matchOf(initialSnapshot),
+        next: matchOf(nextSnapshot, hash: 'next'),
+        legalMoves: const [move],
       );
 
       await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
@@ -219,10 +220,10 @@ void main() {
       snapshotHash: 'pushed',
     );
     const move = GameMove(pieceId: 0, direction: GameDirection.up);
-    final engine = _MoveRulesEngine(
-      initialSnapshot: initialSnapshot,
-      nextSnapshot: nextSnapshot,
-      legalMoves: [move],
+    final engine = FakeRulesEngine.playing(
+      initial: matchOf(initialSnapshot),
+      next: matchOf(nextSnapshot, hash: 'next'),
+      legalMoves: const [move],
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
@@ -260,14 +261,21 @@ void main() {
     );
 
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: GamePage(
-          rulesEngine: _FakeRulesEngine(snapshot: terminalSnapshot),
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOverMatch(
+              terminalSnapshot,
+              winner: GamePlayer.second,
+              reason: GameWinReason.immobilization,
+            ),
+          ),
         ),
       ),
     );
 
-    expect(find.text('Player 2 wins'), findsOneWidget);
+    expect(_inOverlay('Player 2'), findsOneWidget);
+    expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by immobilization'), findsOneWidget);
     // The position that ended the round stays readable underneath.
     expect(find.byType(RoundBoard), findsOneWidget);
@@ -303,9 +311,9 @@ void main() {
         ..devicePixelRatio = 1;
 
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: GamePage(
-            rulesEngine: _FakeRulesEngine(snapshot: snapshot),
+            rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot)),
           ),
         ),
       );
@@ -325,15 +333,20 @@ void main() {
 
       // The overlay carries its own overflow risk, so it is laid out here too.
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
           home: GamePage(
-            key: Key('terminal'),
-            rulesEngine: _FakeRulesEngine(snapshot: terminalSnapshot),
+            key: const Key('terminal'),
+            rulesEngine: FakeRulesEngine.playing(
+              initial: matchOverMatch(
+                terminalSnapshot,
+                winner: GamePlayer.first,
+              ),
+            ),
           ),
         ),
       );
 
-      expect(find.text('Play Again'), findsOneWidget, reason: 'at $size');
+      expect(find.text('New Match'), findsOneWidget, reason: 'at $size');
       expect(tester.takeException(), isNull, reason: 'terminal at $size');
     }
   });
@@ -353,9 +366,9 @@ void main() {
       ..devicePixelRatio = 1;
 
     await tester.pumpWidget(
-      const MaterialApp(
+      MaterialApp(
         home: GamePage(
-          rulesEngine: _FakeRulesEngine(snapshot: snapshot),
+          rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot)),
         ),
       ),
     );
@@ -363,10 +376,7 @@ void main() {
     // A panel squeezed below its content height deforms the player mark
     // before it ever reports an overflow, so the mark is measured directly.
     final mark = tester.getRect(
-      find.descendant(
-        of: find.byKey(const Key('player-panel-first')),
-        matching: find.byType(DecoratedBox),
-      ),
+      find.byKey(const Key('player-mark-first')),
     );
 
     expect(mark.width, mark.height);
@@ -400,9 +410,9 @@ void main() {
       MaterialApp(
         home: GamePage(
           feedback: feedback,
-          rulesEngine: _MoveRulesEngine(
-            initialSnapshot: start,
-            nextSnapshot: afterMove,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(start),
+            next: matchOf(afterMove, hash: 'next'),
             legalMoves: const [moveDown],
           ),
         ),
@@ -450,9 +460,9 @@ void main() {
       MaterialApp(
         home: GamePage(
           feedback: feedback,
-          rulesEngine: _MoveRulesEngine(
-            initialSnapshot: start,
-            nextSnapshot: afterPush,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(start),
+            next: roundOverMatch(afterPush, winner: GamePlayer.first),
             legalMoves: const [pushUp],
           ),
         ),
@@ -464,10 +474,7 @@ void main() {
     await tester.tapAt(cellCenter(2, 1));
     await tester.pump();
 
-    expect(felt, [
-      'select',
-      'win',
-    ]);
+    expect(felt, ['select', 'win']);
   });
 
   testWidgets('feels a push that leaves the round ongoing', (tester) async {
@@ -497,9 +504,9 @@ void main() {
       MaterialApp(
         home: GamePage(
           feedback: feedback,
-          rulesEngine: _MoveRulesEngine(
-            initialSnapshot: start,
-            nextSnapshot: afterPush,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(start),
+            next: matchOf(afterPush, hash: 'next'),
             legalMoves: const [pushUp],
           ),
         ),
@@ -535,7 +542,7 @@ void main() {
       MaterialApp(
         home: GamePage(
           feedback: feedback,
-          rulesEngine: const _FakeRulesEngine(snapshot: start),
+          rulesEngine: FakeRulesEngine.playing(initial: matchOf(start)),
         ),
       ),
     );
@@ -566,10 +573,10 @@ void main() {
       MaterialApp(
         home: GamePage(
           feedback: feedback,
-          rulesEngine: _SequencedMoveRulesEngine(
-            initialSnapshot: start,
-            moves: const [move],
+          rulesEngine: FakeRulesEngine(
+            initial: [matchOf(start)],
             moveResults: [StateError('bridge unavailable')],
+            legalMovesFor: (_) => const [move],
           ),
         ),
       ),
@@ -602,9 +609,9 @@ void main() {
       MaterialApp(
         home: GamePage(
           feedback: feedback,
-          rulesEngine: _MoveRulesEngine(
-            initialSnapshot: start,
-            nextSnapshot: start,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(start),
+            next: matchOf(start, hash: 'next'),
             legalMoves: const [moveDown],
           ),
         ),
@@ -651,10 +658,13 @@ void main() {
       MaterialApp(
         home: GamePage(
           feedback: feedback,
-          rulesEngine: _SequencedMoveRulesEngine(
-            initialSnapshot: start,
-            moves: const [pushUp],
-            moveResults: [StateError('bridge unavailable'), afterPush],
+          rulesEngine: FakeRulesEngine(
+            initial: [matchOf(start)],
+            moveResults: [
+              StateError('bridge unavailable'),
+              matchOf(afterPush, hash: 'next'),
+            ],
+            legalMovesFor: (_) => const [pushUp],
           ),
         ),
       ),
@@ -687,9 +697,8 @@ void main() {
       MaterialApp(
         home: GamePage(
           feedback: feedback,
-          rulesEngine: _SequencedRulesEngine(
-            initialStateResults: [StateError('bridge unavailable'), ready],
-            legalMoves: const [],
+          rulesEngine: FakeRulesEngine(
+            initial: [StateError('bridge unavailable'), ready],
           ),
         ),
       ),
@@ -699,6 +708,120 @@ void main() {
     await tester.pump();
 
     expect(felt, isEmpty);
+  });
+
+  testWidgets('shows a finished round and advances past it', (tester) async {
+    const finalBoard = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [GameTile(x: 0, y: 0, kind: GameTileKind.damaged)],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'round-1-final',
+    );
+    const nextBoard = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [GameTile(x: 0, y: 0, kind: GameTileKind.normal)],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'round-2',
+    );
+    final engine = FakeRulesEngine(
+      initial: [roundOverMatch(finalBoard, winner: GamePlayer.first)],
+      advanceResults: [matchOf(nextBoard, firstWins: 1, hash: 'round-2-match')],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+    expect(_inOverlay('Player 1'), findsOneWidget);
+    expect(find.text('takes the round'), findsOneWidget);
+    expect(find.text('by knockout'), findsOneWidget);
+    expect(find.text('1 - 0'), findsOneWidget);
+    // The board that ended the round is what the result sits over.
+    expect(find.byType(RoundBoard), findsOneWidget);
+    // Neither player is on turn while the result is up.
+    expect(find.text('Your turn'), findsNothing);
+
+    await tester.tap(find.text('Next Round'));
+    await tester.pump();
+
+    expect(engine.advanceCount, 1);
+    _expectActiveTurn(GamePlayer.second);
+    expect(find.text('Next Round'), findsNothing);
+  });
+
+  testWidgets('shows each player their round wins', (tester) async {
+    const board = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'scored',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(board, firstWins: 1),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('round-wins-first-1')), findsOneWidget);
+    expect(find.byKey(const Key('round-wins-second-0')), findsOneWidget);
+  });
+
+  testWidgets('states the result without truncating it', (tester) async {
+    const finalBoard = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      winner: GamePlayer.second,
+      winReason: GameWinReason.immobilization,
+      snapshotHash: 'legible',
+    );
+    addTearDown(tester.view.reset);
+
+    for (final size in const [Size(320, 480), Size(390, 844)]) {
+      tester.view
+        ..physicalSize = size
+        ..devicePixelRatio = 1;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GamePage(
+            key: ValueKey(size),
+            rulesEngine: FakeRulesEngine.playing(
+              initial: roundOverMatch(
+                finalBoard,
+                winner: GamePlayer.second,
+                reason: GameWinReason.immobilization,
+                firstWins: 0,
+                secondWins: 1,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Ellipsis is silent: it raises no exception and passes every layout
+      // assertion while removing the half that says what happened.
+      for (final text in const [
+        'Player 2',
+        'takes the round',
+        'by immobilization',
+      ]) {
+        final paragraph = tester.renderObject<RenderParagraph>(
+          _inOverlay(text),
+        );
+
+        expect(
+          paragraph.didExceedMaxLines,
+          isFalse,
+          reason: '"$text" is cut off at $size',
+        );
+      }
+    }
   });
 
   testWidgets('keeps a valid board visible and retries a failed move', (
@@ -717,10 +840,13 @@ void main() {
       snapshotHash: 'move-retried',
     );
     const move = GameMove(pieceId: 0, direction: GameDirection.down);
-    final engine = _SequencedMoveRulesEngine(
-      initialSnapshot: initialSnapshot,
-      moves: [move],
-      moveResults: [StateError('bridge unavailable'), nextSnapshot],
+    final engine = FakeRulesEngine(
+      initial: [matchOf(initialSnapshot)],
+      moveResults: [
+        StateError('bridge unavailable'),
+        matchOf(nextSnapshot, hash: 'next'),
+      ],
+      legalMovesFor: (_) => const [move],
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
@@ -760,6 +886,15 @@ Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
   );
 }
 
+/// Scopes a text finder to the result overlay, since the panels carry the
+/// player names too.
+Finder _inOverlay(String text) {
+  return find.descendant(
+    of: find.byKey(const Key('result-overlay')),
+    matching: find.text(text),
+  );
+}
+
 /// Records what the page reported, without asserting how it is felt.
 final class _RecordingFeedback implements RoundFeedback {
   final List<String> events = [];
@@ -785,114 +920,4 @@ void _expectActiveTurn(GamePlayer player) {
     ),
     findsOneWidget,
   );
-}
-
-final class _FakeRulesEngine implements RulesEngine {
-  const _FakeRulesEngine({required this.snapshot});
-
-  final GameSnapshot snapshot;
-
-  @override
-  GameSnapshot applyMove(GameSnapshot state, GameMove move) {
-    throw UnsupportedError('applyMove is not used by this test');
-  }
-
-  @override
-  GameSnapshot initialState() => snapshot;
-
-  @override
-  List<GameMove> legalMoves(GameSnapshot state) => const [];
-}
-
-final class _SequencedRulesEngine implements RulesEngine {
-  _SequencedRulesEngine({
-    required this._initialStateResults,
-    required this._legalMoves,
-  });
-
-  final List<Object> _initialStateResults;
-  final List<GameMove> _legalMoves;
-  final List<GameMove> appliedMoves = [];
-
-  @override
-  GameSnapshot applyMove(GameSnapshot state, GameMove move) {
-    appliedMoves.add(move);
-    return state;
-  }
-
-  @override
-  GameSnapshot initialState() {
-    final result = _initialStateResults.removeAt(0);
-    if (result case final GameSnapshot snapshot) {
-      return snapshot;
-    }
-    if (result case final Error error) {
-      throw error;
-    }
-    throw StateError('initial state result must be a GameSnapshot or Error');
-  }
-
-  @override
-  List<GameMove> legalMoves(GameSnapshot state) => _legalMoves;
-}
-
-final class _MoveRulesEngine implements RulesEngine {
-  _MoveRulesEngine({
-    required this.initialSnapshot,
-    required this.nextSnapshot,
-    required this._legalMoves,
-  });
-
-  final GameSnapshot initialSnapshot;
-  final GameSnapshot nextSnapshot;
-  final List<GameMove> _legalMoves;
-  final List<GameMove> appliedMoves = [];
-
-  @override
-  GameSnapshot applyMove(GameSnapshot state, GameMove move) {
-    appliedMoves.add(move);
-    return nextSnapshot;
-  }
-
-  @override
-  GameSnapshot initialState() => initialSnapshot;
-
-  @override
-  List<GameMove> legalMoves(GameSnapshot state) {
-    return state.snapshotHash == initialSnapshot.snapshotHash
-        ? _legalMoves
-        : const [];
-  }
-}
-
-final class _SequencedMoveRulesEngine implements RulesEngine {
-  _SequencedMoveRulesEngine({
-    required this.initialSnapshot,
-    required this.moves,
-    required this.moveResults,
-  });
-
-  final GameSnapshot initialSnapshot;
-  final List<GameMove> moves;
-  final List<Object> moveResults;
-  final List<GameMove> appliedMoves = [];
-
-  @override
-  GameSnapshot applyMove(GameSnapshot state, GameMove move) {
-    appliedMoves.add(move);
-    final result = moveResults.removeAt(0);
-    if (result case final GameSnapshot snapshot) {
-      return snapshot;
-    }
-    if (result case final Error error) {
-      throw error;
-    }
-    throw StateError('move result must be a GameSnapshot or Error');
-  }
-
-  @override
-  GameSnapshot initialState() => initialSnapshot;
-
-  @override
-  List<GameMove> legalMoves(GameSnapshot state) => moves;
 }

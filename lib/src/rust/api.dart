@@ -6,21 +6,24 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `game_move_from_engine`, `hash_byte`, `hash_bytes`, `illegal_move_error`, `move_to_engine`, `player_byte`, `snapshot_from_state`, `snapshot_hash`, `state_error`, `state_from_snapshot`, `tile_byte`, `win_reason_byte`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `game_move_from_engine`, `hash_byte`, `hash_bytes`, `illegal_move_error`, `match_hash`, `match_snapshot_from_state`, `match_state_from_snapshot`, `move_to_engine`, `player_byte`, `snapshot_from_state`, `snapshot_hash`, `state_error`, `state_from_snapshot`, `tile_byte`, `win_reason_byte`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
-GameSnapshot initialState() => RustLib.instance.api.crateApiInitialState();
+MatchSnapshot initialMatch() => RustLib.instance.api.crateApiInitialMatch();
 
-List<GameMove> legalMoves({required GameSnapshot snapshot}) =>
-    RustLib.instance.api.crateApiLegalMoves(snapshot: snapshot);
+List<GameMove> matchLegalMoves({required MatchSnapshot snapshot}) =>
+    RustLib.instance.api.crateApiMatchLegalMoves(snapshot: snapshot);
 
-GameSnapshot applyMove({
-  required GameSnapshot snapshot,
+MatchSnapshot matchApplyMove({
+  required MatchSnapshot snapshot,
   required GameMove gameMove,
-}) => RustLib.instance.api.crateApiApplyMove(
+}) => RustLib.instance.api.crateApiMatchApplyMove(
   snapshot: snapshot,
   gameMove: gameMove,
 );
+
+MatchSnapshot advanceRound({required MatchSnapshot snapshot}) =>
+    RustLib.instance.api.crateApiAdvanceRound(snapshot: snapshot);
 
 class CounterPushRestriction {
   final int pusherPieceId;
@@ -48,6 +51,12 @@ enum GameDirection {
   down,
   left,
   right,
+}
+
+enum GameMatchPhase {
+  playing,
+  roundOver,
+  matchOver,
 }
 
 class GameMove {
@@ -179,4 +188,60 @@ enum GameTileKind {
 enum GameWinReason {
   knockout,
   immobilization,
+}
+
+/// A best-of-three match, carried across the bridge by value.
+///
+/// `starting_pieces` is the layout each round resets to. The round's own
+/// tiles cannot stand in for it: they carry the damage taken since, not the
+/// board a reset restores.
+class MatchSnapshot {
+  final GameSnapshot round;
+  final List<GamePiece> startingPieces;
+  final int firstPlayerWins;
+  final int secondPlayerWins;
+  final GameMatchPhase phase;
+  final GamePlayer? roundWinner;
+  final GameWinReason? roundWinReason;
+  final GamePlayer? matchWinner;
+  final String snapshotHash;
+
+  const MatchSnapshot({
+    required this.round,
+    required this.startingPieces,
+    required this.firstPlayerWins,
+    required this.secondPlayerWins,
+    required this.phase,
+    this.roundWinner,
+    this.roundWinReason,
+    this.matchWinner,
+    required this.snapshotHash,
+  });
+
+  @override
+  int get hashCode =>
+      round.hashCode ^
+      startingPieces.hashCode ^
+      firstPlayerWins.hashCode ^
+      secondPlayerWins.hashCode ^
+      phase.hashCode ^
+      roundWinner.hashCode ^
+      roundWinReason.hashCode ^
+      matchWinner.hashCode ^
+      snapshotHash.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MatchSnapshot &&
+          runtimeType == other.runtimeType &&
+          round == other.round &&
+          startingPieces == other.startingPieces &&
+          firstPlayerWins == other.firstPlayerWins &&
+          secondPlayerWins == other.secondPlayerWins &&
+          phase == other.phase &&
+          roundWinner == other.roundWinner &&
+          roundWinReason == other.roundWinReason &&
+          matchWinner == other.matchWinner &&
+          snapshotHash == other.snapshotHash;
 }

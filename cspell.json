@@ -9,6 +9,7 @@
     "swift",
     "cpp",
     "java",
+    "rust",
     "kotlin",
     "softwareTerms",
     "filetypes",
@@ -36,6 +37,12 @@
   "enableGlobDot": true,
   "useGitignore": true,
   "ignoreWords": ["meta-data", "plaintext"],
-  "ignorePaths": [".git", ".gitignore", "rust_builder/**"],
+  "ignorePaths": [
+    ".git",
+    ".gitignore",
+    ".agents",
+    ".claude",
+    "rust_builder/**"
+  ],
   "words": ["ttush_push"]
 }

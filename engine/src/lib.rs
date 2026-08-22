@@ -91,10 +91,16 @@ pub enum Outcome {
     Winner(Player, WinReason),
 }
 
+/// Where a match stands, and what the caller may do next.
+///
+/// A finished round is a state rather than a step taken inside the move that
+/// finished it, so the position that ended it can be shown before the next
+/// round replaces the board.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-pub enum MatchOutcome {
-    Ongoing,
-    Winner(Player),
+pub enum MatchPhase {
+    Playing,
+    RoundOver { winner: Player, reason: WinReason },
+    MatchOver { winner: Player, reason: WinReason },
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -104,6 +110,26 @@ pub struct BoardConfig {
 }
 
 impl BoardConfig {
+    /// The pieces every round resets to.
+    pub fn initial_pieces(&self) -> &[Piece] {
+        &self.initial_pieces
+    }
+
+    /// The symmetric five-by-five layout the app starts from.
+    pub fn baseline() -> Self {
+        Self::rectangular(
+            5,
+            5,
+            vec![
+                Piece::new(PieceId(0), Player::First, Position::new(1, 0)),
+                Piece::new(PieceId(1), Player::First, Position::new(3, 0)),
+                Piece::new(PieceId(2), Player::Second, Position::new(1, 4)),
+                Piece::new(PieceId(3), Player::Second, Position::new(3, 4)),
+            ],
+        )
+        .expect("the baseline board configuration must be valid")
+    }
+
     pub fn rectangular(
         width: u8,
         height: u8,
@@ -167,19 +193,8 @@ struct CounterPush {
 
 impl GameState {
     pub fn baseline() -> Self {
-        let board = BoardConfig::rectangular(
-            5,
-            5,
-            vec![
-                Piece::new(PieceId(0), Player::First, Position::new(1, 0)),
-                Piece::new(PieceId(1), Player::First, Position::new(3, 0)),
-                Piece::new(PieceId(2), Player::Second, Position::new(1, 4)),
-                Piece::new(PieceId(3), Player::Second, Position::new(3, 4)),
-            ],
-        )
-        .expect("the baseline board configuration must be valid");
-
-        Self::new(board, Player::First).expect("the baseline game state must be valid")
+        Self::new(BoardConfig::baseline(), Player::First)
+            .expect("the baseline game state must be valid")
     }
 
     pub fn new(board: BoardConfig, current_player: Player) -> Result<Self, StateError> {
@@ -265,6 +280,7 @@ impl Move {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StateError {
+    ImpossibleScore,
     EmptyBoard,
     PieceOutsideBoard(PieceId),
     OverlappingPieces,
@@ -276,6 +292,7 @@ pub enum StateError {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IllegalMove {
     RoundFinished,
+    RoundInProgress,
     MatchFinished,
     UnknownPiece(PieceId),
     WrongPlayer(PieceId),
@@ -291,48 +308,77 @@ pub struct MatchState {
     board: BoardConfig,
     round: GameState,
     round_wins: [u8; 2],
-    outcome: MatchOutcome,
+    phase: MatchPhase,
 }
 
 impl MatchState {
+    pub const WINS_REQUIRED: u8 = 2;
+
     pub fn new(board: BoardConfig, starting_player: Player) -> Result<Self, StateError> {
         let mut state = Self {
             round: GameState::new(board.clone(), starting_player)?,
             board,
             round_wins: [0, 0],
-            outcome: MatchOutcome::Ongoing,
+            phase: MatchPhase::Playing,
         };
-        state.settle_terminal_rounds();
+        state.settle_round();
 
         Ok(state)
     }
 
     pub fn apply_move(&self, mv: Move) -> Result<Self, IllegalMove> {
-        if self.outcome != MatchOutcome::Ongoing {
-            return Err(IllegalMove::MatchFinished);
+        match self.phase {
+            MatchPhase::Playing => {}
+            MatchPhase::RoundOver { .. } => return Err(IllegalMove::RoundFinished),
+            MatchPhase::MatchOver { .. } => return Err(IllegalMove::MatchFinished),
         }
 
         let mut next = self.clone();
         next.round = apply_move(&self.round, mv)?;
-        next.settle_terminal_rounds();
+        next.settle_round();
 
         Ok(next)
     }
 
-    fn settle_terminal_rounds(&mut self) {
-        while let Outcome::Winner(winner, _) = outcome(&self.round) {
-            let winner_index = match winner {
-                Player::First => 0,
-                Player::Second => 1,
-            };
-            self.round_wins[winner_index] += 1;
-            if self.round_wins[winner_index] == 2 {
-                self.outcome = MatchOutcome::Winner(winner);
-                return;
-            }
-            self.round = GameState::new(self.board.clone(), winner.opponent())
-                .expect("a previously valid board must reset into a valid round");
-        }
+    /// Starts the next round. The loser of the round that just ended plays
+    /// first.
+    ///
+    /// The reset board can be immobilized on arrival, so this may settle
+    /// straight back into `RoundOver`; the caller advances through that the
+    /// same way, and never sees a `Playing` state with no legal move.
+    pub fn advance_round(&self) -> Result<Self, IllegalMove> {
+        let MatchPhase::RoundOver { winner, .. } = self.phase else {
+            return Err(match self.phase {
+                MatchPhase::MatchOver { .. } => IllegalMove::MatchFinished,
+                _ => IllegalMove::RoundInProgress,
+            });
+        };
+
+        let mut next = self.clone();
+        next.round = GameState::new(self.board.clone(), winner.opponent())
+            .expect("a previously valid board must reset into a valid round");
+        next.settle_round();
+
+        Ok(next)
+    }
+
+    /// Records the round's result when it has one, and stops there.
+    fn settle_round(&mut self) {
+        let Outcome::Winner(winner, reason) = outcome(&self.round) else {
+            self.phase = MatchPhase::Playing;
+            return;
+        };
+
+        let winner_index = match winner {
+            Player::First => 0,
+            Player::Second => 1,
+        };
+        self.round_wins[winner_index] += 1;
+        self.phase = if self.round_wins[winner_index] >= Self::WINS_REQUIRED {
+            MatchPhase::MatchOver { winner, reason }
+        } else {
+            MatchPhase::RoundOver { winner, reason }
+        };
     }
 
     pub const fn round(&self) -> &GameState {
@@ -346,8 +392,66 @@ impl MatchState {
         }]
     }
 
-    pub const fn outcome(&self) -> MatchOutcome {
-        self.outcome
+    pub const fn phase(&self) -> MatchPhase {
+        self.phase
+    }
+
+    /// The layout every round resets to.
+    pub const fn board(&self) -> &BoardConfig {
+        &self.board
+    }
+
+    /// Rebuilds a match from its parts, for callers that carry it as a value.
+    ///
+    /// The phase is derived rather than accepted, so a caller cannot claim a
+    /// round is still running after it ended, or that it ended when it did
+    /// not.
+    pub fn from_parts(
+        board: BoardConfig,
+        round: GameState,
+        round_wins: [u8; 2],
+    ) -> Result<Self, StateError> {
+        let decided = round_wins
+            .iter()
+            .filter(|wins| **wins >= Self::WINS_REQUIRED)
+            .count();
+        // Two wins ends a match, so no play reaches a higher score, and only
+        // one player can hold the winning one.
+        if round_wins.iter().any(|wins| *wins > Self::WINS_REQUIRED) || decided > 1 {
+            return Err(StateError::ImpossibleScore);
+        }
+
+        let mut state = Self {
+            board,
+            round,
+            round_wins,
+            phase: MatchPhase::Playing,
+        };
+        // The stored wins already include this round's, if it has ended.
+        if let Outcome::Winner(winner, reason) = outcome(&state.round) {
+            let winner_index = match winner {
+                Player::First => 0,
+                Player::Second => 1,
+            };
+            if state.round_wins[winner_index] == 0 {
+                return Err(StateError::ImpossibleScore);
+            }
+            state.phase = if state.round_wins[winner_index] >= Self::WINS_REQUIRED {
+                MatchPhase::MatchOver { winner, reason }
+            } else {
+                MatchPhase::RoundOver { winner, reason }
+            };
+        }
+
+        // A winning score exists only in a match that has ended. Stated once
+        // against the derived phase, this covers a live round and a round
+        // played after the opponent had already won alike, rather than
+        // checking the score of whoever happened to take this round.
+        if decided > 0 && !matches!(state.phase, MatchPhase::MatchOver { .. }) {
+            return Err(StateError::ImpossibleScore);
+        }
+
+        Ok(state)
     }
 }
 
