@@ -9,10 +9,6 @@ class GamePage extends StatefulWidget {
 
   final RulesEngine _rulesEngine;
 
-  static Route<void> route() {
-    return MaterialPageRoute<void>(builder: (_) => const GamePage());
-  }
-
   @override
   State<GamePage> createState() => _GamePageState();
 }
