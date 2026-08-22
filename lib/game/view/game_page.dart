@@ -285,18 +285,9 @@ class _PlayerPanel extends StatelessWidget {
                 ),
               ),
             ),
-            if (isActive)
-              const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: Text(
-                  'Your turn',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
+            // Whose turn it is reads off the filled panel and the white
+            // mark. A second, textual say-so competed for the row with the
+            // longest opponent name and lost it to an ellipsis.
             _RoundWins(player: player, wins: wins, isActive: isActive),
           ],
         ),

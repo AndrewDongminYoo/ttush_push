@@ -12,6 +12,8 @@ When the opponent is a policy and it is their turn, the engine chooses and the m
 
 The choice persists across rounds and matches within a session, and can be changed at any point; a policy carries nothing between moves, so switching mid-round is harmless.
 
+Naming the opponent costs the row the words that used to say whose turn it was. Whose turn it is stays legible: the active panel is filled with that player's colour and its mark turns white, which was always the signal a glance across a table actually reads. Keeping the words as well meant the longest opponent name lost its second half to an ellipsis on a 320pt screen, silently.
+
 ## Non-Goals
 
 No menu, no settings screen, and no difficulty stored between launches.

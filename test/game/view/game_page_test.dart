@@ -27,7 +27,7 @@ void main() {
       ),
     );
 
-    _expectActiveTurn(GamePlayer.first);
+    _expectActiveTurn(tester, GamePlayer.first);
     expect(find.byType(RoundBoard), findsOneWidget);
     // The engine starts the first player on row 0, so their panel has to be
     // the top one for each player to sit behind their own pieces.
@@ -61,7 +61,7 @@ void main() {
     await tester.tap(find.text('Retry'));
     await tester.pump();
 
-    _expectActiveTurn(GamePlayer.first);
+    _expectActiveTurn(tester, GamePlayer.first);
   });
 
   testWidgets('blocks terminal board input and restarts the round', (
@@ -103,7 +103,7 @@ void main() {
     await tester.tap(find.text('New Match'));
     await tester.pump();
 
-    _expectActiveTurn(GamePlayer.first);
+    _expectActiveTurn(tester, GamePlayer.first);
   });
 
   testWidgets('applies only the selected legal destination', (tester) async {
@@ -149,7 +149,7 @@ void main() {
     await tester.pump();
 
     expect(engine.appliedMoves, [move]);
-    _expectActiveTurn(GamePlayer.second);
+    _expectActiveTurn(tester, GamePlayer.second);
   });
 
   testWidgets(
@@ -194,7 +194,7 @@ void main() {
       await tester.pump();
 
       expect(engine.appliedMoves, isEmpty);
-      _expectActiveTurn(GamePlayer.first);
+      _expectActiveTurn(tester, GamePlayer.first);
     },
   );
 
@@ -245,7 +245,7 @@ void main() {
     await tester.pump();
 
     expect(engine.appliedMoves, [move]);
-    _expectActiveTurn(GamePlayer.second);
+    _expectActiveTurn(tester, GamePlayer.second);
   });
 
   testWidgets('shows an immobilization result over the final board', (
@@ -279,7 +279,6 @@ void main() {
     expect(find.text('by immobilization'), findsOneWidget);
     // The position that ended the round stays readable underneath.
     expect(find.byType(RoundBoard), findsOneWidget);
-    expect(find.text('Your turn'), findsNothing);
   });
 
   testWidgets('keeps the board square on a small and a large screen', (
@@ -739,13 +738,12 @@ void main() {
     // The board that ended the round is what the result sits over.
     expect(find.byType(RoundBoard), findsOneWidget);
     // Neither player is on turn while the result is up.
-    expect(find.text('Your turn'), findsNothing);
 
     await tester.tap(find.text('Next Round'));
     await tester.pump();
 
     expect(engine.advanceCount, 1);
-    _expectActiveTurn(GamePlayer.second);
+    _expectActiveTurn(tester, GamePlayer.second);
     expect(find.text('Next Round'), findsNothing);
   });
 
@@ -891,7 +889,7 @@ void main() {
 
     expect(engine.appliedMoves, [move]);
     expect(engine.botRequests, [BotPolicy.random]);
-    _expectActiveTurn(GamePlayer.first);
+    _expectActiveTurn(tester, GamePlayer.first);
   });
 
   testWidgets('cancels a pending bot move when the opponent changes', (
@@ -923,6 +921,47 @@ void main() {
 
     expect(engine.appliedMoves, isEmpty);
     expect(_inPanel('second', 'Player 2'), findsOneWidget);
+  });
+
+  testWidgets('fits the longest opponent label on a narrow screen', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'narrow-bot',
+    );
+    addTearDown(tester.view.reset);
+    tester.view
+      ..physicalSize = const Size(320, 480)
+      ..devicePixelRatio = 1;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine(
+            initial: [matchOf(botTurn, firstWins: 1, secondWins: 1)],
+          ),
+        ),
+      ),
+    );
+
+    // Cycle to the longest label, which shares the row with "Your turn"
+    // and both score pips.
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('player-panel-second')));
+      await tester.pump();
+    }
+
+    expect(_inPanel('second', 'Minimax bot'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final label = tester.renderObject<RenderParagraph>(
+      _inPanel('second', 'Minimax bot'),
+    );
+
+    expect(label.didExceedMaxLines, isFalse);
   });
 
   testWidgets('keeps a valid board visible and retries a failed move', (
@@ -966,14 +1005,14 @@ void main() {
     await tester.tapAt(cellCenter(0, 1));
     await tester.pump();
 
-    _expectActiveTurn(GamePlayer.first);
+    _expectActiveTurn(tester, GamePlayer.first);
     expect(find.textContaining('Unable to update round'), findsOneWidget);
 
     await tester.tap(find.text('Retry'));
     await tester.pump();
 
     expect(engine.appliedMoves, [move, move]);
-    _expectActiveTurn(GamePlayer.second);
+    _expectActiveTurn(tester, GamePlayer.second);
     expect(find.textContaining('Unable to update round'), findsNothing);
   });
 }
@@ -1021,12 +1060,19 @@ final class _RecordingFeedback implements RoundFeedback {
   void roundWon() => events.add('win');
 }
 
-void _expectActiveTurn(GamePlayer player) {
-  expect(
-    find.descendant(
-      of: find.byKey(Key('player-panel-${player.name}')),
-      matching: find.text('Your turn'),
-    ),
-    findsOneWidget,
-  );
+/// Reads the active side off the panel's mark, which turns white on the
+/// seat whose turn it is.
+void _expectActiveTurn(WidgetTester tester, GamePlayer player) {
+  for (final seat in GamePlayer.values) {
+    final mark = tester.widget<Container>(
+      find.byKey(Key('player-mark-${seat.name}')),
+    );
+    final decoration = mark.decoration! as BoxDecoration;
+
+    expect(
+      decoration.color,
+      seat == player ? Colors.white : isNot(Colors.white),
+      reason: 'the ${seat.name} seat',
+    );
+  }
 }
