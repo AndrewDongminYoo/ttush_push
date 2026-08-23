@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::env;
+use std::fmt;
 use std::process;
 
 use engine::bot::{GreedyBot, MinimaxBot, Policy, RandomBot};
@@ -48,12 +49,21 @@ impl PolicyKind {
             Self::Minimax(depth) => Box::new(MinimaxBot::new(depth, seed)),
         }
     }
+}
 
-    const fn label(self) -> &'static str {
+/// Prints back the flag value that selects this policy.
+///
+/// The depth is part of the configuration, not decoration: without it a run
+/// saved at depth 5 reads the same as one at depth 2, so its output no longer
+/// says what produced it. `--first minimax` and `--first minimax:2` are the
+/// same run and print the same way, and every form parses back through
+/// [`PolicyKind::parse`].
+impl fmt::Display for PolicyKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Random => "random",
-            Self::Greedy => "greedy",
-            Self::Minimax(_) => "minimax",
+            Self::Random => f.write_str("random"),
+            Self::Greedy => f.write_str("greedy"),
+            Self::Minimax(depth) => write!(f, "minimax:{depth}"),
         }
     }
 }
@@ -84,8 +94,8 @@ fn run() -> Result<(), String> {
     println!("games={}", options.games);
     println!("seed={}", options.seed);
     println!("turn_limit={}", options.max_turns);
-    println!("first_policy={}", options.first.label());
-    println!("second_policy={}", options.second.label());
+    println!("first_policy={}", options.first);
+    println!("second_policy={}", options.second);
     println!("first_mover_wins={}", statistics.first_mover_wins);
     println!("second_mover_wins={}", statistics.second_mover_wins);
     println!("knockout_wins={}", statistics.knockout_wins);
