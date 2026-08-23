@@ -969,6 +969,94 @@ void main() {
     expect(engine.appliedMoves, [move]);
   });
 
+  testWidgets('stops repeating a bot move that failed until Retry', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-fails',
+    );
+    const answered = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-recovered',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [
+        StateError('the bridge refused the move'),
+        matchOf(answered, hash: 'bot-recovered-match'),
+      ],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(engine.botRequests, hasLength(1));
+    expect(find.textContaining('Unable to update round'), findsOneWidget);
+
+    // A failed move leaves the round untouched, so it is still the bot's
+    // turn. Waiting must not turn that into a native call every pause.
+    for (var pause = 0; pause < 4; pause++) {
+      await tester.pump(const Duration(milliseconds: 600));
+    }
+
+    expect(engine.botRequests, hasLength(1));
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    expect(engine.botRequests, hasLength(2));
+    expect(engine.appliedMoves, [move, move]);
+    expect(find.textContaining('Unable to update round'), findsNothing);
+  });
+
+  testWidgets(
+    'drops a stranded bot error when the seat turns human',
+    (
+      tester,
+    ) async {
+      const botTurn = GameSnapshot(
+        currentPlayer: GamePlayer.second,
+        tiles: [],
+        pieces: [],
+        snapshotHash: 'bot-stranded',
+      );
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final engine = FakeRulesEngine(
+        initial: [matchOf(botTurn)],
+        moveResults: [StateError('the bridge refused the move')],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => move,
+      );
+
+      await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+      await tester.tap(find.byKey(const Key('player-panel-second')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(find.textContaining('Unable to update round'), findsOneWidget);
+
+      // Retry still points at a bot move, so handing the seat back to a person
+      // would leave a banner whose only button does nothing.
+      for (var tap = 0; tap < 3; tap++) {
+        await tester.tap(find.byKey(const Key('player-panel-second')));
+      }
+      await tester.pump();
+
+      expect(_inPanel('second', 'Player 2'), findsOneWidget);
+      expect(find.textContaining('Unable to update round'), findsNothing);
+    },
+  );
+
   testWidgets('fits the longest opponent label on a narrow screen', (
     tester,
   ) async {

@@ -74,9 +74,17 @@ final class MatchController {
       isPlaying &&
       _snapshot?.round.currentPlayer == rust.GamePlayer.second;
 
+  /// Hands the second seat to the next opponent in the cycle.
+  ///
+  /// A standing error is dropped with it: the action waiting behind Retry
+  /// belonged to the seat as it was, and a bot-move retry left in place after
+  /// the seat turns human does nothing at all, stranding the banner. A fault
+  /// that is still there resurfaces on the next move.
   void cycleOpponent() {
     _opponent = _opponent.next;
     _selectedPieceId = null;
+    _error = null;
+    _retryAction = null;
   }
 
   /// Plays the move the policy chose. Does nothing when it is not its turn.

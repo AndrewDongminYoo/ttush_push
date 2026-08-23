@@ -65,8 +65,16 @@ class _GamePageState extends State<GamePage> {
   ///
   /// Called after every rebuild, so a bot answers a human move, its own
   /// advance into a new round, and a change of opponent alike.
+  ///
+  /// A standing error stops the schedule. A failed bot move leaves the round
+  /// untouched, so it is still the bot's turn and rescheduling would repeat
+  /// the same failing call every [_botPause] behind the error screen. The
+  /// human tap path already refuses to act while an error stands, and the
+  /// Retry button is the one way past it.
   void _scheduleBotMove() {
-    if (!_controller.isBotTurn || (_botTimer?.isActive ?? false)) {
+    if (!_controller.isBotTurn ||
+        _controller.error != null ||
+        (_botTimer?.isActive ?? false)) {
       return;
     }
 
