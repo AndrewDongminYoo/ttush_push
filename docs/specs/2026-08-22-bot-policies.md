@@ -90,6 +90,6 @@ Non-terminal leaves score on mobility alone. Material is deliberately absent: a 
 
 The ordering holds from either seat, so it reflects the policies rather than a first-move advantage — random against random is 49% / 51%, which is the baseline that makes the rest readable.
 
-This measurement is what found the search bug the unit tests could not: a minimax that minimised where it should maximise still took a winning move and still avoided an immediate loss, because both are decided by terminal scores, and it showed up only as losing to greedy 37% / 41%. The ranking is asserted in the tests for that reason.
+This measurement is what found the search bug the unit tests could not: a minimax that minimized where it should maximize still took a winning move and still avoided an immediate loss, because both are decided by terminal scores, and it showed up only as losing to greedy 37% / 41%. The ranking is asserted in the tests for that reason.
 
 Alpha-beta and a transposition table are still deferred. Depth 2 already beats greedy from both seats, and nothing yet asks for a depth that plain search cannot reach.

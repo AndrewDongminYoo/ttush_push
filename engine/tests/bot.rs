@@ -282,7 +282,7 @@ fn play_round(first: &mut dyn Policy, second: &mut dyn Policy) -> Player {
 #[test]
 fn minimax_outplays_greedy_from_both_seats() {
     // The searching half of minimax shows up only in results. A search that
-    // minimises where it should maximise still takes a winning move and
+    // minimizes where it should maximize still takes a winning move and
     // still avoids an immediate loss, because both are decided by terminal
     // scores; it loses this comparison instead. Measured at 500 games the
     // correct search takes 73% and 79% of the two seats, and the inverted
