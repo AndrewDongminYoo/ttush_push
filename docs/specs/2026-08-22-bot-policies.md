@@ -59,6 +59,9 @@ This is one ply of lookahead, entirely within the engine. It is deliberately not
 ### What Minimax scores
 
 Terminal positions score as a win or a loss, adjusted by depth so a faster win outranks a slower one and a delayed loss outranks an immediate one.
+The depth term is the search budget still unspent, so a round that ended sooner carries a larger one and the adjustment is added rather than subtracted.
+That ordering is asserted on its own rather than through play, because neither channel that found the first polarity bug can see this one: the knockout fixture offers a single winning line, so no two wins at different depths ever compete, and at the depth the app actually runs every mover-win sits at the same depth as every other.
+It was shipped inverted and caught in review.
 
 Non-terminal leaves score on mobility alone. Material is deliberately absent: a knockout ends the round outright, so in any position still being played both sides hold every piece they started with and a material term could only ever be zero. Mobility is what varies, and running the opponent out of moves is the other way a round is won.
 

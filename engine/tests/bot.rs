@@ -158,6 +158,19 @@ fn minimax_prefers_the_faster_win() {
 }
 
 #[test]
+fn a_faster_finish_outranks_a_slower_one() {
+    // The knockout fixture offers only one winning line, so the test above
+    // holds whichever way the depth term points. Assert the ordering the
+    // search is built on directly: an unspent budget means the round ended
+    // sooner, so a win must score higher and a loss must score lower.
+    assert!(MinimaxBot::terminal_score(true, 3) > MinimaxBot::terminal_score(true, 1));
+    assert!(MinimaxBot::terminal_score(false, 3) < MinimaxBot::terminal_score(false, 1));
+
+    // A win at the slowest possible pace still outranks the fastest loss.
+    assert!(MinimaxBot::terminal_score(true, 0) > MinimaxBot::terminal_score(false, u8::MAX));
+}
+
+#[test]
 fn a_depth_of_zero_still_searches_one_ply() {
     let state = GameState::new(knockout_board(), Player::First).unwrap();
     let expected = winning_move(&state, Player::First).unwrap();

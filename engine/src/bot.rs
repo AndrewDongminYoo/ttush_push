@@ -126,12 +126,21 @@ impl MinimaxBot {
         }
     }
 
+    /// Scores a finished round from the searching side's point of view.
+    ///
+    /// `depth` is the budget still unspent when the round ended, so a round
+    /// that ended sooner carries a larger one. Adding it is what makes a
+    /// faster win outrank a slower one and a faster loss rank below a
+    /// delayed one, so the search neither dawdles over a won round nor walks
+    /// into the quickest defeat available.
+    pub fn terminal_score(won: bool, depth: u8) -> i32 {
+        let score = Self::WIN + i32::from(depth);
+        if won { score } else { -score }
+    }
+
     fn search(state: &GameState, mover: Player, depth: u8) -> i32 {
         if let Outcome::Winner(winner, _) = outcome(state) {
-            // Deeper wins score lower, so a faster win is preferred and a
-            // loss is delayed rather than walked into.
-            let score = Self::WIN - i32::from(depth);
-            return if winner == mover { score } else { -score };
+            return Self::terminal_score(winner == mover, depth);
         }
         if depth == 0 {
             return Self::evaluate(state, mover);
