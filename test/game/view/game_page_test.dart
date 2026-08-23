@@ -1128,8 +1128,7 @@ void main() {
       ),
     );
 
-    // Cycle to the longest label, which shares the row with "Your turn"
-    // and both score pips.
+    // Cycle to the longest label, which shares the row with both score pips.
     for (var i = 0; i < 3; i++) {
       await tester.tap(find.byKey(const Key('player-panel-second')));
       await tester.pump();
