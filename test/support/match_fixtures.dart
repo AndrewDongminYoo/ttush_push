@@ -80,6 +80,7 @@ final class FakeRulesEngine implements RulesEngine {
     List<Object> moveResults = const [],
     List<Object> advanceResults = const [],
     this._legalMovesFor,
+    this._botMove,
   }) : _initial = List.of(initial),
        _moveResults = List.of(moveResults),
        _advanceResults = List.of(advanceResults);
@@ -103,8 +104,10 @@ final class FakeRulesEngine implements RulesEngine {
   final List<Object> _moveResults;
   final List<Object> _advanceResults;
   final List<GameMove> Function(MatchSnapshot state)? _legalMovesFor;
+  final GameMove? Function(MatchSnapshot state, BotPolicy policy)? _botMove;
 
   final List<GameMove> appliedMoves = [];
+  final List<BotPolicy> botRequests = [];
   int advanceCount = 0;
 
   @override
@@ -124,6 +127,12 @@ final class FakeRulesEngine implements RulesEngine {
   MatchSnapshot advanceRound(MatchSnapshot state) {
     advanceCount++;
     return _take(_advanceResults, 'advance result');
+  }
+
+  @override
+  GameMove? chooseBotMove(MatchSnapshot state, BotPolicy policy) {
+    botRequests.add(policy);
+    return _botMove?.call(state, policy);
   }
 
   MatchSnapshot _take(List<Object> results, String what) {

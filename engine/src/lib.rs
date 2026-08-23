@@ -2,6 +2,7 @@ mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be
 use std::collections::{BTreeMap, BTreeSet};
 
 pub mod api;
+pub mod bot;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum Player {

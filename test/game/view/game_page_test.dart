@@ -27,7 +27,7 @@ void main() {
       ),
     );
 
-    _expectActiveTurn(GamePlayer.first);
+    _expectActiveTurn(tester, GamePlayer.first);
     expect(find.byType(RoundBoard), findsOneWidget);
     // The engine starts the first player on row 0, so their panel has to be
     // the top one for each player to sit behind their own pieces.
@@ -61,7 +61,7 @@ void main() {
     await tester.tap(find.text('Retry'));
     await tester.pump();
 
-    _expectActiveTurn(GamePlayer.first);
+    _expectActiveTurn(tester, GamePlayer.first);
   });
 
   testWidgets('blocks terminal board input and restarts the round', (
@@ -103,7 +103,7 @@ void main() {
     await tester.tap(find.text('New Match'));
     await tester.pump();
 
-    _expectActiveTurn(GamePlayer.first);
+    _expectActiveTurn(tester, GamePlayer.first);
   });
 
   testWidgets('applies only the selected legal destination', (tester) async {
@@ -149,7 +149,7 @@ void main() {
     await tester.pump();
 
     expect(engine.appliedMoves, [move]);
-    _expectActiveTurn(GamePlayer.second);
+    _expectActiveTurn(tester, GamePlayer.second);
   });
 
   testWidgets(
@@ -194,7 +194,7 @@ void main() {
       await tester.pump();
 
       expect(engine.appliedMoves, isEmpty);
-      _expectActiveTurn(GamePlayer.first);
+      _expectActiveTurn(tester, GamePlayer.first);
     },
   );
 
@@ -245,7 +245,7 @@ void main() {
     await tester.pump();
 
     expect(engine.appliedMoves, [move]);
-    _expectActiveTurn(GamePlayer.second);
+    _expectActiveTurn(tester, GamePlayer.second);
   });
 
   testWidgets('shows an immobilization result over the final board', (
@@ -279,7 +279,6 @@ void main() {
     expect(find.text('by immobilization'), findsOneWidget);
     // The position that ended the round stays readable underneath.
     expect(find.byType(RoundBoard), findsOneWidget);
-    expect(find.text('Your turn'), findsNothing);
   });
 
   testWidgets('keeps the board square on a small and a large screen', (
@@ -739,13 +738,12 @@ void main() {
     // The board that ended the round is what the result sits over.
     expect(find.byType(RoundBoard), findsOneWidget);
     // Neither player is on turn while the result is up.
-    expect(find.text('Your turn'), findsNothing);
 
     await tester.tap(find.text('Next Round'));
     await tester.pump();
 
     expect(engine.advanceCount, 1);
-    _expectActiveTurn(GamePlayer.second);
+    _expectActiveTurn(tester, GamePlayer.second);
     expect(find.text('Next Round'), findsNothing);
   });
 
@@ -824,6 +822,328 @@ void main() {
     }
   });
 
+  testWidgets('cycles the opponent from the second seat panel', (tester) async {
+    const board = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'opponent',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine.playing(initial: matchOf(board)),
+        ),
+      ),
+    );
+
+    expect(_inPanel('second', 'Player 2'), findsOneWidget);
+
+    for (final label in const ['Random bot', 'Greedy bot', 'Minimax bot']) {
+      await tester.tap(find.byKey(const Key('player-panel-second')));
+      await tester.pump();
+
+      expect(_inPanel('second', label), findsOneWidget, reason: label);
+    }
+
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+
+    expect(_inPanel('second', 'Player 2'), findsOneWidget);
+    // The first seat is always the person and never changes.
+    expect(_inPanel('first', 'Player 1'), findsOneWidget);
+  });
+
+  testWidgets('lets the bot answer after a pause, not instantly', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-turn',
+    );
+    const answered = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-answered',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [matchOf(answered, hash: 'answered-match')],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+
+    // The board must not change while the person is still reading it.
+    expect(engine.appliedMoves, isEmpty);
+
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(engine.appliedMoves, [move]);
+    expect(engine.botRequests, [BotPolicy.random]);
+    _expectActiveTurn(tester, GamePlayer.first);
+  });
+
+  testWidgets('cancels a pending bot move when the opponent changes', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'cancelled',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [matchOf(botTurn, hash: 'unused')],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+    // Hand the seat back to a person before the pause elapses.
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(engine.appliedMoves, isEmpty);
+    expect(_inPanel('second', 'Player 2'), findsOneWidget);
+  });
+
+  testWidgets('refuses a tap on the seat a bot is about to play', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
+      snapshotHash: 'bot-seat',
+    );
+    const answered = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-seat-answered',
+    );
+    const move = GameMove(pieceId: 1, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [matchOf(answered, hash: 'bot-seat-next')],
+      legalMovesFor: (state) =>
+          state.round.snapshotHash == 'bot-seat' ? const [move] : const [],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+
+    // Inside the pause it is still the bot's turn and its moves are still the
+    // legal ones, so without a turn guard these two taps play its move for it.
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(0, 0));
+    await tester.tapAt(cellCenter(0, 1));
+    await tester.pump();
+
+    expect(engine.appliedMoves, isEmpty);
+
+    // The bot still plays the move itself once the pause is up.
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(engine.appliedMoves, [move]);
+  });
+
+  testWidgets('stops repeating a bot move that failed until Retry', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-fails',
+    );
+    const answered = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-recovered',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [
+        StateError('the bridge refused the move'),
+        matchOf(answered, hash: 'bot-recovered-match'),
+      ],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(engine.botRequests, hasLength(1));
+    expect(find.textContaining('Unable to update round'), findsOneWidget);
+
+    // A failed move leaves the round untouched, so it is still the bot's
+    // turn. Waiting must not turn that into a native call every pause.
+    for (var pause = 0; pause < 4; pause++) {
+      await tester.pump(const Duration(milliseconds: 600));
+    }
+
+    expect(engine.botRequests, hasLength(1));
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    expect(engine.botRequests, hasLength(2));
+    expect(engine.appliedMoves, [move, move]);
+    expect(find.textContaining('Unable to update round'), findsNothing);
+  });
+
+  testWidgets(
+    'drops a stranded bot error when the seat turns human',
+    (
+      tester,
+    ) async {
+      const botTurn = GameSnapshot(
+        currentPlayer: GamePlayer.second,
+        tiles: [],
+        pieces: [],
+        snapshotHash: 'bot-stranded',
+      );
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final engine = FakeRulesEngine(
+        initial: [matchOf(botTurn)],
+        moveResults: [StateError('the bridge refused the move')],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => move,
+      );
+
+      await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+      await tester.tap(find.byKey(const Key('player-panel-second')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(find.textContaining('Unable to update round'), findsOneWidget);
+
+      // Retry still points at a bot move, so handing the seat back to a person
+      // would leave a banner whose only button does nothing.
+      for (var tap = 0; tap < 3; tap++) {
+        await tester.tap(find.byKey(const Key('player-panel-second')));
+      }
+      await tester.pump();
+
+      expect(_inPanel('second', 'Player 2'), findsOneWidget);
+      expect(find.textContaining('Unable to update round'), findsNothing);
+    },
+  );
+
+  testWidgets('feels a round the bot won as a win, not as a move', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
+      snapshotHash: 'bot-wins',
+    );
+    const won = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 1)],
+      winner: GamePlayer.second,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'bot-won',
+    );
+    const move = GameMove(pieceId: 1, direction: GameDirection.down);
+    final feedback = _RecordingFeedback();
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [
+        roundOverMatch(
+          won,
+          winner: GamePlayer.second,
+          firstWins: 0,
+          secondWins: 1,
+          hash: 'bot-won-match',
+        ),
+      ],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(feedback: feedback, rulesEngine: engine),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+    feedback.events.clear();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(feedback.events, ['win']);
+  });
+
+  testWidgets('fits the longest opponent label on a narrow screen', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'narrow-bot',
+    );
+    addTearDown(tester.view.reset);
+    tester.view
+      ..physicalSize = const Size(320, 480)
+      ..devicePixelRatio = 1;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine(
+            initial: [matchOf(botTurn, firstWins: 1, secondWins: 1)],
+          ),
+        ),
+      ),
+    );
+
+    // Cycle to the longest label, which shares the row with both score pips.
+    for (var i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('player-panel-second')));
+      await tester.pump();
+    }
+
+    expect(_inPanel('second', 'Minimax bot'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final label = tester.renderObject<RenderParagraph>(
+      _inPanel('second', 'Minimax bot'),
+    );
+
+    expect(label.didExceedMaxLines, isFalse);
+  });
+
   testWidgets('keeps a valid board visible and retries a failed move', (
     tester,
   ) async {
@@ -865,14 +1185,14 @@ void main() {
     await tester.tapAt(cellCenter(0, 1));
     await tester.pump();
 
-    _expectActiveTurn(GamePlayer.first);
+    _expectActiveTurn(tester, GamePlayer.first);
     expect(find.textContaining('Unable to update round'), findsOneWidget);
 
     await tester.tap(find.text('Retry'));
     await tester.pump();
 
     expect(engine.appliedMoves, [move, move]);
-    _expectActiveTurn(GamePlayer.second);
+    _expectActiveTurn(tester, GamePlayer.second);
     expect(find.textContaining('Unable to update round'), findsNothing);
   });
 }
@@ -883,6 +1203,14 @@ Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
   return (x, y) => Offset(
     board.left + board.width * (x + 0.5) / 5,
     board.top + board.height * (y + 0.5) / 5,
+  );
+}
+
+/// Scopes a text finder to one player's panel.
+Finder _inPanel(String seat, String text) {
+  return find.descendant(
+    of: find.byKey(Key('player-panel-$seat')),
+    matching: find.text(text),
   );
 }
 
@@ -912,12 +1240,19 @@ final class _RecordingFeedback implements RoundFeedback {
   void roundWon() => events.add('win');
 }
 
-void _expectActiveTurn(GamePlayer player) {
-  expect(
-    find.descendant(
-      of: find.byKey(Key('player-panel-${player.name}')),
-      matching: find.text('Your turn'),
-    ),
-    findsOneWidget,
-  );
+/// Reads the active side off the panel's mark, which turns white on the
+/// seat whose turn it is.
+void _expectActiveTurn(WidgetTester tester, GamePlayer player) {
+  for (final seat in GamePlayer.values) {
+    final mark = tester.widget<Container>(
+      find.byKey(Key('player-mark-${seat.name}')),
+    );
+    final decoration = mark.decoration! as BoxDecoration;
+
+    expect(
+      decoration.color,
+      seat == player ? Colors.white : isNot(Colors.white),
+      reason: 'the ${seat.name} seat',
+    );
+  }
 }

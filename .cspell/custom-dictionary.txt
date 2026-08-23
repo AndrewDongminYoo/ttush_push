@@ -51,6 +51,7 @@ Ttush
 uninlined
 Wconditional
 wholemodule
+xorshift
 Wmissing
 Wnullable
 Woverlength

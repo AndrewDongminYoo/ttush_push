@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use flutter_rust_bridge::frb;
 
+use super::bot::{GreedyBot, MinimaxBot, Policy, RandomBot};
 use super::{
     BoardConfig, CounterPush, Direction, GameState, IllegalMove, MatchPhase, MatchState, Move,
     Outcome, Piece, PieceId, Player, Position, StateError, Tile, WinReason,
@@ -139,6 +140,40 @@ pub fn advance_round(snapshot: MatchSnapshot) -> Result<MatchSnapshot, String> {
     let next = state.advance_round().map_err(illegal_move_error)?;
 
     Ok(match_snapshot_from_state(&next))
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum BotPolicy {
+    Random,
+    Greedy,
+    Minimax,
+}
+
+/// Chooses a move for the side to play, or `None` when the round offers
+/// none.
+///
+/// The seed comes from the round's own hash rather than from the caller, so
+/// the same position always produces the same move: a bot that cannot be
+/// replayed cannot have its mistakes reported, and a seed held on the Dart
+/// side would put game state in the presentation layer.
+#[frb(sync)]
+pub fn choose_bot_move(
+    snapshot: MatchSnapshot,
+    policy: BotPolicy,
+) -> Result<Option<GameMove>, String> {
+    let seed = seed_from_hash(&snapshot.round.snapshot_hash);
+    let state = match_state_from_snapshot(snapshot)?;
+    let mut chooser: Box<dyn Policy> = match policy {
+        BotPolicy::Random => Box::new(RandomBot::new(seed)),
+        BotPolicy::Greedy => Box::new(GreedyBot::new(seed)),
+        BotPolicy::Minimax => Box::new(MinimaxBot::new(2, seed)),
+    };
+
+    Ok(chooser.choose(state.round()).map(game_move_from_engine))
+}
+
+fn seed_from_hash(hash: &str) -> u64 {
+    u64::from_str_radix(hash, 16).unwrap_or(SNAPSHOT_HASH_OFFSET_BASIS)
 }
 
 fn match_snapshot_from_state(state: &MatchState) -> MatchSnapshot {

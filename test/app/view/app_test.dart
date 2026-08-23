@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/app/app.dart';
 import 'package:ttush_push/game/view/game_page.dart';
@@ -22,12 +22,11 @@ void main() {
     );
 
     expect(find.byType(GamePage), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('player-panel-first')),
-        matching: find.text('Your turn'),
-      ),
-      findsOneWidget,
+    // The first seat opens on turn, which its mark says by turning white.
+    final mark = tester.widget<Container>(
+      find.byKey(const Key('player-mark-first')),
     );
+
+    expect((mark.decoration! as BoxDecoration).color, Colors.white);
   });
 }

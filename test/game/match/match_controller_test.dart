@@ -158,6 +158,161 @@ void main() {
       );
     });
 
+    test('cycles the opponent and reports whose turn a bot has', () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final controller = MatchController(
+        FakeRulesEngine.playing(
+          initial: matchOf(round(current: GamePlayer.second)),
+          legalMoves: const [move],
+        ),
+      )..initialize();
+
+      expect(controller.opponent, Opponent.human);
+      expect(controller.isBotTurn, isFalse);
+
+      controller.cycleOpponent();
+
+      expect(controller.opponent, Opponent.random);
+      // It is the second seat's turn, and a policy now sits in it.
+      expect(controller.isBotTurn, isTrue);
+
+      controller
+        ..cycleOpponent()
+        ..cycleOpponent();
+
+      expect(controller.opponent, Opponent.minimax);
+
+      controller.cycleOpponent();
+
+      expect(controller.opponent, Opponent.human);
+      expect(controller.isBotTurn, isFalse);
+    });
+
+    test(
+      'does not read a bot turn from the first seat or a finished round',
+      () {
+        final playing = MatchController(
+          FakeRulesEngine.playing(initial: matchOf(round())),
+        )..initialize();
+        final finished = MatchController(
+          FakeRulesEngine(
+            initial: [roundOverMatch(round(), winner: GamePlayer.first)],
+          ),
+        )..initialize();
+
+        playing.cycleOpponent();
+        finished.cycleOpponent();
+
+        // The person always plays first, so their turn is never the bot's.
+        expect(playing.isBotTurn, isFalse);
+        // And a phase that refuses moves refuses the bot's too.
+        expect(finished.isBotTurn, isFalse);
+      },
+    );
+
+    test('plays the move the engine chose for the policy', () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final next = matchOf(round(hash: 'after-bot'), hash: 'after-bot-match');
+      final engine = FakeRulesEngine(
+        initial: [matchOf(round(current: GamePlayer.second))],
+        moveResults: [next],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => move,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..cycleOpponent()
+        ..cycleOpponent()
+        ..playBotMove();
+
+      expect(engine.botRequests, [BotPolicy.greedy]);
+      expect(engine.appliedMoves, [move]);
+      expect(controller.snapshot, next);
+    });
+
+    test("refuses a move applied on the bot's behalf", () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final engine = FakeRulesEngine(
+        initial: [matchOf(round(current: GamePlayer.second))],
+        moveResults: [matchOf(round(hash: 'unused'), hash: 'unused-match')],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => move,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..cycleOpponent()
+        ..selectPiece(move.pieceId)
+        ..applyMove(move);
+
+      // The move is the seat's own legal move, so only turn ownership can
+      // refuse it.
+      expect(controller.selectedPieceId, isNull);
+      expect(engine.appliedMoves, isEmpty);
+      expect(controller.error, isNull);
+    });
+
+    test("ignores a bot move outside the bot's turn", () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final engine = FakeRulesEngine(
+        initial: [matchOf(round())],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => move,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        // No policy in the seat yet.
+        ..playBotMove()
+        // A policy, but the person is to move.
+        ..cycleOpponent()
+        ..playBotMove();
+
+      expect(engine.botRequests, isEmpty);
+      expect(engine.appliedMoves, isEmpty);
+      expect(controller.error, isNull);
+    });
+
+    test('treats a policy with no move on a playing round as a fault', () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final engine = FakeRulesEngine(
+        initial: [matchOf(round(current: GamePlayer.second))],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => null,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..cycleOpponent()
+        ..playBotMove();
+
+      // The phase says the round is being played, so the engine offering no
+      // move is a disagreement rather than a state.
+      expect(controller.error, isA<FormatException>());
+      expect(engine.appliedMoves, isEmpty);
+    });
+
+    test('keeps the board and retries when a bot move fails', () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final initial = matchOf(round(current: GamePlayer.second));
+      final next = matchOf(round(hash: 'recovered'), hash: 'recovered-match');
+      final engine = FakeRulesEngine(
+        initial: [initial],
+        moveResults: [StateError('bridge unavailable'), next],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => move,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..cycleOpponent()
+        ..playBotMove();
+
+      expect(controller.snapshot, initial);
+      expect(controller.error, isA<StateError>());
+
+      controller.retry();
+
+      expect(controller.snapshot, next);
+      expect(controller.error, isNull);
+    });
+
     test('maps a selected legal move to its adjacent destination', () {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final controller = MatchController(

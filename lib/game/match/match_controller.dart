@@ -3,6 +3,34 @@ import 'package:ttush_push/src/rust/api.dart' as rust;
 
 enum MatchStatus { initializing, ready, initializationError }
 
+/// Who plays the second seat.
+///
+/// The first seat is always the person; this is the only choice the screen
+/// offers, and it cycles rather than opening anything.
+enum Opponent {
+  human,
+  random,
+  greedy,
+  minimax;
+
+  Opponent get next => Opponent.values[(index + 1) % Opponent.values.length];
+
+  /// The engine policy this stands for, or null when a person plays.
+  rust.BotPolicy? get policy => switch (this) {
+    Opponent.human => null,
+    Opponent.random => rust.BotPolicy.random,
+    Opponent.greedy => rust.BotPolicy.greedy,
+    Opponent.minimax => rust.BotPolicy.minimax,
+  };
+
+  String get label => switch (this) {
+    Opponent.human => 'Player 2',
+    Opponent.random => 'Random bot',
+    Opponent.greedy => 'Greedy bot',
+    Opponent.minimax => 'Minimax bot',
+  };
+}
+
 /// Holds the match a screen is showing, and nothing about how it is drawn.
 ///
 /// It owns selection, the legal-move cache, and recoverable bridge errors. It
@@ -18,6 +46,7 @@ final class MatchController {
   Object? _error;
   void Function()? _retryAction;
   MatchStatus _status = MatchStatus.initializing;
+  Opponent _opponent = Opponent.human;
 
   MatchSnapshot? get snapshot => _snapshot;
   GameSnapshot? get round => _snapshot?.round;
@@ -33,6 +62,51 @@ final class MatchController {
   bool get isRoundOver => _snapshot?.phase == rust.GameMatchPhase.roundOver;
 
   bool get isMatchOver => _snapshot?.phase == rust.GameMatchPhase.matchOver;
+
+  Opponent get opponent => _opponent;
+
+  /// Whether the second seat is waiting on a policy rather than a person.
+  ///
+  /// A policy carries nothing between moves, so this can change at any point
+  /// in a round without disturbing it.
+  bool get isBotTurn =>
+      _opponent.policy != null &&
+      isPlaying &&
+      _snapshot?.round.currentPlayer == rust.GamePlayer.second;
+
+  /// Hands the second seat to the next opponent in the cycle.
+  ///
+  /// A standing error is dropped with it: the action waiting behind Retry
+  /// belonged to the seat as it was, and a bot-move retry left in place after
+  /// the seat turns human does nothing at all, stranding the banner. A fault
+  /// that is still there resurfaces on the next move.
+  void cycleOpponent() {
+    _opponent = _opponent.next;
+    _selectedPieceId = null;
+    _error = null;
+    _retryAction = null;
+  }
+
+  /// Plays the move the policy chose. Does nothing when it is not its turn.
+  void playBotMove() {
+    final snapshot = _snapshot;
+    final policy = _opponent.policy;
+    if (snapshot == null || policy == null || !isBotTurn) {
+      return;
+    }
+
+    _mutate(() {
+      final move = _engine.chooseBotMove(snapshot, policy);
+      if (move == null) {
+        // The engine says the round offers nothing, which the phase should
+        // already have said. Treat the disagreement as a bridge fault.
+        throw const FormatException(
+          'a playing round must offer the policy a move',
+        );
+      }
+      return _engine.applyMove(snapshot, move);
+    }, onFailure: playBotMove);
+  }
 
   void initialize() {
     _snapshot = null;
@@ -95,8 +169,15 @@ final class MatchController {
     _mutate(() => _engine.advanceRound(snapshot), onFailure: advanceRound);
   }
 
+  /// Selects a piece for the person holding the turn.
+  ///
+  /// A seat played by a policy is not selectable. During the pause before a
+  /// bot moves it is still that seat's turn and its moves are still the legal
+  /// ones, so without this the person could pick up the bot's piece and play
+  /// its move for it.
   void selectPiece(int pieceId) {
-    _selectedPieceId = _legalMoves.any((move) => move.pieceId == pieceId)
+    _selectedPieceId =
+        !isBotTurn && _legalMoves.any((move) => move.pieceId == pieceId)
         ? pieceId
         : null;
   }
@@ -137,9 +218,14 @@ final class MatchController {
     return null;
   }
 
+  /// Plays the move a person chose. A seat held by a policy refuses it; the
+  /// policy plays through [playBotMove] instead.
   void applyMove(GameMove move) {
     final snapshot = _snapshot;
-    if (snapshot == null || !isPlaying || !_legalMoves.contains(move)) {
+    if (snapshot == null ||
+        isBotTurn ||
+        !isPlaying ||
+        !_legalMoves.contains(move)) {
       return;
     }
 

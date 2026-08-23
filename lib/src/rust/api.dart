@@ -6,8 +6,8 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `game_move_from_engine`, `hash_byte`, `hash_bytes`, `illegal_move_error`, `match_hash`, `match_snapshot_from_state`, `match_state_from_snapshot`, `move_to_engine`, `player_byte`, `snapshot_from_state`, `snapshot_hash`, `state_error`, `state_from_snapshot`, `tile_byte`, `win_reason_byte`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `game_move_from_engine`, `hash_byte`, `hash_bytes`, `illegal_move_error`, `match_hash`, `match_snapshot_from_state`, `match_state_from_snapshot`, `move_to_engine`, `player_byte`, `seed_from_hash`, `snapshot_from_state`, `snapshot_hash`, `state_error`, `state_from_snapshot`, `tile_byte`, `win_reason_byte`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 MatchSnapshot initialMatch() => RustLib.instance.api.crateApiInitialMatch();
 
@@ -24,6 +24,27 @@ MatchSnapshot matchApplyMove({
 
 MatchSnapshot advanceRound({required MatchSnapshot snapshot}) =>
     RustLib.instance.api.crateApiAdvanceRound(snapshot: snapshot);
+
+/// Chooses a move for the side to play, or `None` when the round offers
+/// none.
+///
+/// The seed comes from the round's own hash rather than from the caller, so
+/// the same position always produces the same move: a bot that cannot be
+/// replayed cannot have its mistakes reported, and a seed held on the Dart
+/// side would put game state in the presentation layer.
+GameMove? chooseBotMove({
+  required MatchSnapshot snapshot,
+  required BotPolicy policy,
+}) => RustLib.instance.api.crateApiChooseBotMove(
+  snapshot: snapshot,
+  policy: policy,
+);
+
+enum BotPolicy {
+  random,
+  greedy,
+  minimax,
+}
 
 class CounterPushRestriction {
   final int pusherPieceId;

@@ -1,7 +1,7 @@
 import 'package:ttush_push/src/rust/api.dart' as rust;
 
 export 'package:ttush_push/src/rust/api.dart'
-    show GameMatchPhase, GameMove, GameSnapshot, MatchSnapshot;
+    show BotPolicy, GameMatchPhase, GameMove, GameSnapshot, MatchSnapshot;
 
 /// The Dart-side boundary over the Rust match rules.
 ///
@@ -15,6 +15,10 @@ abstract interface class RulesEngine {
   rust.MatchSnapshot applyMove(rust.MatchSnapshot state, rust.GameMove move);
 
   rust.MatchSnapshot advanceRound(rust.MatchSnapshot state);
+
+  /// The move the given policy would play, or null when the round offers
+  /// none. Which move is the engine's answer; Dart never picks one.
+  rust.GameMove? chooseBotMove(rust.MatchSnapshot state, rust.BotPolicy policy);
 }
 
 final class FrbRulesEngine implements RulesEngine {
@@ -34,4 +38,10 @@ final class FrbRulesEngine implements RulesEngine {
   @override
   rust.MatchSnapshot advanceRound(rust.MatchSnapshot state) =>
       rust.advanceRound(snapshot: state);
+
+  @override
+  rust.GameMove? chooseBotMove(
+    rust.MatchSnapshot state,
+    rust.BotPolicy policy,
+  ) => rust.chooseBotMove(snapshot: state, policy: policy);
 }

@@ -1,6 +1,7 @@
 use engine::api::{
-    GameDirection, GameMatchPhase, GameMove, GamePiece, GamePlayer, GameTileKind, GameWinReason,
-    MatchSnapshot, advance_round, initial_match, match_apply_move, match_legal_moves,
+    BotPolicy, GameDirection, GameMatchPhase, GameMove, GamePiece, GamePlayer, GameTileKind,
+    GameWinReason, MatchSnapshot, advance_round, choose_bot_move, initial_match, match_apply_move,
+    match_legal_moves,
 };
 
 fn game_move(piece_id: u8, direction: GameDirection) -> GameMove {
@@ -224,5 +225,65 @@ fn value_api_carries_a_won_match_back_without_reopening_it() {
     assert_eq!(
         advance_round(state).unwrap_err(),
         "illegal move: MatchFinished",
+    );
+}
+
+#[test]
+fn value_api_chooses_a_bot_move_from_the_position_alone() {
+    let initial = initial_match();
+
+    for policy in [BotPolicy::Random, BotPolicy::Greedy, BotPolicy::Minimax] {
+        let chosen = choose_bot_move(initial.clone(), policy)
+            .unwrap()
+            .expect("the opening position offers moves");
+
+        // The seed is derived from the position, so the same snapshot must
+        // give the same move however often it is asked.
+        assert_eq!(
+            choose_bot_move(initial.clone(), policy).unwrap(),
+            Some(chosen.clone()),
+            "{policy:?} did not repeat itself for the same position",
+        );
+        assert!(
+            match_legal_moves(initial.clone())
+                .unwrap()
+                .contains(&chosen),
+            "{policy:?} chose a move the position does not allow",
+        );
+        // And it is playable, which is the only claim that matters to a caller.
+        match_apply_move(initial.clone(), chosen).unwrap();
+    }
+}
+
+#[test]
+fn value_api_offers_no_bot_move_once_the_round_is_over() {
+    let round_over = play(
+        initial_match(),
+        &[
+            (0, GameDirection::Down),
+            (2, GameDirection::Up),
+            (0, GameDirection::Down),
+            (3, GameDirection::Up),
+            (0, GameDirection::Down),
+            (3, GameDirection::Up),
+            (0, GameDirection::Down),
+        ],
+    );
+
+    assert_eq!(round_over.phase, GameMatchPhase::RoundOver);
+    assert_eq!(
+        choose_bot_move(round_over, BotPolicy::Greedy).unwrap(),
+        None,
+    );
+}
+
+#[test]
+fn value_api_refuses_to_choose_from_an_edited_snapshot() {
+    let mut snapshot = initial_match();
+    snapshot.first_player_wins = 1;
+
+    assert_eq!(
+        choose_bot_move(snapshot, BotPolicy::Random).unwrap_err(),
+        "match snapshot hash does not match its value fields",
     );
 }
