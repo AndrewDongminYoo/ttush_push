@@ -161,8 +161,15 @@ final class MatchController {
     _mutate(() => _engine.advanceRound(snapshot), onFailure: advanceRound);
   }
 
+  /// Selects a piece for the person holding the turn.
+  ///
+  /// A seat played by a policy is not selectable. During the pause before a
+  /// bot moves it is still that seat's turn and its moves are still the legal
+  /// ones, so without this the person could pick up the bot's piece and play
+  /// its move for it.
   void selectPiece(int pieceId) {
-    _selectedPieceId = _legalMoves.any((move) => move.pieceId == pieceId)
+    _selectedPieceId =
+        !isBotTurn && _legalMoves.any((move) => move.pieceId == pieceId)
         ? pieceId
         : null;
   }
@@ -203,9 +210,14 @@ final class MatchController {
     return null;
   }
 
+  /// Plays the move a person chose. A seat held by a policy refuses it; the
+  /// policy plays through [playBotMove] instead.
   void applyMove(GameMove move) {
     final snapshot = _snapshot;
-    if (snapshot == null || !isPlaying || !_legalMoves.contains(move)) {
+    if (snapshot == null ||
+        isBotTurn ||
+        !isPlaying ||
+        !_legalMoves.contains(move)) {
       return;
     }
 

@@ -230,6 +230,27 @@ void main() {
       expect(controller.snapshot, next);
     });
 
+    test("refuses a move applied on the bot's behalf", () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final engine = FakeRulesEngine(
+        initial: [matchOf(round(current: GamePlayer.second))],
+        moveResults: [matchOf(round(hash: 'unused'), hash: 'unused-match')],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => move,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..cycleOpponent()
+        ..selectPiece(move.pieceId)
+        ..applyMove(move);
+
+      // The move is the seat's own legal move, so only turn ownership can
+      // refuse it.
+      expect(controller.selectedPieceId, isNull);
+      expect(engine.appliedMoves, isEmpty);
+      expect(controller.error, isNull);
+    });
+
     test("ignores a bot move outside the bot's turn", () {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final engine = FakeRulesEngine(

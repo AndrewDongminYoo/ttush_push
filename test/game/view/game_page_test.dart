@@ -923,6 +923,52 @@ void main() {
     expect(_inPanel('second', 'Player 2'), findsOneWidget);
   });
 
+  testWidgets('refuses a tap on the seat a bot is about to play', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
+      snapshotHash: 'bot-seat',
+    );
+    const answered = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-seat-answered',
+    );
+    const move = GameMove(pieceId: 1, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [matchOf(answered, hash: 'bot-seat-next')],
+      legalMovesFor: (state) =>
+          state.round.snapshotHash == 'bot-seat' ? const [move] : const [],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+
+    // Inside the pause it is still the bot's turn and its moves are still the
+    // legal ones, so without a turn guard these two taps play its move for it.
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(0, 0));
+    await tester.tapAt(cellCenter(0, 1));
+    await tester.pump();
+
+    expect(engine.appliedMoves, isEmpty);
+
+    // The bot still plays the move itself once the pause is up.
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(engine.appliedMoves, [move]);
+  });
+
   testWidgets('fits the longest opponent label on a narrow screen', (
     tester,
   ) async {
