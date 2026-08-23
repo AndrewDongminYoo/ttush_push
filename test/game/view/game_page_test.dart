@@ -1057,6 +1057,53 @@ void main() {
     },
   );
 
+  testWidgets('feels a round the bot won as a win, not as a move', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
+      snapshotHash: 'bot-wins',
+    );
+    const won = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 1)],
+      winner: GamePlayer.second,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'bot-won',
+    );
+    const move = GameMove(pieceId: 1, direction: GameDirection.down);
+    final feedback = _RecordingFeedback();
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [
+        roundOverMatch(
+          won,
+          winner: GamePlayer.second,
+          firstWins: 0,
+          secondWins: 1,
+          hash: 'bot-won-match',
+        ),
+      ],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(feedback: feedback, rulesEngine: engine),
+      ),
+    );
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+    feedback.events.clear();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(feedback.events, ['win']);
+  });
+
   testWidgets('fits the longest opponent label on a narrow screen', (
     tester,
   ) async {

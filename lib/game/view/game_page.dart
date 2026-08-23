@@ -84,7 +84,14 @@ class _GamePageState extends State<GamePage> {
       }
       setState(_controller.playBotMove);
       if (_controller.error == null) {
-        _feedback.moveApplied();
+        // A won round outranks how the move was made, the same way it does
+        // for a move a person made. Whether the bot pushed is not read: the
+        // controller reports the move it played, not the shape of it.
+        if (_controller.isPlaying) {
+          _feedback.moveApplied();
+        } else {
+          _feedback.roundWon();
+        }
       }
       _scheduleBotMove();
     });
