@@ -24,6 +24,24 @@ fn knockout_board() -> BoardConfig {
     .unwrap()
 }
 
+/// A board where First has no win to take, one move that puts its piece on
+/// the edge in front of Second's, and other moves that do not.
+///
+/// The knockout board cannot stand in for this: there First always has a
+/// uniquely winning move, so a test that skips the winning move never runs
+/// its assertion at all.
+fn hand_over_board() -> BoardConfig {
+    BoardConfig::rectangular(
+        5,
+        5,
+        vec![
+            Piece::new(PieceId(0), Player::First, position(0, 1)),
+            Piece::new(PieceId(1), Player::Second, position(1, 2)),
+        ],
+    )
+    .unwrap()
+}
+
 fn winning_move(state: &GameState, player: Player) -> Option<Move> {
     legal_moves(state).into_iter().find(|candidate| {
         apply_move(state, *candidate).is_ok_and(
@@ -108,14 +126,17 @@ fn greedy_takes_the_win_that_is_there() {
 
 #[test]
 fn greedy_declines_a_move_that_hands_over_the_win() {
-    let state = GameState::new(knockout_board(), Player::First).unwrap();
+    let state = GameState::new(hand_over_board(), Player::First).unwrap();
+    // Without this the test reads nothing: on a board where First can simply
+    // win, every seed takes the win and the assertion below never runs.
+    assert!(
+        winning_move(&state, Player::First).is_none(),
+        "the fixture must make First choose rather than let it win",
+    );
 
     for seed in 0..32_u64 {
         let chosen = GreedyBot::new(seed).choose(&state).unwrap();
         let next = apply_move(&state, chosen).unwrap();
-        if matches!(outcome(&next), Outcome::Winner(Player::First, _)) {
-            continue;
-        }
 
         assert!(
             winning_move(&next, Player::Second).is_none(),
@@ -126,14 +147,15 @@ fn greedy_declines_a_move_that_hands_over_the_win() {
 
 #[test]
 fn minimax_does_not_walk_into_an_immediate_loss() {
-    let state = GameState::new(knockout_board(), Player::First).unwrap();
+    let state = GameState::new(hand_over_board(), Player::First).unwrap();
+    assert!(
+        winning_move(&state, Player::First).is_none(),
+        "the fixture must make First choose rather than let it win",
+    );
 
     for seed in 0..32_u64 {
         let chosen = MinimaxBot::new(2, seed).choose(&state).unwrap();
         let next = apply_move(&state, chosen).unwrap();
-        if matches!(outcome(&next), Outcome::Winner(Player::First, _)) {
-            continue;
-        }
 
         assert!(
             winning_move(&next, Player::Second).is_none(),
