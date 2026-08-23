@@ -24,6 +24,7 @@ flutter test integration_test/rules_engine_parity_test.dart -d <device-id> --fla
 ```
 
 The parity integration test is the accepted native evidence: the same Rust-owned snapshot hash must appear on both an Android and an iOS runtime.
+Connect the iOS device over USB before running it. `flutter test` does not publish a port, so on a wirelessly tethered device it exits at `IOSDevice.startApp` with "Cannot start app on wirelessly tethered iOS device. Try running again with the --publish-port flag" — and no such flag exists on `flutter run` or `flutter drive` in the pinned Flutter, so the message is a dead end rather than an instruction. Over USB the command above works as written; it still prints a local-network warning, which is the mDNS lookup failing before the run falls back to the cable.
 
 ## Architecture
 
