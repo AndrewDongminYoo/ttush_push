@@ -91,6 +91,9 @@ coverage/
 # Local scratch (test TMPDIR, throwaway captures)
 .tmp/
 
+# Local Git worktrees
+.worktrees/
+
 # Submodules
 packages/**/pubspec.lock
 
