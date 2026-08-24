@@ -30,6 +30,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GameDirection dco_decode_box_autoadd_game_direction(dynamic raw);
+
+  @protected
   GameMove dco_decode_box_autoadd_game_move(dynamic raw);
 
   @protected
@@ -40,6 +43,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   MatchSnapshot dco_decode_box_autoadd_match_snapshot(dynamic raw);
+
+  @protected
+  PieceDisplacement dco_decode_box_autoadd_piece_displacement(dynamic raw);
+
+  @protected
+  int dco_decode_box_autoadd_u_8(dynamic raw);
 
   @protected
   CounterPushRestriction dco_decode_counter_push_restriction(dynamic raw);
@@ -90,9 +99,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   MatchSnapshot dco_decode_match_snapshot(dynamic raw);
 
   @protected
+  MoveActionKind dco_decode_move_action_kind(dynamic raw);
+
+  @protected
+  MoveResolution dco_decode_move_resolution(dynamic raw);
+
+  @protected
+  MoveResult dco_decode_move_result(dynamic raw);
+
+  @protected
   CounterPushRestriction? dco_decode_opt_box_autoadd_counter_push_restriction(
     dynamic raw,
   );
+
+  @protected
+  GameDirection? dco_decode_opt_box_autoadd_game_direction(dynamic raw);
 
   @protected
   GameMove? dco_decode_opt_box_autoadd_game_move(dynamic raw);
@@ -102,6 +123,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GameWinReason? dco_decode_opt_box_autoadd_game_win_reason(dynamic raw);
+
+  @protected
+  PieceDisplacement? dco_decode_opt_box_autoadd_piece_displacement(dynamic raw);
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_8(dynamic raw);
+
+  @protected
+  PieceDisplacement dco_decode_piece_displacement(dynamic raw);
+
+  @protected
+  PieceTravel dco_decode_piece_travel(dynamic raw);
+
+  @protected
+  TileTransition dco_decode_tile_transition(dynamic raw);
 
   @protected
   int dco_decode_u_8(dynamic raw);
@@ -121,6 +157,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GameDirection sse_decode_box_autoadd_game_direction(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GameMove sse_decode_box_autoadd_game_move(SseDeserializer deserializer);
 
   @protected
@@ -135,6 +176,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   MatchSnapshot sse_decode_box_autoadd_match_snapshot(
     SseDeserializer deserializer,
   );
+
+  @protected
+  PieceDisplacement sse_decode_box_autoadd_piece_displacement(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  int sse_decode_box_autoadd_u_8(SseDeserializer deserializer);
 
   @protected
   CounterPushRestriction sse_decode_counter_push_restriction(
@@ -187,7 +236,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   MatchSnapshot sse_decode_match_snapshot(SseDeserializer deserializer);
 
   @protected
+  MoveActionKind sse_decode_move_action_kind(SseDeserializer deserializer);
+
+  @protected
+  MoveResolution sse_decode_move_resolution(SseDeserializer deserializer);
+
+  @protected
+  MoveResult sse_decode_move_result(SseDeserializer deserializer);
+
+  @protected
   CounterPushRestriction? sse_decode_opt_box_autoadd_counter_push_restriction(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GameDirection? sse_decode_opt_box_autoadd_game_direction(
     SseDeserializer deserializer,
   );
 
@@ -203,6 +266,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GameWinReason? sse_decode_opt_box_autoadd_game_win_reason(
     SseDeserializer deserializer,
   );
+
+  @protected
+  PieceDisplacement? sse_decode_opt_box_autoadd_piece_displacement(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_8(SseDeserializer deserializer);
+
+  @protected
+  PieceDisplacement sse_decode_piece_displacement(SseDeserializer deserializer);
+
+  @protected
+  PieceTravel sse_decode_piece_travel(SseDeserializer deserializer);
+
+  @protected
+  TileTransition sse_decode_tile_transition(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_8(SseDeserializer deserializer);
@@ -222,6 +302,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_counter_push_restriction(
     CounterPushRestriction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_game_direction(
+    GameDirection self,
     SseSerializer serializer,
   );
 
@@ -248,6 +334,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     MatchSnapshot self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_box_autoadd_piece_displacement(
+    PieceDisplacement self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_u_8(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_counter_push_restriction(
@@ -310,8 +405,29 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_match_snapshot(MatchSnapshot self, SseSerializer serializer);
 
   @protected
+  void sse_encode_move_action_kind(
+    MoveActionKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_move_resolution(
+    MoveResolution self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_move_result(MoveResult self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_counter_push_restriction(
     CounterPushRestriction? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_game_direction(
+    GameDirection? self,
     SseSerializer serializer,
   );
 
@@ -330,6 +446,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_game_win_reason(
     GameWinReason? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_piece_displacement(
+    PieceDisplacement? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_8(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_piece_displacement(
+    PieceDisplacement self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_piece_travel(PieceTravel self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_tile_transition(
+    TileTransition self,
     SseSerializer serializer,
   );
 

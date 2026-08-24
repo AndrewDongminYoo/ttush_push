@@ -47,6 +47,7 @@ final class MatchController {
   void Function()? _retryAction;
   MatchStatus _status = MatchStatus.initializing;
   Opponent _opponent = Opponent.human;
+  _PendingMove? _pendingMove;
 
   MatchSnapshot? get snapshot => _snapshot;
   GameSnapshot? get round => _snapshot?.round;
@@ -54,6 +55,8 @@ final class MatchController {
   int? get selectedPieceId => _selectedPieceId;
   Object? get error => _error;
   MatchStatus get status => _status;
+  rust.MoveResolution? get pendingResolution => _pendingMove?.result.resolution;
+  bool get hasPendingMove => _pendingMove != null;
 
   /// Whether the current phase accepts a move.
   bool get isPlaying => _snapshot?.phase == rust.GameMatchPhase.playing;
@@ -70,6 +73,7 @@ final class MatchController {
   /// A policy carries nothing between moves, so this can change at any point
   /// in a round without disturbing it.
   bool get isBotTurn =>
+      !hasPendingMove &&
       _opponent.policy != null &&
       isPlaying &&
       _snapshot?.round.currentPlayer == rust.GamePlayer.second;
@@ -81,6 +85,9 @@ final class MatchController {
   /// the seat turns human does nothing at all, stranding the banner. A fault
   /// that is still there resurfaces on the next move.
   void cycleOpponent() {
+    if (hasPendingMove) {
+      return;
+    }
     _opponent = _opponent.next;
     _selectedPieceId = null;
     _error = null;
@@ -89,23 +96,38 @@ final class MatchController {
 
   /// Plays the move the policy chose. Does nothing when it is not its turn.
   void playBotMove() {
+    if (prepareBotMove()) {
+      commitPendingMove();
+    } else if (_error != null) {
+      _retryAction = playBotMove;
+    }
+  }
+
+  /// Prepares a policy move without replacing the match the screen renders.
+  ///
+  /// The page owns the short replay between preparation and commit, while the
+  /// controller keeps the resulting snapshot and legal moves together.
+  bool prepareBotMove() {
     final snapshot = _snapshot;
     final policy = _opponent.policy;
-    if (snapshot == null || policy == null || !isBotTurn) {
-      return;
+    if (snapshot == null || policy == null || !isBotTurn || hasPendingMove) {
+      return false;
     }
 
-    _mutate(() {
-      final move = _engine.chooseBotMove(snapshot, policy);
-      if (move == null) {
-        // The engine says the round offers nothing, which the phase should
-        // already have said. Treat the disagreement as a bridge fault.
-        throw const FormatException(
-          'a playing round must offer the policy a move',
-        );
-      }
-      return _engine.applyMove(snapshot, move);
-    }, onFailure: playBotMove);
+    return _prepareMove(
+      () {
+        final move = _engine.chooseBotMove(snapshot, policy);
+        if (move == null) {
+          // The engine says the round offers nothing, which the phase should
+          // already have said. Treat the disagreement as a bridge fault.
+          throw const FormatException(
+            'a playing round must offer the policy a move',
+          );
+        }
+        return _engine.applyMove(snapshot, move);
+      },
+      onFailure: prepareBotMove,
+    );
   }
 
   void initialize() {
@@ -114,6 +136,7 @@ final class MatchController {
     _selectedPieceId = null;
     _error = null;
     _status = MatchStatus.initializing;
+    _pendingMove = null;
 
     try {
       _adopt(_engine.initialMatch());
@@ -129,12 +152,20 @@ final class MatchController {
     }
   }
 
-  void retry() {
-    _retryAction?.call();
+  bool retry() {
+    final retryAction = _retryAction;
+    if (retryAction == null) {
+      return false;
+    }
+    retryAction();
+    return true;
   }
 
   /// Starts a fresh match, keeping the current one visible if that fails.
   void restart() {
+    if (hasPendingMove) {
+      return;
+    }
     final previousSnapshot = _snapshot;
     final previousLegalMoves = _legalMoves;
     final previousSelection = _selectedPieceId;
@@ -162,7 +193,7 @@ final class MatchController {
   /// Starts the next round of the current match.
   void advanceRound() {
     final snapshot = _snapshot;
-    if (snapshot == null || !isRoundOver) {
+    if (snapshot == null || hasPendingMove || !isRoundOver) {
       return;
     }
 
@@ -176,6 +207,9 @@ final class MatchController {
   /// ones, so without this the person could pick up the bot's piece and play
   /// its move for it.
   void selectPiece(int pieceId) {
+    if (hasPendingMove) {
+      return;
+    }
     _selectedPieceId =
         !isBotTurn && _legalMoves.any((move) => move.pieceId == pieceId)
         ? pieceId
@@ -183,10 +217,16 @@ final class MatchController {
   }
 
   void clearSelection() {
+    if (hasPendingMove) {
+      return;
+    }
     _selectedPieceId = null;
   }
 
   GameMove? moveForTappedDestination(int x, int y) {
+    if (hasPendingMove) {
+      return null;
+    }
     final round = _snapshot?.round;
     final selectedPieceId = _selectedPieceId;
     if (round == null || selectedPieceId == null) {
@@ -221,18 +261,48 @@ final class MatchController {
   /// Plays the move a person chose. A seat held by a policy refuses it; the
   /// policy plays through [playBotMove] instead.
   void applyMove(GameMove move) {
+    if (prepareHumanMove(move)) {
+      commitPendingMove();
+    } else if (_error != null) {
+      _retryAction = () {
+        applyMove(move);
+      };
+    }
+  }
+
+  /// Prepares a person's selected move without replacing the visible board.
+  bool prepareHumanMove(GameMove move) {
     final snapshot = _snapshot;
     if (snapshot == null ||
+        hasPendingMove ||
         isBotTurn ||
         !isPlaying ||
         !_legalMoves.contains(move)) {
+      return false;
+    }
+
+    return _prepareMove(
+      () => _engine.applyMove(snapshot, move),
+      onFailure: () {
+        prepareHumanMove(move);
+      },
+    );
+  }
+
+  /// Publishes the fully validated result that a page has finished replaying.
+  void commitPendingMove() {
+    final pendingMove = _pendingMove;
+    if (pendingMove == null) {
       return;
     }
 
-    _mutate(
-      () => _engine.applyMove(snapshot, move),
-      onFailure: () => applyMove(move),
-    );
+    _snapshot = pendingMove.result.snapshot;
+    _legalMoves = pendingMove.legalMoves;
+    _pendingMove = null;
+    _selectedPieceId = null;
+    _error = null;
+    _retryAction = null;
+    _status = MatchStatus.ready;
   }
 
   /// Replaces the snapshot only once its legal moves have also been read, so
@@ -250,6 +320,28 @@ final class MatchController {
     } on Object catch (error) {
       _error = error;
       _retryAction = onFailure;
+    }
+  }
+
+  bool _prepareMove(
+    rust.MoveResult Function() produce, {
+    required void Function() onFailure,
+  }) {
+    try {
+      final result = produce();
+      _validateContract(result.snapshot);
+      final legalMoves = result.snapshot.phase == rust.GameMatchPhase.playing
+          ? _engine.legalMoves(result.snapshot)
+          : const <GameMove>[];
+      _pendingMove = _PendingMove(result, legalMoves);
+      _error = null;
+      _retryAction = null;
+      _status = MatchStatus.ready;
+      return true;
+    } on Object catch (error) {
+      _error = error;
+      _retryAction = onFailure;
+      return false;
     }
   }
 
@@ -316,4 +408,11 @@ final class MatchController {
         }
     }
   }
+}
+
+final class _PendingMove {
+  const _PendingMove(this.result, this.legalMoves);
+
+  final rust.MoveResult result;
+  final List<GameMove> legalMoves;
 }

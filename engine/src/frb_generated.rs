@@ -443,6 +443,46 @@ impl SseDecode for crate::api::MatchSnapshot {
     }
 }
 
+impl SseDecode for crate::api::MoveActionKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::MoveActionKind::Normal,
+            1 => crate::api::MoveActionKind::Push,
+            _ => unreachable!("Invalid variant for MoveActionKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::MoveResolution {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_actionKind = <crate::api::MoveActionKind>::sse_decode(deserializer);
+        let mut var_mover = <crate::api::PieceTravel>::sse_decode(deserializer);
+        let mut var_displaced = <Option<crate::api::PieceDisplacement>>::sse_decode(deserializer);
+        let mut var_tileTransition = <crate::api::TileTransition>::sse_decode(deserializer);
+        return crate::api::MoveResolution {
+            action_kind: var_actionKind,
+            mover: var_mover,
+            displaced: var_displaced,
+            tile_transition: var_tileTransition,
+        };
+    }
+}
+
+impl SseDecode for crate::api::MoveResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_snapshot = <crate::api::MatchSnapshot>::sse_decode(deserializer);
+        let mut var_resolution = <crate::api::MoveResolution>::sse_decode(deserializer);
+        return crate::api::MoveResult {
+            snapshot: var_snapshot,
+            resolution: var_resolution,
+        };
+    }
+}
+
 impl SseDecode for Option<crate::api::CounterPushRestriction> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -450,6 +490,17 @@ impl SseDecode for Option<crate::api::CounterPushRestriction> {
             return Some(<crate::api::CounterPushRestriction>::sse_decode(
                 deserializer,
             ));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::GameDirection> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::GameDirection>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -486,6 +537,82 @@ impl SseDecode for Option<crate::api::GameWinReason> {
         } else {
             return None;
         }
+    }
+}
+
+impl SseDecode for Option<crate::api::PieceDisplacement> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::PieceDisplacement>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<u8> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<u8>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for crate::api::PieceDisplacement {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_pieceId = <u8>::sse_decode(deserializer);
+        let mut var_fromX = <u8>::sse_decode(deserializer);
+        let mut var_fromY = <u8>::sse_decode(deserializer);
+        let mut var_toX = <Option<u8>>::sse_decode(deserializer);
+        let mut var_toY = <Option<u8>>::sse_decode(deserializer);
+        let mut var_exitDirection = <Option<crate::api::GameDirection>>::sse_decode(deserializer);
+        return crate::api::PieceDisplacement {
+            piece_id: var_pieceId,
+            from_x: var_fromX,
+            from_y: var_fromY,
+            to_x: var_toX,
+            to_y: var_toY,
+            exit_direction: var_exitDirection,
+        };
+    }
+}
+
+impl SseDecode for crate::api::PieceTravel {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_pieceId = <u8>::sse_decode(deserializer);
+        let mut var_fromX = <u8>::sse_decode(deserializer);
+        let mut var_fromY = <u8>::sse_decode(deserializer);
+        let mut var_toX = <u8>::sse_decode(deserializer);
+        let mut var_toY = <u8>::sse_decode(deserializer);
+        return crate::api::PieceTravel {
+            piece_id: var_pieceId,
+            from_x: var_fromX,
+            from_y: var_fromY,
+            to_x: var_toX,
+            to_y: var_toY,
+        };
+    }
+}
+
+impl SseDecode for crate::api::TileTransition {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_x = <u8>::sse_decode(deserializer);
+        let mut var_y = <u8>::sse_decode(deserializer);
+        let mut var_from = <crate::api::GameTileKind>::sse_decode(deserializer);
+        let mut var_to = <crate::api::GameTileKind>::sse_decode(deserializer);
+        return crate::api::TileTransition {
+            x: var_x,
+            y: var_y,
+            from: var_from,
+            to: var_to,
+        };
     }
 }
 
@@ -757,6 +884,115 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::MatchSnapshot> for crate::api
         self
     }
 }
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::MoveActionKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Normal => 0.into_dart(),
+            Self::Push => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::MoveActionKind {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::MoveActionKind> for crate::api::MoveActionKind {
+    fn into_into_dart(self) -> crate::api::MoveActionKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::MoveResolution {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.action_kind.into_into_dart().into_dart(),
+            self.mover.into_into_dart().into_dart(),
+            self.displaced.into_into_dart().into_dart(),
+            self.tile_transition.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::MoveResolution {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::MoveResolution> for crate::api::MoveResolution {
+    fn into_into_dart(self) -> crate::api::MoveResolution {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::MoveResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.snapshot.into_into_dart().into_dart(),
+            self.resolution.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::MoveResult {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::MoveResult> for crate::api::MoveResult {
+    fn into_into_dart(self) -> crate::api::MoveResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::PieceDisplacement {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.piece_id.into_into_dart().into_dart(),
+            self.from_x.into_into_dart().into_dart(),
+            self.from_y.into_into_dart().into_dart(),
+            self.to_x.into_into_dart().into_dart(),
+            self.to_y.into_into_dart().into_dart(),
+            self.exit_direction.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::PieceDisplacement {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::PieceDisplacement>
+    for crate::api::PieceDisplacement
+{
+    fn into_into_dart(self) -> crate::api::PieceDisplacement {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::PieceTravel {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.piece_id.into_into_dart().into_dart(),
+            self.from_x.into_into_dart().into_dart(),
+            self.from_y.into_into_dart().into_dart(),
+            self.to_x.into_into_dart().into_dart(),
+            self.to_y.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::PieceTravel {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::PieceTravel> for crate::api::PieceTravel {
+    fn into_into_dart(self) -> crate::api::PieceTravel {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::TileTransition {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.x.into_into_dart().into_dart(),
+            self.y.into_into_dart().into_dart(),
+            self.from.into_into_dart().into_dart(),
+            self.to.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::TileTransition {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::TileTransition> for crate::api::TileTransition {
+    fn into_into_dart(self) -> crate::api::TileTransition {
+        self
+    }
+}
 
 impl SseEncode for String {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -976,12 +1212,56 @@ impl SseEncode for crate::api::MatchSnapshot {
     }
 }
 
+impl SseEncode for crate::api::MoveActionKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::MoveActionKind::Normal => 0,
+                crate::api::MoveActionKind::Push => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::MoveResolution {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::MoveActionKind>::sse_encode(self.action_kind, serializer);
+        <crate::api::PieceTravel>::sse_encode(self.mover, serializer);
+        <Option<crate::api::PieceDisplacement>>::sse_encode(self.displaced, serializer);
+        <crate::api::TileTransition>::sse_encode(self.tile_transition, serializer);
+    }
+}
+
+impl SseEncode for crate::api::MoveResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::MatchSnapshot>::sse_encode(self.snapshot, serializer);
+        <crate::api::MoveResolution>::sse_encode(self.resolution, serializer);
+    }
+}
+
 impl SseEncode for Option<crate::api::CounterPushRestriction> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::api::CounterPushRestriction>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::GameDirection> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::GameDirection>::sse_encode(value, serializer);
         }
     }
 }
@@ -1013,6 +1293,59 @@ impl SseEncode for Option<crate::api::GameWinReason> {
         if let Some(value) = self {
             <crate::api::GameWinReason>::sse_encode(value, serializer);
         }
+    }
+}
+
+impl SseEncode for Option<crate::api::PieceDisplacement> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::PieceDisplacement>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<u8> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <u8>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for crate::api::PieceDisplacement {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u8>::sse_encode(self.piece_id, serializer);
+        <u8>::sse_encode(self.from_x, serializer);
+        <u8>::sse_encode(self.from_y, serializer);
+        <Option<u8>>::sse_encode(self.to_x, serializer);
+        <Option<u8>>::sse_encode(self.to_y, serializer);
+        <Option<crate::api::GameDirection>>::sse_encode(self.exit_direction, serializer);
+    }
+}
+
+impl SseEncode for crate::api::PieceTravel {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u8>::sse_encode(self.piece_id, serializer);
+        <u8>::sse_encode(self.from_x, serializer);
+        <u8>::sse_encode(self.from_y, serializer);
+        <u8>::sse_encode(self.to_x, serializer);
+        <u8>::sse_encode(self.to_y, serializer);
+    }
+}
+
+impl SseEncode for crate::api::TileTransition {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u8>::sse_encode(self.x, serializer);
+        <u8>::sse_encode(self.y, serializer);
+        <crate::api::GameTileKind>::sse_encode(self.from, serializer);
+        <crate::api::GameTileKind>::sse_encode(self.to, serializer);
     }
 }
 

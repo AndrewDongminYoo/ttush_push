@@ -8,6 +8,35 @@ import 'package:ttush_push/src/rust/api.dart';
 
 import '../../support/match_fixtures.dart';
 
+const _pushResolution = MoveResolution(
+  actionKind: MoveActionKind.push,
+  mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 0, toY: 1),
+  displaced: PieceDisplacement(
+    pieceId: 1,
+    fromX: 0,
+    fromY: 1,
+    toX: 0,
+    toY: 2,
+  ),
+  tileTransition: TileTransition(
+    x: 0,
+    y: 0,
+    from: GameTileKind.normal,
+    to: GameTileKind.damaged,
+  ),
+);
+
+const _secondBotDownResolution = MoveResolution(
+  actionKind: MoveActionKind.normal,
+  mover: PieceTravel(pieceId: 1, fromX: 0, fromY: 0, toX: 0, toY: 1),
+  tileTransition: TileTransition(
+    x: 0,
+    y: 0,
+    from: GameTileKind.normal,
+    to: GameTileKind.damaged,
+  ),
+);
+
 void main() {
   testWidgets('renders the current player and board from RulesEngine', (
     tester,
@@ -134,22 +163,219 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
-    final boardRect = tester.getRect(
-      find.byKey(const Key('round-board-canvas')),
-    );
-    Offset cellCenter(int x, int y) {
-      return Offset(
-        boardRect.left + boardRect.width * (x + 0.5) / 5,
-        boardRect.top + boardRect.height * (y + 0.5) / 5,
-      );
-    }
+    final cellCenter = _cellCenterOf(tester);
 
     await tester.tapAt(cellCenter(0, 0));
     await tester.tapAt(cellCenter(0, 1));
     await tester.pump();
+    await _finishReplay(tester);
 
     expect(engine.appliedMoves, [move]);
     _expectActiveTurn(tester, GamePlayer.second);
+  });
+
+  testWidgets('keeps the current snapshot visible until replay completes', (
+    tester,
+  ) async {
+    const initialSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'replay-initial',
+    );
+    const nextSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
+      snapshotHash: 'replay-next',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine.playing(
+      initial: matchOf(initialSnapshot),
+      next: matchOf(nextSnapshot, hash: 'replay-next-match'),
+      legalMoves: const [move],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+    final boardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
+    final geometry = BoardGeometry.fromSnapshot(
+      initialSnapshot,
+      boardRect.size,
+    );
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 0));
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 1));
+    await tester.pump();
+
+    expect(engine.appliedMoves, [move]);
+    _expectActiveTurn(tester, GamePlayer.first);
+    expect(find.byKey(const Key('move-resolution-playback')), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 539));
+    _expectActiveTurn(tester, GamePlayer.first);
+
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.pump();
+    _expectActiveTurn(tester, GamePlayer.second);
+  });
+
+  testWidgets('uses the same commit path with reduced motion', (tester) async {
+    const initialSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'reduced-initial',
+    );
+    const nextSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
+      snapshotHash: 'reduced-next',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine.playing(
+      initial: matchOf(initialSnapshot),
+      next: matchOf(nextSnapshot, hash: 'reduced-next-match'),
+      legalMoves: const [move],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: GamePage(rulesEngine: engine),
+        ),
+      ),
+    );
+
+    final boardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
+    final geometry = BoardGeometry.fromSnapshot(
+      initialSnapshot,
+      boardRect.size,
+    );
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 0));
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 1));
+    await tester.pump();
+
+    _expectActiveTurn(tester, GamePlayer.first);
+    await tester.pump(const Duration(milliseconds: 119));
+    _expectActiveTurn(tester, GamePlayer.first);
+    await tester.pump(const Duration(milliseconds: 60));
+    await tester.pump();
+    _expectActiveTurn(tester, GamePlayer.second);
+  });
+
+  testWidgets('locks board and opponent controls while replaying', (
+    tester,
+  ) async {
+    const initialSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'locked-initial',
+    );
+    const nextSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
+      snapshotHash: 'locked-next',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine.playing(
+      initial: matchOf(initialSnapshot),
+      next: matchOf(nextSnapshot, hash: 'locked-next-match'),
+      legalMoves: const [move],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+    final boardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
+    final geometry = BoardGeometry.fromSnapshot(
+      initialSnapshot,
+      boardRect.size,
+    );
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 0));
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 1));
+    await tester.pump();
+
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 1));
+    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.pump();
+
+    expect(engine.appliedMoves, [move]);
+    expect(find.text('Random bot'), findsNothing);
+    expect(find.byKey(const Key('move-resolution-playback')), findsOneWidget);
+  });
+
+  testWidgets('does not commit a replay after the page is disposed', (
+    tester,
+  ) async {
+    const initialSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'dispose-initial',
+    );
+    const nextSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
+      snapshotHash: 'dispose-next',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine.playing(
+      initial: matchOf(initialSnapshot),
+      next: matchOf(nextSnapshot, hash: 'dispose-next-match'),
+      legalMoves: const [move],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+    final boardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
+    final geometry = BoardGeometry.fromSnapshot(
+      initialSnapshot,
+      boardRect.size,
+    );
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 0));
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 1));
+    await tester.pump();
+
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+    await tester.pump(const Duration(milliseconds: 600));
+
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -178,15 +404,7 @@ void main() {
 
       await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
-      final boardRect = tester.getRect(
-        find.byKey(const Key('round-board-canvas')),
-      );
-      Offset cellCenter(int x, int y) {
-        return Offset(
-          boardRect.left + boardRect.width * (x + 0.5) / 5,
-          boardRect.top + boardRect.height * (y + 0.5) / 5,
-        );
-      }
+      final cellCenter = _cellCenterOf(tester);
 
       await tester.tapAt(cellCenter(0, 0));
       await tester.tapAt(cellCenter(1, 0));
@@ -228,21 +446,14 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
-    final boardRect = tester.getRect(
-      find.byKey(const Key('round-board-canvas')),
-    );
-    Offset cellCenter(int x, int y) {
-      return Offset(
-        boardRect.left + boardRect.width * (x + 0.5) / 5,
-        boardRect.top + boardRect.height * (y + 0.5) / 5,
-      );
-    }
+    final cellCenter = _cellCenterOf(tester);
 
     await tester.tapAt(cellCenter(2, 2));
     // The destination is occupied by the opponent, so this tap must push
     // rather than fall through to selecting their piece.
     await tester.tapAt(cellCenter(2, 1));
     await tester.pump();
+    await _finishReplay(tester);
 
     expect(engine.appliedMoves, [move]);
     _expectActiveTurn(tester, GamePlayer.second);
@@ -281,9 +492,8 @@ void main() {
     expect(find.byType(RoundBoard), findsOneWidget);
   });
 
-  testWidgets('keeps the board square on a small and a large screen', (
-    tester,
-  ) async {
+  testWidgets('keeps the board paint region within a small and a large '
+      'screen', (tester) async {
     const snapshot = GameSnapshot(
       currentPlayer: GamePlayer.first,
       tiles: [],
@@ -321,11 +531,16 @@ void main() {
         find.byKey(const Key('round-board-canvas')),
       );
 
-      expect(boardRect.width, boardRect.height, reason: 'at $size');
       expect(boardRect.width, greaterThan(0), reason: 'at $size');
       expect(
         boardRect.width,
         lessThanOrEqualTo(size.width),
+        reason: 'at $size',
+      );
+      expect(boardRect.height, greaterThan(0), reason: 'at $size');
+      expect(
+        boardRect.height,
+        lessThanOrEqualTo(size.height),
         reason: 'at $size',
       );
       expect(tester.takeException(), isNull, reason: 'ongoing at $size');
@@ -427,6 +642,7 @@ void main() {
     felt.clear();
     await tester.tapAt(cellCenter(2, 3));
     await tester.pump();
+    await _finishReplay(tester);
 
     expect(felt, ['move']);
   });
@@ -463,6 +679,7 @@ void main() {
             initial: matchOf(start),
             next: roundOverMatch(afterPush, winner: GamePlayer.first),
             legalMoves: const [pushUp],
+            resolution: _pushResolution,
           ),
         ),
       ),
@@ -472,6 +689,7 @@ void main() {
     await tester.tapAt(cellCenter(2, 2));
     await tester.tapAt(cellCenter(2, 1));
     await tester.pump();
+    await _finishReplay(tester);
 
     expect(felt, ['select', 'win']);
   });
@@ -507,6 +725,7 @@ void main() {
             initial: matchOf(start),
             next: matchOf(afterPush, hash: 'next'),
             legalMoves: const [pushUp],
+            resolution: _pushResolution,
           ),
         ),
       ),
@@ -517,6 +736,7 @@ void main() {
     await tester.tapAt(cellCenter(2, 2));
     await tester.tapAt(cellCenter(2, 1));
     await tester.pump();
+    await _finishReplay(tester);
 
     expect(felt, [
       'select',
@@ -661,7 +881,10 @@ void main() {
             initial: [matchOf(start)],
             moveResults: [
               StateError('bridge unavailable'),
-              matchOf(afterPush, hash: 'next'),
+              moveResultOf(
+                next: matchOf(afterPush, hash: 'next'),
+                resolution: _pushResolution,
+              ),
             ],
             legalMovesFor: (_) => const [pushUp],
           ),
@@ -678,6 +901,7 @@ void main() {
     // The board advances on retry, so it must feel like the push it is.
     await tester.tap(find.text('Retry'));
     await tester.pump();
+    await _finishReplay(tester);
 
     expect(felt, ['push']);
   });
@@ -860,20 +1084,31 @@ void main() {
   ) async {
     const botTurn = GameSnapshot(
       currentPlayer: GamePlayer.second,
-      tiles: [],
-      pieces: [],
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
       snapshotHash: 'bot-turn',
     );
     const answered = GameSnapshot(
       currentPlayer: GamePlayer.first,
-      tiles: [],
-      pieces: [],
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 1)],
       snapshotHash: 'bot-answered',
     );
-    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    const move = GameMove(pieceId: 1, direction: GameDirection.down);
     final engine = FakeRulesEngine(
       initial: [matchOf(botTurn)],
-      moveResults: [matchOf(answered, hash: 'answered-match')],
+      moveResults: [
+        moveResultOf(
+          next: matchOf(answered, hash: 'answered-match'),
+          resolution: _secondBotDownResolution,
+        ),
+      ],
       legalMovesFor: (_) => const [move],
       botMove: (_, _) => move,
     );
@@ -885,7 +1120,8 @@ void main() {
     // The board must not change while the person is still reading it.
     expect(engine.appliedMoves, isEmpty);
 
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _finishReplay(tester);
 
     expect(engine.appliedMoves, [move]);
     expect(engine.botRequests, [BotPolicy.random]);
@@ -897,14 +1133,22 @@ void main() {
   ) async {
     const botTurn = GameSnapshot(
       currentPlayer: GamePlayer.second,
-      tiles: [],
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
       pieces: [],
       snapshotHash: 'cancelled',
     );
     const move = GameMove(pieceId: 0, direction: GameDirection.down);
     final engine = FakeRulesEngine(
       initial: [matchOf(botTurn)],
-      moveResults: [matchOf(botTurn, hash: 'unused')],
+      moveResults: [
+        moveResultOf(
+          next: matchOf(botTurn, hash: 'unused'),
+          resolution: testMoveResolution,
+        ),
+      ],
       legalMovesFor: (_) => const [move],
       botMove: (_, _) => move,
     );
@@ -937,14 +1181,22 @@ void main() {
     );
     const answered = GameSnapshot(
       currentPlayer: GamePlayer.first,
-      tiles: [],
-      pieces: [],
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 1)],
       snapshotHash: 'bot-seat-answered',
     );
     const move = GameMove(pieceId: 1, direction: GameDirection.down);
     final engine = FakeRulesEngine(
       initial: [matchOf(botTurn)],
-      moveResults: [matchOf(answered, hash: 'bot-seat-next')],
+      moveResults: [
+        moveResultOf(
+          next: matchOf(answered, hash: 'bot-seat-next'),
+          resolution: _secondBotDownResolution,
+        ),
+      ],
       legalMovesFor: (state) =>
           state.round.snapshotHash == 'bot-seat' ? const [move] : const [],
       botMove: (_, _) => move,
@@ -974,7 +1226,10 @@ void main() {
   ) async {
     const botTurn = GameSnapshot(
       currentPlayer: GamePlayer.second,
-      tiles: [],
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
       pieces: [],
       snapshotHash: 'bot-fails',
     );
@@ -989,7 +1244,10 @@ void main() {
       initial: [matchOf(botTurn)],
       moveResults: [
         StateError('the bridge refused the move'),
-        matchOf(answered, hash: 'bot-recovered-match'),
+        moveResultOf(
+          next: matchOf(answered, hash: 'bot-recovered-match'),
+          resolution: testMoveResolution,
+        ),
       ],
       legalMovesFor: (_) => const [move],
       botMove: (_, _) => move,
@@ -1062,13 +1320,19 @@ void main() {
   ) async {
     const botTurn = GameSnapshot(
       currentPlayer: GamePlayer.second,
-      tiles: [],
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
       pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
       snapshotHash: 'bot-wins',
     );
     const won = GameSnapshot(
       currentPlayer: GamePlayer.first,
-      tiles: [],
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
       pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 1)],
       winner: GamePlayer.second,
       winReason: GameWinReason.knockout,
@@ -1079,12 +1343,15 @@ void main() {
     final engine = FakeRulesEngine(
       initial: [matchOf(botTurn)],
       moveResults: [
-        roundOverMatch(
-          won,
-          winner: GamePlayer.second,
-          firstWins: 0,
-          secondWins: 1,
-          hash: 'bot-won-match',
+        moveResultOf(
+          next: roundOverMatch(
+            won,
+            winner: GamePlayer.second,
+            firstWins: 0,
+            secondWins: 1,
+            hash: 'bot-won-match',
+          ),
+          resolution: _secondBotDownResolution,
         ),
       ],
       legalMovesFor: (_) => const [move],
@@ -1099,7 +1366,8 @@ void main() {
     await tester.tap(find.byKey(const Key('player-panel-second')));
     await tester.pump();
     feedback.events.clear();
-    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump(const Duration(milliseconds: 450));
+    await _finishReplay(tester);
 
     expect(feedback.events, ['win']);
   });
@@ -1164,22 +1432,17 @@ void main() {
       initial: [matchOf(initialSnapshot)],
       moveResults: [
         StateError('bridge unavailable'),
-        matchOf(nextSnapshot, hash: 'next'),
+        moveResultOf(
+          next: matchOf(nextSnapshot, hash: 'next'),
+          resolution: testMoveResolution,
+        ),
       ],
       legalMovesFor: (_) => const [move],
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
-    final boardRect = tester.getRect(
-      find.byKey(const Key('round-board-canvas')),
-    );
-    Offset cellCenter(int x, int y) {
-      return Offset(
-        boardRect.left + boardRect.width * (x + 0.5) / 5,
-        boardRect.top + boardRect.height * (y + 0.5) / 5,
-      );
-    }
+    final cellCenter = _cellCenterOf(tester);
 
     await tester.tapAt(cellCenter(0, 0));
     await tester.tapAt(cellCenter(0, 1));
@@ -1190,6 +1453,7 @@ void main() {
 
     await tester.tap(find.text('Retry'));
     await tester.pump();
+    await _finishReplay(tester);
 
     expect(engine.appliedMoves, [move, move]);
     _expectActiveTurn(tester, GamePlayer.second);
@@ -1199,11 +1463,17 @@ void main() {
 
 /// Maps a board cell to the point to tap for it.
 Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
-  final board = tester.getRect(find.byKey(const Key('round-board-canvas')));
-  return (x, y) => Offset(
-    board.left + board.width * (x + 0.5) / 5,
-    board.top + board.height * (y + 0.5) / 5,
+  final boardRect = tester.getRect(
+    find.byKey(const Key('round-board-canvas')),
   );
+  final board = tester.widget<RoundBoard>(find.byType(RoundBoard));
+  final geometry = BoardGeometry.fromSnapshot(board.snapshot, boardRect.size);
+  return (x, y) => boardRect.topLeft + geometry.cellCenter(x, y);
+}
+
+Future<void> _finishReplay(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 600));
+  await tester.pump();
 }
 
 /// Scopes a text finder to one player's panel.

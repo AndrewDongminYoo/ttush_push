@@ -69,6 +69,24 @@ MatchSnapshot matchOverMatch(
   );
 }
 
+const testMoveResolution = MoveResolution(
+  actionKind: MoveActionKind.normal,
+  mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 0, toY: 1),
+  tileTransition: TileTransition(
+    x: 0,
+    y: 0,
+    from: GameTileKind.normal,
+    to: GameTileKind.damaged,
+  ),
+);
+
+MoveResult moveResultOf({
+  required MatchSnapshot next,
+  required MoveResolution resolution,
+}) {
+  return MoveResult(snapshot: next, resolution: resolution);
+}
+
 /// One fake for every case the tests need.
 ///
 /// Each list is consumed in order; an entry that is an [Error] is thrown
@@ -91,10 +109,13 @@ final class FakeRulesEngine implements RulesEngine {
     required MatchSnapshot initial,
     MatchSnapshot? next,
     List<GameMove> legalMoves = const [],
+    MoveResolution resolution = testMoveResolution,
   }) {
     return FakeRulesEngine(
       initial: [initial],
-      moveResults: next == null ? const [] : [next],
+      moveResults: next == null
+          ? const []
+          : [moveResultOf(next: next, resolution: resolution)],
       legalMovesFor: (state) =>
           state.snapshotHash == initial.snapshotHash ? legalMoves : const [],
     );
@@ -108,25 +129,33 @@ final class FakeRulesEngine implements RulesEngine {
 
   final List<GameMove> appliedMoves = [];
   final List<BotPolicy> botRequests = [];
+  int initialCount = 0;
   int advanceCount = 0;
 
   @override
-  MatchSnapshot initialMatch() => _take(_initial, 'initial match');
+  MatchSnapshot initialMatch() {
+    initialCount++;
+    return _withFixtureTiles(_take(_initial, 'initial match'));
+  }
 
   @override
   List<GameMove> legalMoves(MatchSnapshot state) =>
       _legalMovesFor?.call(state) ?? const [];
 
   @override
-  MatchSnapshot applyMove(MatchSnapshot state, GameMove move) {
+  MoveResult applyMove(MatchSnapshot state, GameMove move) {
     appliedMoves.add(move);
-    return _take(_moveResults, 'move result');
+    final result = _takeMoveResult(_moveResults, 'move result');
+    return MoveResult(
+      snapshot: _withFixtureTiles(result.snapshot),
+      resolution: result.resolution,
+    );
   }
 
   @override
   MatchSnapshot advanceRound(MatchSnapshot state) {
     advanceCount++;
-    return _take(_advanceResults, 'advance result');
+    return _withFixtureTiles(_take(_advanceResults, 'advance result'));
   }
 
   @override
@@ -148,4 +177,51 @@ final class FakeRulesEngine implements RulesEngine {
     }
     throw StateError('$what must be a MatchSnapshot or an Error');
   }
+
+  MoveResult _takeMoveResult(List<Object> results, String what) {
+    if (results.isEmpty) {
+      throw StateError('no $what was configured');
+    }
+    final result = results.length == 1 ? results.first : results.removeAt(0);
+    if (result case final MoveResult moveResult) {
+      return moveResult;
+    }
+    if (result case final Error error) {
+      throw error;
+    }
+    throw StateError('$what must be a MoveResult or an Error');
+  }
+}
+
+/// Production snapshots name every tile, including holes.
+/// Some legacy widget fixtures omit terrain they do not inspect, so make that
+/// absence explicit before the board receives the fake engine's answer.
+MatchSnapshot _withFixtureTiles(MatchSnapshot snapshot) {
+  if (snapshot.round.tiles.isNotEmpty) {
+    return snapshot;
+  }
+  final round = snapshot.round;
+  final tiles = [
+    for (var x = 0; x < 5; x++)
+      for (var y = 0; y < 5; y++) GameTile(x: x, y: y, kind: GameTileKind.hole),
+  ];
+  return MatchSnapshot(
+    round: GameSnapshot(
+      currentPlayer: round.currentPlayer,
+      tiles: tiles,
+      pieces: round.pieces,
+      counterPush: round.counterPush,
+      winner: round.winner,
+      winReason: round.winReason,
+      snapshotHash: round.snapshotHash,
+    ),
+    startingPieces: snapshot.startingPieces,
+    firstPlayerWins: snapshot.firstPlayerWins,
+    secondPlayerWins: snapshot.secondPlayerWins,
+    phase: snapshot.phase,
+    roundWinner: snapshot.roundWinner,
+    roundWinReason: snapshot.roundWinReason,
+    matchWinner: snapshot.matchWinner,
+    snapshotHash: snapshot.snapshotHash,
+  );
 }

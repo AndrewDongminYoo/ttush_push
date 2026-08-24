@@ -24,21 +24,21 @@ class GamePage extends StatefulWidget {
   State<GamePage> createState() => _GamePageState();
 }
 
-class _GamePageState extends State<GamePage> {
+class _GamePageState extends State<GamePage>
+    with SingleTickerProviderStateMixin {
   late final MatchController _controller;
-
-  /// How the move awaiting application should be felt.
-  ///
-  /// A move can be applied by a tap or by retrying one the bridge rejected,
-  /// and both must feel the same, so the classification outlives the tap that
-  /// produced it until the move actually lands.
-  bool? _pendingMoveIsPush;
   Timer? _botTimer;
+  late final AnimationController _replayController;
+  rust.MoveResolution? _replayResolution;
+  bool _reducedMotion = false;
+  int _replayGeneration = 0;
 
   /// Long enough that the board does not change while the person is still
   /// reading it. This delays a move the engine has already chosen; it does
   /// not interpolate between two states.
   static const _botPause = Duration(milliseconds: 450);
+  static const _normalReplayDuration = Duration(milliseconds: 540);
+  static const _reducedReplayDuration = Duration(milliseconds: 120);
   late final RoundFeedback _feedback;
   PlatformRoundFeedback? _ownedFeedback;
 
@@ -46,6 +46,12 @@ class _GamePageState extends State<GamePage> {
   void initState() {
     super.initState();
     _controller = MatchController(widget._rulesEngine)..initialize();
+    _replayController = AnimationController(vsync: this)
+      ..addListener(() {
+        if (mounted && _controller.hasPendingMove) {
+          setState(() {});
+        }
+      });
     final injected = widget._feedback;
     if (injected != null) {
       _feedback = injected;
@@ -56,7 +62,9 @@ class _GamePageState extends State<GamePage> {
 
   @override
   void dispose() {
+    _replayGeneration++;
     _botTimer?.cancel();
+    _replayController.dispose();
     unawaited(_ownedFeedback?.dispose());
     super.dispose();
   }
@@ -73,27 +81,23 @@ class _GamePageState extends State<GamePage> {
   /// Retry button is the one way past it.
   void _scheduleBotMove() {
     if (!_controller.isBotTurn ||
+        _controller.hasPendingMove ||
         _controller.error != null ||
         (_botTimer?.isActive ?? false)) {
       return;
     }
 
     _botTimer = Timer(_botPause, () {
-      if (!mounted || !_controller.isBotTurn) {
+      if (!mounted || !_controller.isBotTurn || _controller.hasPendingMove) {
         return;
       }
-      setState(_controller.playBotMove);
-      if (_controller.error == null) {
-        // A won round outranks how the move was made, the same way it does
-        // for a move a person made. Whether the bot pushed is not read: the
-        // controller reports the move it played, not the shape of it.
-        if (_controller.isPlaying) {
-          _feedback.moveApplied();
-        } else {
-          _feedback.roundWon();
-        }
+      var prepared = false;
+      setState(() {
+        prepared = _controller.prepareBotMove();
+      });
+      if (prepared) {
+        _playPendingMove();
       }
-      _scheduleBotMove();
     });
   }
 
@@ -114,6 +118,7 @@ class _GamePageState extends State<GamePage> {
 
     final round = snapshot.round;
     final playing = _controller.isPlaying;
+    final replaying = _controller.hasPendingMove && _replayResolution != null;
     return Scaffold(
       backgroundColor: _surfaceColor,
       body: SafeArea(
@@ -125,16 +130,31 @@ class _GamePageState extends State<GamePage> {
               isActive: playing && round.currentPlayer == rust.GamePlayer.first,
             ),
             if (_controller.error != null)
-              _ActionError(onRetry: _retry, error: _controller.error!),
+              _ActionError(
+                onRetry: replaying ? null : _retry,
+                error: _controller.error!,
+              ),
             Expanded(
               child: Stack(
                 children: [
                   Positioned.fill(
                     child: RoundBoard(
+                      key: replaying
+                          ? const Key('move-resolution-playback')
+                          : null,
                       snapshot: round,
                       legalMoves: _controller.legalMoves,
                       selectedPieceId: _controller.selectedPieceId,
-                      onCellTap: (x, y) => _onCellTap(round, x, y),
+                      playback: replaying
+                          ? BoardPlayback(
+                              resolution: _replayResolution!,
+                              progress: _replayController.value,
+                              reducedMotion: _reducedMotion,
+                            )
+                          : null,
+                      onCellTap: replaying
+                          ? null
+                          : (x, y) => _onCellTap(round, x, y),
                     ),
                   ),
                   if (!playing)
@@ -155,7 +175,7 @@ class _GamePageState extends State<GamePage> {
               isActive:
                   playing && round.currentPlayer == rust.GamePlayer.second,
               label: _controller.opponent.label,
-              onTap: _cycleOpponent,
+              onTap: replaying ? null : _cycleOpponent,
             ),
           ],
         ),
@@ -173,18 +193,20 @@ class _GamePageState extends State<GamePage> {
   }
 
   void _onCellTap(GameSnapshot snapshot, int x, int y) {
+    if (_controller.hasPendingMove) {
+      return;
+    }
     // Destination resolution precedes selection, so tapping an opposing
     // piece that is also a legal push destination pushes it.
     final move = _controller.moveForTappedDestination(x, y);
     if (move != null) {
-      // Read before the move is applied: a destination someone stands on is
-      // a push. This is the same read the board's markers use.
-      final isPush = snapshot.pieces.any(
-        (piece) => piece.x == x && piece.y == y,
-      );
-      _pendingMoveIsPush = isPush;
-      setState(() => _controller.applyMove(move));
-      _feedbackForAppliedMove();
+      var prepared = false;
+      setState(() {
+        prepared = _controller.prepareHumanMove(move);
+      });
+      if (prepared) {
+        _playPendingMove();
+      }
       return;
     }
 
@@ -206,36 +228,71 @@ class _GamePageState extends State<GamePage> {
     }
   }
 
-  /// Fires once the pending move has actually been applied.
-  ///
-  /// A won round outranks how the move was made, so it is felt as one event
-  /// rather than two.
-  void _feedbackForAppliedMove() {
-    final isPush = _pendingMoveIsPush;
-    if (isPush == null || _controller.error != null) {
-      return;
+  void _playPendingMove() {
+    final resolution = _controller.pendingResolution;
+    if (resolution != null) {
+      _playPreparedMove(resolution);
     }
-    _pendingMoveIsPush = null;
+  }
 
+  void _playPreparedMove(rust.MoveResolution resolution) {
+    final generation = ++_replayGeneration;
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    setState(() {
+      _replayResolution = resolution;
+      _reducedMotion = reducedMotion;
+      _replayController
+        ..duration = reducedMotion
+            ? _reducedReplayDuration
+            : _normalReplayDuration
+        ..value = 0;
+    });
+
+    late final AnimationStatusListener onReplayComplete;
+    onReplayComplete = (status) {
+      if (status != AnimationStatus.completed) {
+        return;
+      }
+      _replayController.removeStatusListener(onReplayComplete);
+      if (!mounted ||
+          generation != _replayGeneration ||
+          _controller.pendingResolution != resolution) {
+        return;
+      }
+
+      setState(() {
+        _controller.commitPendingMove();
+        _replayResolution = null;
+      });
+      _feedbackForCommittedMove(resolution);
+      _scheduleBotMove();
+    };
+    _replayController
+      ..addStatusListener(onReplayComplete)
+      ..forward();
+  }
+
+  /// Fires only after the replay has committed the Rust-prepared snapshot.
+  void _feedbackForCommittedMove(rust.MoveResolution resolution) {
     if (!_controller.isPlaying) {
       _feedback.roundWon();
       return;
     }
-    if (isPush) {
-      _feedback.pushApplied();
-    } else {
-      _feedback.moveApplied();
+    switch (resolution.actionKind) {
+      case rust.MoveActionKind.normal:
+        _feedback.moveApplied();
+      case rust.MoveActionKind.push:
+        _feedback.pushApplied();
     }
   }
 
   void _restart() {
-    _pendingMoveIsPush = null;
     setState(_controller.restart);
   }
 
   void _retry() {
     setState(_controller.retry);
-    _feedbackForAppliedMove();
+    _playPendingMove();
   }
 }
 
@@ -495,7 +552,7 @@ class _InitialError extends StatelessWidget {
 class _ActionError extends StatelessWidget {
   const _ActionError({required this.onRetry, required this.error});
 
-  final VoidCallback onRetry;
+  final VoidCallback? onRetry;
   final Object error;
 
   @override

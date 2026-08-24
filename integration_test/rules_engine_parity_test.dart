@@ -21,9 +21,31 @@ void main() {
       GameMove(pieceId: 2, direction: GameDirection.up),
     ];
 
-    for (final move in fixtureMoves) {
+    for (final (index, move) in fixtureMoves.indexed) {
       expect(rulesEngine.legalMoves(match), contains(move));
-      match = rulesEngine.applyMove(match, move);
+      final result = rulesEngine.applyMove(match, move);
+      if (index == 0) {
+        expect(result.resolution.actionKind, MoveActionKind.normal);
+        expect(result.resolution.mover.pieceId, move.pieceId);
+        expect(result.resolution.mover.fromX, 1);
+        expect(result.resolution.mover.fromY, 0);
+        expect(result.resolution.mover.toX, 1);
+        expect(result.resolution.mover.toY, 1);
+        expect(result.resolution.displaced, isNull);
+        expect(result.resolution.tileTransition.from, GameTileKind.normal);
+        expect(result.resolution.tileTransition.to, GameTileKind.damaged);
+      }
+      if (index == fixtureMoves.length - 1) {
+        expect(result.resolution.actionKind, MoveActionKind.push);
+        expect(result.resolution.mover.pieceId, move.pieceId);
+        expect(result.resolution.displaced?.pieceId, 0);
+        expect(result.resolution.displaced?.fromX, 1);
+        expect(result.resolution.displaced?.fromY, 2);
+        expect(result.resolution.displaced?.toX, 1);
+        expect(result.resolution.displaced?.toY, 1);
+        expect(result.resolution.displaced?.exitDirection, isNull);
+      }
+      match = result.snapshot;
     }
 
     // The round hash is the parity evidence: both native runtimes must
