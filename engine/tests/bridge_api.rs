@@ -228,6 +228,41 @@ fn value_api_carries_a_won_match_back_without_reopening_it() {
     );
 }
 
+/// Pins the move each policy plays from the parity fixture.
+///
+/// The integration test asserts these same three moves on a real Android and
+/// a real iOS runtime. Legality and repeatability, which the test below
+/// covers, hold separately on either platform without the two agreeing, so
+/// the concrete move is what makes the bot's determinism a cross-platform
+/// claim rather than a per-runtime one.
+#[test]
+fn value_api_pins_the_parity_fixture_bot_moves() {
+    let fixture = play(
+        initial_match(),
+        &[
+            (0, GameDirection::Down),
+            (2, GameDirection::Up),
+            (0, GameDirection::Down),
+            (2, GameDirection::Up),
+        ],
+    );
+    // The same position the parity hash names, so a fixture that drifts fails
+    // here rather than silently repinning the moves below.
+    assert_eq!(fixture.round.snapshot_hash, "7044880ea390e9a8");
+
+    for (policy, expected) in [
+        (BotPolicy::Random, game_move(1, GameDirection::Down)),
+        (BotPolicy::Greedy, game_move(1, GameDirection::Down)),
+        (BotPolicy::Minimax, game_move(0, GameDirection::Right)),
+    ] {
+        assert_eq!(
+            choose_bot_move(fixture.clone(), policy).unwrap(),
+            Some(expected),
+            "{policy:?} played a different move from the parity fixture",
+        );
+    }
+}
+
 #[test]
 fn value_api_chooses_a_bot_move_from_the_position_alone() {
     let initial = initial_match();
