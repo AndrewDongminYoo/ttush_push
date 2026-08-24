@@ -103,6 +103,53 @@ pub struct MatchSnapshot {
     pub snapshot_hash: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MoveResult {
+    pub snapshot: MatchSnapshot,
+    pub resolution: MoveResolution,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum MoveActionKind {
+    Normal,
+    Push,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PieceTravel {
+    pub piece_id: u8,
+    pub from_x: u8,
+    pub from_y: u8,
+    pub to_x: u8,
+    pub to_y: u8,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PieceDisplacement {
+    pub piece_id: u8,
+    pub from_x: u8,
+    pub from_y: u8,
+    pub to_x: Option<u8>,
+    pub to_y: Option<u8>,
+    pub exit_direction: Option<GameDirection>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TileTransition {
+    pub x: u8,
+    pub y: u8,
+    pub from: GameTileKind,
+    pub to: GameTileKind,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MoveResolution {
+    pub action_kind: MoveActionKind,
+    pub mover: PieceTravel,
+    pub displaced: Option<PieceDisplacement>,
+    pub tile_transition: TileTransition,
+}
+
 #[frb(sync)]
 pub fn initial_match() -> MatchSnapshot {
     match_snapshot_from_state(
@@ -125,13 +172,21 @@ pub fn match_legal_moves(snapshot: MatchSnapshot) -> Result<Vec<GameMove>, Strin
 pub fn match_apply_move(
     snapshot: MatchSnapshot,
     game_move: GameMove,
-) -> Result<MatchSnapshot, String> {
+) -> Result<MoveResult, String> {
+    let direction = game_move.direction;
     let state = match_state_from_snapshot(snapshot)?;
-    let next = state
-        .apply_move(move_to_engine(game_move))
+    let (next, resolution) = state
+        .apply_move_with_resolution(move_to_engine(game_move))
         .map_err(illegal_move_error)?;
+    let departure_tile = state
+        .round()
+        .tile_at(resolution.moving_piece.position)
+        .expect("the moving piece must occupy a playable tile");
 
-    Ok(match_snapshot_from_state(&next))
+    Ok(MoveResult {
+        snapshot: match_snapshot_from_state(&next),
+        resolution: move_resolution_from_engine(&resolution, departure_tile, direction),
+    })
 }
 
 #[frb(sync)]
@@ -458,6 +513,60 @@ fn move_to_engine(game_move: GameMove) -> Move {
     Move::new(PieceId(game_move.piece_id), game_move.direction.into())
 }
 
+fn move_resolution_from_engine(
+    resolution: &super::ResolvedMove,
+    departure_tile: Tile,
+    direction: GameDirection,
+) -> MoveResolution {
+    let moving_piece = &resolution.moving_piece;
+    let displaced = resolution.pushed_piece.as_ref().map(|piece| {
+        let (to_x, to_y, exit_direction) = if resolution.knockout {
+            (None, None, Some(direction))
+        } else {
+            let destination = resolution
+                .destination
+                .step(direction.into())
+                .expect("the validated push destination must be on the board");
+            (Some(destination.x), Some(destination.y), None)
+        };
+
+        PieceDisplacement {
+            piece_id: piece.id.0,
+            from_x: piece.position.x,
+            from_y: piece.position.y,
+            to_x,
+            to_y,
+            exit_direction,
+        }
+    });
+
+    MoveResolution {
+        action_kind: if displaced.is_some() {
+            MoveActionKind::Push
+        } else {
+            MoveActionKind::Normal
+        },
+        mover: PieceTravel {
+            piece_id: moving_piece.id.0,
+            from_x: moving_piece.position.x,
+            from_y: moving_piece.position.y,
+            to_x: resolution.destination.x,
+            to_y: resolution.destination.y,
+        },
+        displaced,
+        tile_transition: TileTransition {
+            x: moving_piece.position.x,
+            y: moving_piece.position.y,
+            from: departure_tile.into(),
+            to: match departure_tile {
+                Tile::Normal => GameTileKind::Damaged,
+                Tile::Damaged => GameTileKind::Hole,
+                Tile::Hole => unreachable!("a piece cannot occupy a hole"),
+            },
+        },
+    }
+}
+
 fn state_error(error: StateError) -> String {
     format!("invalid snapshot: {error:?}")
 }
@@ -541,5 +650,90 @@ impl From<GameWinReason> for WinReason {
             GameWinReason::Knockout => Self::Knockout,
             GameWinReason::Immobilization => Self::Immobilization,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn value_api_reports_a_damaged_foothold_collapsing() {
+        let board = BoardConfig::rectangular(
+            5,
+            5,
+            vec![
+                Piece::new(PieceId(1), Player::First, Position::new(2, 2)),
+                Piece::new(PieceId(2), Player::Second, Position::new(4, 4)),
+            ],
+        )
+        .unwrap();
+        let mut round = GameState::new(board.clone(), Player::First).unwrap();
+        round.tiles.insert(Position::new(2, 2), Tile::Damaged);
+        let snapshot =
+            match_snapshot_from_state(&MatchState::from_parts(board, round, [0, 0]).unwrap());
+
+        let result = match_apply_move(
+            snapshot,
+            GameMove {
+                piece_id: 1,
+                direction: GameDirection::Up,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            result.resolution.tile_transition,
+            TileTransition {
+                x: 2,
+                y: 2,
+                from: GameTileKind::Damaged,
+                to: GameTileKind::Hole,
+            },
+        );
+        assert!(result.snapshot.round.tiles.contains(&GameTile {
+            x: 2,
+            y: 2,
+            kind: GameTileKind::Hole,
+        }));
+    }
+
+    #[test]
+    fn value_api_reports_a_push_falling_into_a_sinkhole() {
+        let board = BoardConfig::rectangular(
+            5,
+            5,
+            vec![
+                Piece::new(PieceId(1), Player::First, Position::new(1, 2)),
+                Piece::new(PieceId(2), Player::Second, Position::new(2, 2)),
+            ],
+        )
+        .unwrap();
+        let mut round = GameState::new(board.clone(), Player::First).unwrap();
+        round.tiles.insert(Position::new(3, 2), Tile::Hole);
+        let snapshot =
+            match_snapshot_from_state(&MatchState::from_parts(board, round, [0, 0]).unwrap());
+
+        let result = match_apply_move(
+            snapshot,
+            GameMove {
+                piece_id: 1,
+                direction: GameDirection::Right,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(result.resolution.action_kind, MoveActionKind::Push);
+        assert_eq!(
+            result.resolution.displaced,
+            Some(PieceDisplacement {
+                piece_id: 2,
+                from_x: 2,
+                from_y: 2,
+                to_x: None,
+                to_y: None,
+                exit_direction: Some(GameDirection::Right),
+            }),
+        );
     }
 }

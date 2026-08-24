@@ -215,7 +215,9 @@ void main() {
       final next = matchOf(round(hash: 'after-bot'), hash: 'after-bot-match');
       final engine = FakeRulesEngine(
         initial: [matchOf(round(current: GamePlayer.second))],
-        moveResults: [next],
+        moveResults: [
+          moveResultOf(next: next, resolution: testMoveResolution),
+        ],
         legalMovesFor: (_) => const [move],
         botMove: (_, _) => move,
       );
@@ -234,7 +236,12 @@ void main() {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final engine = FakeRulesEngine(
         initial: [matchOf(round(current: GamePlayer.second))],
-        moveResults: [matchOf(round(hash: 'unused'), hash: 'unused-match')],
+        moveResults: [
+          moveResultOf(
+            next: matchOf(round(hash: 'unused'), hash: 'unused-match'),
+            resolution: testMoveResolution,
+          ),
+        ],
         legalMovesFor: (_) => const [move],
         botMove: (_, _) => move,
       );
@@ -295,7 +302,10 @@ void main() {
       final next = matchOf(round(hash: 'recovered'), hash: 'recovered-match');
       final engine = FakeRulesEngine(
         initial: [initial],
-        moveResults: [StateError('bridge unavailable'), next],
+        moveResults: [
+          StateError('bridge unavailable'),
+          moveResultOf(next: next, resolution: testMoveResolution),
+        ],
         legalMovesFor: (_) => const [move],
         botMove: (_, _) => move,
       );
@@ -393,6 +403,190 @@ void main() {
       expect(controller.legalMoves, isEmpty);
     });
 
+    test('prepares a move without publishing its snapshot', () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      const nextMove = GameMove(pieceId: 0, direction: GameDirection.up);
+      final initial = matchOf(round(), hash: 'initial-match');
+      final next = matchOf(
+        round(current: GamePlayer.second, hash: 'next-round'),
+        hash: 'next-match',
+      );
+      final engine = FakeRulesEngine(
+        initial: [initial],
+        moveResults: [
+          moveResultOf(next: next, resolution: testMoveResolution),
+        ],
+        legalMovesFor: (state) => switch (state.snapshotHash) {
+          'initial-match' => const [move],
+          'next-match' => const [nextMove],
+          _ => const [],
+        },
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..selectPiece(move.pieceId);
+
+      expect(controller.prepareHumanMove(move), isTrue);
+      expect(controller.snapshot, initial);
+      expect(controller.pendingResolution, testMoveResolution);
+      expect(controller.legalMoves, const [move]);
+
+      controller.commitPendingMove();
+
+      expect(controller.snapshot, next);
+      expect(controller.legalMoves, const [nextMove]);
+      expect(controller.pendingResolution, isNull);
+    });
+
+    test('prepares a bot move without publishing its snapshot', () {
+      const move = GameMove(pieceId: 2, direction: GameDirection.up);
+      final initial = matchOf(
+        round(current: GamePlayer.second),
+        hash: 'bot-initial-match',
+      );
+      final next = matchOf(
+        round(hash: 'bot-next-round'),
+        hash: 'bot-next-match',
+      );
+      final engine = FakeRulesEngine(
+        initial: [initial],
+        moveResults: [
+          moveResultOf(next: next, resolution: testMoveResolution),
+        ],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => move,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..cycleOpponent()
+        ..cycleOpponent();
+
+      expect(controller.prepareBotMove(), isTrue);
+      expect(controller.snapshot, initial);
+      expect(controller.pendingResolution, testMoveResolution);
+      expect(engine.appliedMoves, [move]);
+
+      controller.commitPendingMove();
+
+      expect(controller.snapshot, next);
+      expect(controller.pendingResolution, isNull);
+    });
+
+    test('rejects controls while a move is pending', () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final initial = matchOf(round(), hash: 'initial-match');
+      final next = matchOf(
+        round(current: GamePlayer.second, hash: 'next-round'),
+        hash: 'next-match',
+      );
+      final engine = FakeRulesEngine(
+        initial: [initial],
+        moveResults: [
+          moveResultOf(next: next, resolution: testMoveResolution),
+        ],
+        legalMovesFor: (_) => const [move],
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..selectPiece(move.pieceId);
+
+      expect(controller.prepareHumanMove(move), isTrue);
+
+      controller
+        ..selectPiece(99)
+        ..clearSelection()
+        ..cycleOpponent()
+        ..restart()
+        ..advanceRound();
+
+      expect(controller.selectedPieceId, move.pieceId);
+      expect(controller.opponent, Opponent.human);
+      expect(engine.initialCount, 1);
+      expect(engine.advanceCount, 0);
+      expect(controller.prepareHumanMove(move), isFalse);
+      expect(controller.prepareBotMove(), isFalse);
+    });
+
+    test('retries a failed preparation without changing the visible match', () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final initial = matchOf(round(), hash: 'initial-match');
+      final next = matchOf(
+        round(current: GamePlayer.second, hash: 'next-round'),
+        hash: 'next-match',
+      );
+      final engine = FakeRulesEngine(
+        initial: [initial],
+        moveResults: [
+          StateError('bridge unavailable'),
+          moveResultOf(next: next, resolution: testMoveResolution),
+        ],
+        legalMovesFor: (state) =>
+            state.snapshotHash == 'initial-match' ? const [move] : const [],
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..selectPiece(move.pieceId);
+
+      expect(controller.prepareHumanMove(move), isFalse);
+      expect(controller.snapshot, initial);
+      expect(controller.pendingResolution, isNull);
+      expect(controller.selectedPieceId, move.pieceId);
+      expect(controller.error, isA<StateError>());
+
+      expect(controller.retry(), isTrue);
+      expect(controller.snapshot, initial);
+      expect(controller.pendingResolution, testMoveResolution);
+      expect(controller.error, isNull);
+
+      controller.commitPendingMove();
+
+      expect(controller.snapshot, next);
+    });
+
+    test('retries a failed pending legal-move refresh before committing', () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      const nextMove = GameMove(pieceId: 0, direction: GameDirection.up);
+      var nextLegalMoveReads = 0;
+      final initial = matchOf(round(), hash: 'initial-match');
+      final next = matchOf(
+        round(current: GamePlayer.second, hash: 'next-round'),
+        hash: 'next-match',
+      );
+      final engine = FakeRulesEngine(
+        initial: [initial],
+        moveResults: [
+          moveResultOf(next: next, resolution: testMoveResolution),
+        ],
+        legalMovesFor: (state) => switch (state.snapshotHash) {
+          'initial-match' => const [move],
+          'next-match' when nextLegalMoveReads++ == 0 => throw StateError(
+            'bridge unavailable',
+          ),
+          'next-match' => const [nextMove],
+          _ => const [],
+        },
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..selectPiece(move.pieceId);
+
+      expect(controller.prepareHumanMove(move), isFalse);
+      expect(controller.snapshot, initial);
+      expect(controller.legalMoves, const [move]);
+      expect(controller.pendingResolution, isNull);
+      expect(controller.error, isA<StateError>());
+
+      expect(controller.retry(), isTrue);
+      expect(controller.snapshot, initial);
+      expect(controller.legalMoves, const [move]);
+      expect(controller.pendingResolution, testMoveResolution);
+
+      controller.commitPendingMove();
+
+      expect(controller.snapshot, next);
+      expect(controller.legalMoves, const [nextMove]);
+    });
+
     test('restart initializes a controller without a current snapshot', () {
       final controller = MatchController(
         FakeRulesEngine(initial: [StateError('bridge unavailable')]),
@@ -440,7 +634,10 @@ void main() {
       );
       final engine = FakeRulesEngine(
         initial: [initial],
-        moveResults: [StateError('bridge unavailable'), next],
+        moveResults: [
+          StateError('bridge unavailable'),
+          moveResultOf(next: next, resolution: testMoveResolution),
+        ],
         legalMovesFor: (state) => state.snapshotHash == initial.snapshotHash
             ? const [move]
             : const [],
@@ -465,7 +662,12 @@ void main() {
       final initial = matchOf(round());
       final engine = FakeRulesEngine(
         initial: [initial],
-        moveResults: [matchOf(round(hash: 'moved'), hash: 'moved-match')],
+        moveResults: [
+          moveResultOf(
+            next: matchOf(round(hash: 'moved'), hash: 'moved-match'),
+            resolution: testMoveResolution,
+          ),
+        ],
         legalMovesFor: (state) {
           if (state.snapshotHash == initial.snapshotHash) {
             return const [move];

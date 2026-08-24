@@ -328,6 +328,13 @@ impl MatchState {
     }
 
     pub fn apply_move(&self, mv: Move) -> Result<Self, IllegalMove> {
+        self.apply_move_with_resolution(mv).map(|(next, _)| next)
+    }
+
+    pub(crate) fn apply_move_with_resolution(
+        &self,
+        mv: Move,
+    ) -> Result<(Self, ResolvedMove), IllegalMove> {
         match self.phase {
             MatchPhase::Playing => {}
             MatchPhase::RoundOver { .. } => return Err(IllegalMove::RoundFinished),
@@ -335,10 +342,11 @@ impl MatchState {
         }
 
         let mut next = self.clone();
-        next.round = apply_move(&self.round, mv)?;
+        let (round, resolution) = apply_move_with_resolution(&self.round, mv)?;
+        next.round = round;
         next.settle_round();
 
-        Ok(next)
+        Ok((next, resolution))
     }
 
     /// Starts the next round. The loser of the round that just ended plays
@@ -457,11 +465,11 @@ impl MatchState {
 }
 
 #[derive(Clone, Debug)]
-struct ResolvedMove {
-    moving_piece: Piece,
-    destination: Position,
-    pushed_piece: Option<Piece>,
-    knockout: bool,
+pub(crate) struct ResolvedMove {
+    pub(crate) moving_piece: Piece,
+    pub(crate) destination: Position,
+    pub(crate) pushed_piece: Option<Piece>,
+    pub(crate) knockout: bool,
 }
 
 pub fn legal_moves(state: &GameState) -> Vec<Move> {
@@ -490,6 +498,20 @@ pub fn legal_moves(state: &GameState) -> Vec<Move> {
 pub fn apply_move(state: &GameState, mv: Move) -> Result<GameState, IllegalMove> {
     let resolution = resolve_move(state, mv)?;
 
+    Ok(apply_resolved_move(state, mv, &resolution))
+}
+
+pub(crate) fn apply_move_with_resolution(
+    state: &GameState,
+    mv: Move,
+) -> Result<(GameState, ResolvedMove), IllegalMove> {
+    let resolution = resolve_move(state, mv)?;
+    let next = apply_resolved_move(state, mv, &resolution);
+
+    Ok((next, resolution))
+}
+
+fn apply_resolved_move(state: &GameState, mv: Move, resolution: &ResolvedMove) -> GameState {
     let mut next = state.clone();
     let departure_tile = next
         .tiles
@@ -507,12 +529,13 @@ pub fn apply_move(state: &GameState, mv: Move) -> Result<GameState, IllegalMove>
     if resolution.knockout {
         let pushed_piece = resolution
             .pushed_piece
+            .as_ref()
             .expect("only a push can knock a piece out");
         next.pieces.remove(&pushed_piece.id);
         next.outcome = Outcome::Winner(state.current_player, WinReason::Knockout);
-        return Ok(next);
+        return next;
     }
-    if let Some(pushed_piece) = resolution.pushed_piece {
+    if let Some(pushed_piece) = &resolution.pushed_piece {
         next.pieces
             .get_mut(&pushed_piece.id)
             .expect("the pushed piece must remain in the cloned state")
@@ -532,7 +555,7 @@ pub fn apply_move(state: &GameState, mv: Move) -> Result<GameState, IllegalMove>
         next.outcome = Outcome::Winner(state.current_player, WinReason::Immobilization);
     }
 
-    Ok(next)
+    next
 }
 
 fn resolve_move(state: &GameState, mv: Move) -> Result<ResolvedMove, IllegalMove> {

@@ -89,7 +89,7 @@ abstract class RustLibApi extends BaseApi {
 
   MatchSnapshot crateApiInitialMatch();
 
-  MatchSnapshot crateApiMatchApplyMove({
+  MoveResult crateApiMatchApplyMove({
     required MatchSnapshot snapshot,
     required GameMove gameMove,
   });
@@ -184,7 +184,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  MatchSnapshot crateApiMatchApplyMove({
+  MoveResult crateApiMatchApplyMove({
     required MatchSnapshot snapshot,
     required GameMove gameMove,
   }) {
@@ -197,7 +197,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 4)!;
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_match_snapshot,
+          decodeSuccessData: sse_decode_move_result,
           decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiMatchApplyMoveConstMeta,
@@ -258,6 +258,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GameDirection dco_decode_box_autoadd_game_direction(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_game_direction(raw);
+  }
+
+  @protected
   GameMove dco_decode_box_autoadd_game_move(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_game_move(raw);
@@ -279,6 +285,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   MatchSnapshot dco_decode_box_autoadd_match_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_match_snapshot(raw);
+  }
+
+  @protected
+  PieceDisplacement dco_decode_box_autoadd_piece_displacement(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_piece_displacement(raw);
+  }
+
+  @protected
+  int dco_decode_box_autoadd_u_8(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw as int;
   }
 
   @protected
@@ -429,6 +447,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  MoveActionKind dco_decode_move_action_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return MoveActionKind.values[raw as int];
+  }
+
+  @protected
+  MoveResolution dco_decode_move_resolution(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return MoveResolution(
+      actionKind: dco_decode_move_action_kind(arr[0]),
+      mover: dco_decode_piece_travel(arr[1]),
+      displaced: dco_decode_opt_box_autoadd_piece_displacement(arr[2]),
+      tileTransition: dco_decode_tile_transition(arr[3]),
+    );
+  }
+
+  @protected
+  MoveResult dco_decode_move_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return MoveResult(
+      snapshot: dco_decode_match_snapshot(arr[0]),
+      resolution: dco_decode_move_resolution(arr[1]),
+    );
+  }
+
+  @protected
   CounterPushRestriction? dco_decode_opt_box_autoadd_counter_push_restriction(
     dynamic raw,
   ) {
@@ -436,6 +486,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return raw == null
         ? null
         : dco_decode_box_autoadd_counter_push_restriction(raw);
+  }
+
+  @protected
+  GameDirection? dco_decode_opt_box_autoadd_game_direction(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_game_direction(raw);
   }
 
   @protected
@@ -454,6 +510,65 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GameWinReason? dco_decode_opt_box_autoadd_game_win_reason(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_game_win_reason(raw);
+  }
+
+  @protected
+  PieceDisplacement? dco_decode_opt_box_autoadd_piece_displacement(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_piece_displacement(raw);
+  }
+
+  @protected
+  int? dco_decode_opt_box_autoadd_u_8(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_u_8(raw);
+  }
+
+  @protected
+  PieceDisplacement dco_decode_piece_displacement(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return PieceDisplacement(
+      pieceId: dco_decode_u_8(arr[0]),
+      fromX: dco_decode_u_8(arr[1]),
+      fromY: dco_decode_u_8(arr[2]),
+      toX: dco_decode_opt_box_autoadd_u_8(arr[3]),
+      toY: dco_decode_opt_box_autoadd_u_8(arr[4]),
+      exitDirection: dco_decode_opt_box_autoadd_game_direction(arr[5]),
+    );
+  }
+
+  @protected
+  PieceTravel dco_decode_piece_travel(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return PieceTravel(
+      pieceId: dco_decode_u_8(arr[0]),
+      fromX: dco_decode_u_8(arr[1]),
+      fromY: dco_decode_u_8(arr[2]),
+      toX: dco_decode_u_8(arr[3]),
+      toY: dco_decode_u_8(arr[4]),
+    );
+  }
+
+  @protected
+  TileTransition dco_decode_tile_transition(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return TileTransition(
+      x: dco_decode_u_8(arr[0]),
+      y: dco_decode_u_8(arr[1]),
+      from: dco_decode_game_tile_kind(arr[2]),
+      to: dco_decode_game_tile_kind(arr[3]),
+    );
   }
 
   @protected
@@ -491,6 +606,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GameDirection sse_decode_box_autoadd_game_direction(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_game_direction(deserializer));
+  }
+
+  @protected
   GameMove sse_decode_box_autoadd_game_move(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_game_move(deserializer));
@@ -516,6 +639,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_match_snapshot(deserializer));
+  }
+
+  @protected
+  PieceDisplacement sse_decode_box_autoadd_piece_displacement(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_piece_displacement(deserializer));
+  }
+
+  @protected
+  int sse_decode_box_autoadd_u_8(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_u_8(deserializer));
   }
 
   @protected
@@ -695,6 +832,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  MoveActionKind sse_decode_move_action_kind(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return MoveActionKind.values[inner];
+  }
+
+  @protected
+  MoveResolution sse_decode_move_resolution(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_actionKind = sse_decode_move_action_kind(deserializer);
+    var var_mover = sse_decode_piece_travel(deserializer);
+    var var_displaced = sse_decode_opt_box_autoadd_piece_displacement(
+      deserializer,
+    );
+    var var_tileTransition = sse_decode_tile_transition(deserializer);
+    return MoveResolution(
+      actionKind: var_actionKind,
+      mover: var_mover,
+      displaced: var_displaced,
+      tileTransition: var_tileTransition,
+    );
+  }
+
+  @protected
+  MoveResult sse_decode_move_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_snapshot = sse_decode_match_snapshot(deserializer);
+    var var_resolution = sse_decode_move_resolution(deserializer);
+    return MoveResult(snapshot: var_snapshot, resolution: var_resolution);
+  }
+
+  @protected
   CounterPushRestriction? sse_decode_opt_box_autoadd_counter_push_restriction(
     SseDeserializer deserializer,
   ) {
@@ -702,6 +871,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_counter_push_restriction(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  GameDirection? sse_decode_opt_box_autoadd_game_direction(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_game_direction(deserializer));
     } else {
       return null;
     }
@@ -745,6 +927,80 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  PieceDisplacement? sse_decode_opt_box_autoadd_piece_displacement(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_piece_displacement(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  int? sse_decode_opt_box_autoadd_u_8(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_u_8(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  PieceDisplacement sse_decode_piece_displacement(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_pieceId = sse_decode_u_8(deserializer);
+    var var_fromX = sse_decode_u_8(deserializer);
+    var var_fromY = sse_decode_u_8(deserializer);
+    var var_toX = sse_decode_opt_box_autoadd_u_8(deserializer);
+    var var_toY = sse_decode_opt_box_autoadd_u_8(deserializer);
+    var var_exitDirection = sse_decode_opt_box_autoadd_game_direction(
+      deserializer,
+    );
+    return PieceDisplacement(
+      pieceId: var_pieceId,
+      fromX: var_fromX,
+      fromY: var_fromY,
+      toX: var_toX,
+      toY: var_toY,
+      exitDirection: var_exitDirection,
+    );
+  }
+
+  @protected
+  PieceTravel sse_decode_piece_travel(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_pieceId = sse_decode_u_8(deserializer);
+    var var_fromX = sse_decode_u_8(deserializer);
+    var var_fromY = sse_decode_u_8(deserializer);
+    var var_toX = sse_decode_u_8(deserializer);
+    var var_toY = sse_decode_u_8(deserializer);
+    return PieceTravel(
+      pieceId: var_pieceId,
+      fromX: var_fromX,
+      fromY: var_fromY,
+      toX: var_toX,
+      toY: var_toY,
+    );
+  }
+
+  @protected
+  TileTransition sse_decode_tile_transition(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_x = sse_decode_u_8(deserializer);
+    var var_y = sse_decode_u_8(deserializer);
+    var var_from = sse_decode_game_tile_kind(deserializer);
+    var var_to = sse_decode_game_tile_kind(deserializer);
+    return TileTransition(x: var_x, y: var_y, from: var_from, to: var_to);
+  }
+
+  @protected
   int sse_decode_u_8(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8();
@@ -783,6 +1039,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_game_direction(
+    GameDirection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_game_direction(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_game_move(
     GameMove self,
     SseSerializer serializer,
@@ -816,6 +1081,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_match_snapshot(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_piece_displacement(
+    PieceDisplacement self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_piece_displacement(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_u_8(int self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_8(self, serializer);
   }
 
   @protected
@@ -970,6 +1250,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_move_action_kind(
+    MoveActionKind self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_move_resolution(
+    MoveResolution self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_move_action_kind(self.actionKind, serializer);
+    sse_encode_piece_travel(self.mover, serializer);
+    sse_encode_opt_box_autoadd_piece_displacement(self.displaced, serializer);
+    sse_encode_tile_transition(self.tileTransition, serializer);
+  }
+
+  @protected
+  void sse_encode_move_result(MoveResult self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_match_snapshot(self.snapshot, serializer);
+    sse_encode_move_resolution(self.resolution, serializer);
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_counter_push_restriction(
     CounterPushRestriction? self,
     SseSerializer serializer,
@@ -979,6 +1287,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_counter_push_restriction(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_game_direction(
+    GameDirection? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_game_direction(self, serializer);
     }
   }
 
@@ -1019,6 +1340,65 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (self != null) {
       sse_encode_box_autoadd_game_win_reason(self, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_piece_displacement(
+    PieceDisplacement? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_piece_displacement(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_u_8(int? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_u_8(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_piece_displacement(
+    PieceDisplacement self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_8(self.pieceId, serializer);
+    sse_encode_u_8(self.fromX, serializer);
+    sse_encode_u_8(self.fromY, serializer);
+    sse_encode_opt_box_autoadd_u_8(self.toX, serializer);
+    sse_encode_opt_box_autoadd_u_8(self.toY, serializer);
+    sse_encode_opt_box_autoadd_game_direction(self.exitDirection, serializer);
+  }
+
+  @protected
+  void sse_encode_piece_travel(PieceTravel self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_8(self.pieceId, serializer);
+    sse_encode_u_8(self.fromX, serializer);
+    sse_encode_u_8(self.fromY, serializer);
+    sse_encode_u_8(self.toX, serializer);
+    sse_encode_u_8(self.toY, serializer);
+  }
+
+  @protected
+  void sse_encode_tile_transition(
+    TileTransition self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_8(self.x, serializer);
+    sse_encode_u_8(self.y, serializer);
+    sse_encode_game_tile_kind(self.from, serializer);
+    sse_encode_game_tile_kind(self.to, serializer);
   }
 
   @protected

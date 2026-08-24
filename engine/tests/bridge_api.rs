@@ -1,7 +1,7 @@
 use engine::api::{
     BotPolicy, GameDirection, GameMatchPhase, GameMove, GamePiece, GamePlayer, GameTileKind,
-    GameWinReason, MatchSnapshot, advance_round, choose_bot_move, initial_match, match_apply_move,
-    match_legal_moves,
+    GameWinReason, MatchSnapshot, MoveActionKind, PieceDisplacement, PieceTravel, TileTransition,
+    advance_round, choose_bot_move, initial_match, match_apply_move, match_legal_moves,
 };
 
 fn game_move(piece_id: u8, direction: GameDirection) -> GameMove {
@@ -13,8 +13,130 @@ fn game_move(piece_id: u8, direction: GameDirection) -> GameMove {
 
 fn play(snapshot: MatchSnapshot, moves: &[(u8, GameDirection)]) -> MatchSnapshot {
     moves.iter().fold(snapshot, |state, (piece, direction)| {
-        match_apply_move(state, game_move(*piece, *direction)).unwrap()
+        match_apply_move(state, game_move(*piece, *direction))
+            .unwrap()
+            .snapshot
     })
+}
+
+#[test]
+fn value_api_returns_a_normal_move_resolution() {
+    let result = match_apply_move(initial_match(), game_move(0, GameDirection::Down)).unwrap();
+
+    assert_eq!(result.resolution.action_kind, MoveActionKind::Normal);
+    assert_eq!(
+        result.resolution.mover,
+        PieceTravel {
+            piece_id: 0,
+            from_x: 1,
+            from_y: 0,
+            to_x: 1,
+            to_y: 1,
+        },
+    );
+    assert_eq!(result.resolution.displaced, None);
+    assert_eq!(
+        result.resolution.tile_transition,
+        TileTransition {
+            x: 1,
+            y: 0,
+            from: GameTileKind::Normal,
+            to: GameTileKind::Damaged,
+        },
+    );
+    assert_eq!(result.snapshot.round.snapshot_hash, "540736b5048c5f9f");
+}
+
+#[test]
+fn value_api_returns_a_push_resolution() {
+    let after_first = match_apply_move(initial_match(), game_move(0, GameDirection::Down))
+        .unwrap()
+        .snapshot;
+    let after_second = match_apply_move(after_first, game_move(2, GameDirection::Up))
+        .unwrap()
+        .snapshot;
+    let before_push = match_apply_move(after_second, game_move(0, GameDirection::Down))
+        .unwrap()
+        .snapshot;
+
+    let result = match_apply_move(before_push, game_move(2, GameDirection::Up)).unwrap();
+
+    assert_eq!(result.resolution.action_kind, MoveActionKind::Push);
+    assert_eq!(
+        result.resolution.mover,
+        PieceTravel {
+            piece_id: 2,
+            from_x: 1,
+            from_y: 3,
+            to_x: 1,
+            to_y: 2,
+        },
+    );
+    assert_eq!(
+        result.resolution.displaced,
+        Some(PieceDisplacement {
+            piece_id: 0,
+            from_x: 1,
+            from_y: 2,
+            to_x: Some(1),
+            to_y: Some(1),
+            exit_direction: None,
+        }),
+    );
+    assert_eq!(
+        result.resolution.tile_transition,
+        TileTransition {
+            x: 1,
+            y: 3,
+            from: GameTileKind::Normal,
+            to: GameTileKind::Damaged,
+        },
+    );
+}
+
+#[test]
+fn value_api_returns_an_exit_direction_for_a_knockout() {
+    let before_knockout = play(
+        initial_match(),
+        &[
+            (0, GameDirection::Down),
+            (2, GameDirection::Up),
+            (0, GameDirection::Down),
+            (3, GameDirection::Up),
+            (0, GameDirection::Down),
+            (3, GameDirection::Up),
+        ],
+    );
+
+    let result = match_apply_move(before_knockout, game_move(0, GameDirection::Down)).unwrap();
+
+    assert_eq!(result.resolution.action_kind, MoveActionKind::Push);
+    assert_eq!(
+        result.resolution.displaced,
+        Some(PieceDisplacement {
+            piece_id: 2,
+            from_x: 1,
+            from_y: 4,
+            to_x: None,
+            to_y: None,
+            exit_direction: Some(GameDirection::Down),
+        }),
+    );
+    assert_eq!(
+        result.resolution.tile_transition,
+        TileTransition {
+            x: 1,
+            y: 3,
+            from: GameTileKind::Normal,
+            to: GameTileKind::Damaged,
+        },
+    );
+    assert_eq!(result.snapshot.phase, GameMatchPhase::RoundOver);
+    assert_eq!(result.snapshot.round_winner, Some(GamePlayer::First));
+    assert_eq!(
+        result.snapshot.round_win_reason,
+        Some(GameWinReason::Knockout)
+    );
 }
 
 #[test]
@@ -66,7 +188,7 @@ fn value_api_preserves_a_snapshot_across_move_calls() {
             .contains(&first_move)
     );
 
-    let after_first_move = match_apply_move(initial, first_move).unwrap();
+    let after_first_move = match_apply_move(initial, first_move).unwrap().snapshot;
 
     assert_eq!(after_first_move.round.current_player, GamePlayer::Second);
     assert_eq!(after_first_move.round.snapshot_hash, "540736b5048c5f9f");
@@ -193,7 +315,7 @@ fn value_api_carries_a_won_match_back_without_reopening_it() {
             GameMatchPhase::Playing => {
                 let moves = match_legal_moves(state.clone()).unwrap();
                 assert!(!moves.is_empty(), "a playing round must offer a move");
-                match_apply_move(state, moves[0].clone()).unwrap()
+                match_apply_move(state, moves[0].clone()).unwrap().snapshot
             }
             GameMatchPhase::RoundOver => advance_round(state).unwrap(),
             GameMatchPhase::MatchOver => unreachable!(),

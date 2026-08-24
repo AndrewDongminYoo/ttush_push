@@ -23,6 +23,29 @@ void main() {
     snapshotHash: 'board',
   );
 
+  test('derives rectangular non-zero-origin geometry from tiles', () {
+    final geometry = BoardGeometry.fromSnapshot(
+      const GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [
+          GameTile(x: 4, y: 7, kind: GameTileKind.normal),
+          GameTile(x: 6, y: 7, kind: GameTileKind.hole),
+          GameTile(x: 6, y: 8, kind: GameTileKind.normal),
+        ],
+        pieces: [],
+        snapshotHash: 'irregular',
+      ),
+      const Size(300, 200),
+    );
+
+    expect(geometry.minX, 4);
+    expect(geometry.minY, 7);
+    expect(geometry.columnCount, 3);
+    expect(geometry.rowCount, 2);
+    expect(geometry.cellAt(geometry.cellCenter(6, 8)), (6, 8));
+    expect(geometry.cellAt(const Offset(301, 2)), isNull);
+  });
+
   testWidgets('forwards the tapped board cell to its callback', (tester) async {
     var tappedCell = (-1, -1);
 
@@ -46,6 +69,56 @@ void main() {
     );
 
     expect(tappedCell, (2, 3));
+  });
+
+  testWidgets('maps only present irregular tiles from their Rust coordinates', (
+    tester,
+  ) async {
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 4, y: 7, kind: GameTileKind.normal),
+        GameTile(x: 6, y: 7, kind: GameTileKind.hole),
+        GameTile(x: 6, y: 8, kind: GameTileKind.normal),
+      ],
+      pieces: [],
+      snapshotHash: 'irregular-taps',
+    );
+    final geometry = BoardGeometry.fromSnapshot(
+      snapshot,
+      const Size(_boardSide, _boardSide),
+    );
+    var tappedCell = (-1, -1);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: _boardSide,
+            height: _boardSide,
+            child: RoundBoard(
+              snapshot: snapshot,
+              legalMoves: const [],
+              selectedPieceId: null,
+              onCellTap: (x, y) => tappedCell = (x, y),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final boardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(6, 8));
+    expect(tappedCell, (6, 8));
+
+    tappedCell = (-1, -1);
+    await tester.tapAt(boardRect.topLeft + geometry.cellCenter(5, 7));
+    expect(tappedCell, (-1, -1));
+
+    await tester.tapAt(boardRect.topLeft + const Offset(2, 2));
+    expect(tappedCell, (-1, -1));
   });
 
   testWidgets('does not dispatch a cell when a tap is canceled', (
@@ -219,6 +292,195 @@ void main() {
     );
   });
 
+  testWidgets(
+    'replays Rust-authored Push, fall, and collapse frames in order',
+    (
+      tester,
+    ) async {
+      const snapshot = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [
+          GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+          GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+          GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        ],
+        pieces: [
+          GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+          GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
+        ],
+        snapshotHash: 'playback',
+      );
+      const mover = PieceTravel(
+        pieceId: 0,
+        fromX: 0,
+        fromY: 0,
+        toX: 1,
+        toY: 0,
+      );
+      const collapse = TileTransition(
+        x: 0,
+        y: 0,
+        from: GameTileKind.normal,
+        to: GameTileKind.hole,
+      );
+      const displaced = PieceDisplacement(
+        pieceId: 1,
+        fromX: 1,
+        fromY: 0,
+        toX: 2,
+        toY: 0,
+      );
+
+      final beforeImpact = await _paintAndSample(
+        tester,
+        snapshot: snapshot,
+        playback: const BoardPlayback(
+          resolution: MoveResolution(
+            actionKind: MoveActionKind.push,
+            mover: mover,
+            displaced: displaced,
+            tileTransition: collapse,
+          ),
+          progress: 0.2,
+          reducedMotion: false,
+        ),
+      );
+      expect(beforeImpact(_cellCenter(1, 0)), _secondPlayerColor);
+      expect(
+        beforeImpact(
+          _cellCenter(0, 0) + const Offset(_cellSize * 5 / 9, 0),
+        ),
+        _firstPlayerColor,
+      );
+
+      final impact = await _paintAndSample(
+        tester,
+        snapshot: snapshot,
+        playback: const BoardPlayback(
+          resolution: MoveResolution(
+            actionKind: MoveActionKind.push,
+            mover: mover,
+            displaced: displaced,
+            tileTransition: collapse,
+          ),
+          progress: 0.43,
+          reducedMotion: false,
+        ),
+      );
+      final impactPoint =
+          _cellCenter(1, 0) + const Offset(0, -_cellSize * 0.42);
+      expect(impact(impactPoint), isNot(beforeImpact(impactPoint)));
+
+      final displacedMidTravel = await _paintAndSample(
+        tester,
+        snapshot: snapshot,
+        playback: const BoardPlayback(
+          resolution: MoveResolution(
+            actionKind: MoveActionKind.push,
+            mover: mover,
+            displaced: displaced,
+            tileTransition: collapse,
+          ),
+          progress: 0.65,
+          reducedMotion: false,
+        ),
+      );
+      expect(
+        displacedMidTravel(_cellCenter(1, 0) + const Offset(_cellSize / 2, 0)),
+        _secondPlayerColor,
+      );
+
+      final beforeTransition = await _paintAndSample(
+        tester,
+        snapshot: snapshot,
+        playback: const BoardPlayback(
+          resolution: MoveResolution(
+            actionKind: MoveActionKind.push,
+            mover: mover,
+            displaced: displaced,
+            tileTransition: collapse,
+          ),
+          progress: 0.82,
+          reducedMotion: false,
+        ),
+      );
+      expect(
+        beforeTransition(_cellCenter(0, 0) + const Offset(0, -_cellSize / 4)),
+        _footholdColor,
+      );
+
+      final collapsed = await _paintAndSample(
+        tester,
+        snapshot: snapshot,
+        playback: const BoardPlayback(
+          resolution: MoveResolution(
+            actionKind: MoveActionKind.push,
+            mover: mover,
+            displaced: displaced,
+            tileTransition: collapse,
+          ),
+          progress: 0.9,
+          reducedMotion: true,
+        ),
+      );
+
+      expect(collapsed(_cellCenter(0, 0)), _voidColor);
+
+      const fallSnapshot = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [
+          GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+          GameTile(x: 3, y: 2, kind: GameTileKind.normal),
+        ],
+        pieces: [
+          GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+          GamePiece(id: 1, owner: GamePlayer.second, x: 3, y: 2),
+        ],
+        snapshotHash: 'falls',
+      );
+      const fallMover = PieceTravel(
+        pieceId: 0,
+        fromX: 2,
+        fromY: 2,
+        toX: 3,
+        toY: 2,
+      );
+      for (final direction in GameDirection.values) {
+        final falling = await _paintAndSample(
+          tester,
+          snapshot: fallSnapshot,
+          playback: BoardPlayback(
+            resolution: MoveResolution(
+              actionKind: MoveActionKind.push,
+              mover: fallMover,
+              displaced: PieceDisplacement(
+                pieceId: 1,
+                fromX: 3,
+                fromY: 2,
+                exitDirection: direction,
+              ),
+              tileTransition: const TileTransition(
+                x: 2,
+                y: 2,
+                from: GameTileKind.normal,
+                to: GameTileKind.damaged,
+              ),
+            ),
+            progress: 0.65,
+            reducedMotion: false,
+          ),
+        );
+        final offset = switch (direction) {
+          GameDirection.up => const Offset(0, -_cellSize * 0.65),
+          GameDirection.down => const Offset(0, _cellSize * 0.65),
+          GameDirection.left => const Offset(-_cellSize * 0.65, 0),
+          GameDirection.right => const Offset(_cellSize * 0.65, 0),
+        };
+        expect(falling(_cellCenter(3, 2) + offset), _secondPlayerColor);
+      }
+    },
+  );
+
   testWidgets('marks no destination without a resolvable selection', (
     tester,
   ) async {
@@ -282,6 +544,53 @@ void main() {
         snapshot: snapshot,
         legalMoves: sameMoves,
         selectedPieceId: null,
+        playback: const BoardPlayback(
+          resolution: MoveResolution(
+            actionKind: MoveActionKind.normal,
+            mover: PieceTravel(
+              pieceId: 0,
+              fromX: 2,
+              fromY: 2,
+              toX: 2,
+              toY: 3,
+            ),
+            tileTransition: TileTransition(
+              x: 2,
+              y: 2,
+              from: GameTileKind.normal,
+              to: GameTileKind.damaged,
+            ),
+          ),
+          progress: 0,
+          reducedMotion: false,
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      _boardHarness(
+        snapshot: snapshot,
+        legalMoves: sameMoves,
+        selectedPieceId: null,
+        playback: const BoardPlayback(
+          resolution: MoveResolution(
+            actionKind: MoveActionKind.normal,
+            mover: PieceTravel(
+              pieceId: 0,
+              fromX: 2,
+              fromY: 2,
+              toX: 2,
+              toY: 3,
+            ),
+            tileTransition: TileTransition(
+              x: 2,
+              y: 2,
+              from: GameTileKind.normal,
+              to: GameTileKind.damaged,
+            ),
+          ),
+          progress: 1,
+          reducedMotion: false,
+        ),
       ),
     );
 
@@ -312,12 +621,14 @@ Future<Color Function(Offset)> _paintAndSample(
   required GameSnapshot snapshot,
   List<GameMove> legalMoves = const [],
   int? selectedPieceId,
+  BoardPlayback? playback,
 }) async {
   await tester.pumpWidget(
     _boardHarness(
       snapshot: snapshot,
       legalMoves: legalMoves,
       selectedPieceId: selectedPieceId,
+      playback: playback,
       capturePixels: true,
     ),
   );
@@ -350,13 +661,16 @@ Widget _boardHarness({
   required GameSnapshot snapshot,
   required List<GameMove> legalMoves,
   required int? selectedPieceId,
+  BoardPlayback? playback,
   void Function(int x, int y)? onCellTap,
   bool capturePixels = false,
 }) {
+  final renderedSnapshot = _withFiveByFiveTestTiles(snapshot);
   final board = RoundBoard(
-    snapshot: snapshot,
+    snapshot: renderedSnapshot,
     legalMoves: legalMoves,
     selectedPieceId: selectedPieceId,
+    playback: playback,
     onCellTap: onCellTap ?? (_, _) {},
   );
   return MaterialApp(
@@ -372,5 +686,27 @@ Widget _boardHarness({
             : board,
       ),
     ),
+  );
+}
+
+/// Production snapshots include one tile record for every board coordinate.
+/// These older rendering fixtures state only the terrain they care about, so
+/// fill their omitted coordinates with holes before handing them to the board.
+GameSnapshot _withFiveByFiveTestTiles(GameSnapshot snapshot) {
+  final tiles = <GameTile>[
+    for (var x = 0; x < 5; x++)
+      for (var y = 0; y < 5; y++)
+        if (!snapshot.tiles.any((tile) => tile.x == x && tile.y == y))
+          GameTile(x: x, y: y, kind: GameTileKind.hole),
+    ...snapshot.tiles,
+  ];
+  return GameSnapshot(
+    currentPlayer: snapshot.currentPlayer,
+    tiles: tiles,
+    pieces: snapshot.pieces,
+    counterPush: snapshot.counterPush,
+    winner: snapshot.winner,
+    winReason: snapshot.winReason,
+    snapshotHash: snapshot.snapshotHash,
   );
 }

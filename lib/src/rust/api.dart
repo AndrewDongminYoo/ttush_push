@@ -6,15 +6,15 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `game_move_from_engine`, `hash_byte`, `hash_bytes`, `illegal_move_error`, `match_hash`, `match_snapshot_from_state`, `match_state_from_snapshot`, `move_to_engine`, `player_byte`, `seed_from_hash`, `snapshot_from_state`, `snapshot_hash`, `state_error`, `state_from_snapshot`, `tile_byte`, `win_reason_byte`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `game_move_from_engine`, `hash_byte`, `hash_bytes`, `illegal_move_error`, `match_hash`, `match_snapshot_from_state`, `match_state_from_snapshot`, `move_resolution_from_engine`, `move_to_engine`, `player_byte`, `seed_from_hash`, `snapshot_from_state`, `snapshot_hash`, `state_error`, `state_from_snapshot`, `tile_byte`, `win_reason_byte`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
 MatchSnapshot initialMatch() => RustLib.instance.api.crateApiInitialMatch();
 
 List<GameMove> matchLegalMoves({required MatchSnapshot snapshot}) =>
     RustLib.instance.api.crateApiMatchLegalMoves(snapshot: snapshot);
 
-MatchSnapshot matchApplyMove({
+MoveResult matchApplyMove({
   required MatchSnapshot snapshot,
   required GameMove gameMove,
 }) => RustLib.instance.api.crateApiMatchApplyMove(
@@ -265,4 +265,162 @@ class MatchSnapshot {
           roundWinReason == other.roundWinReason &&
           matchWinner == other.matchWinner &&
           snapshotHash == other.snapshotHash;
+}
+
+enum MoveActionKind {
+  normal,
+  push,
+}
+
+class MoveResolution {
+  final MoveActionKind actionKind;
+  final PieceTravel mover;
+  final PieceDisplacement? displaced;
+  final TileTransition tileTransition;
+
+  const MoveResolution({
+    required this.actionKind,
+    required this.mover,
+    this.displaced,
+    required this.tileTransition,
+  });
+
+  @override
+  int get hashCode =>
+      actionKind.hashCode ^
+      mover.hashCode ^
+      displaced.hashCode ^
+      tileTransition.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MoveResolution &&
+          runtimeType == other.runtimeType &&
+          actionKind == other.actionKind &&
+          mover == other.mover &&
+          displaced == other.displaced &&
+          tileTransition == other.tileTransition;
+}
+
+class MoveResult {
+  final MatchSnapshot snapshot;
+  final MoveResolution resolution;
+
+  const MoveResult({
+    required this.snapshot,
+    required this.resolution,
+  });
+
+  @override
+  int get hashCode => snapshot.hashCode ^ resolution.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MoveResult &&
+          runtimeType == other.runtimeType &&
+          snapshot == other.snapshot &&
+          resolution == other.resolution;
+}
+
+class PieceDisplacement {
+  final int pieceId;
+  final int fromX;
+  final int fromY;
+  final int? toX;
+  final int? toY;
+  final GameDirection? exitDirection;
+
+  const PieceDisplacement({
+    required this.pieceId,
+    required this.fromX,
+    required this.fromY,
+    this.toX,
+    this.toY,
+    this.exitDirection,
+  });
+
+  @override
+  int get hashCode =>
+      pieceId.hashCode ^
+      fromX.hashCode ^
+      fromY.hashCode ^
+      toX.hashCode ^
+      toY.hashCode ^
+      exitDirection.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PieceDisplacement &&
+          runtimeType == other.runtimeType &&
+          pieceId == other.pieceId &&
+          fromX == other.fromX &&
+          fromY == other.fromY &&
+          toX == other.toX &&
+          toY == other.toY &&
+          exitDirection == other.exitDirection;
+}
+
+class PieceTravel {
+  final int pieceId;
+  final int fromX;
+  final int fromY;
+  final int toX;
+  final int toY;
+
+  const PieceTravel({
+    required this.pieceId,
+    required this.fromX,
+    required this.fromY,
+    required this.toX,
+    required this.toY,
+  });
+
+  @override
+  int get hashCode =>
+      pieceId.hashCode ^
+      fromX.hashCode ^
+      fromY.hashCode ^
+      toX.hashCode ^
+      toY.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PieceTravel &&
+          runtimeType == other.runtimeType &&
+          pieceId == other.pieceId &&
+          fromX == other.fromX &&
+          fromY == other.fromY &&
+          toX == other.toX &&
+          toY == other.toY;
+}
+
+class TileTransition {
+  final int x;
+  final int y;
+  final GameTileKind from;
+  final GameTileKind to;
+
+  const TileTransition({
+    required this.x,
+    required this.y,
+    required this.from,
+    required this.to,
+  });
+
+  @override
+  int get hashCode => x.hashCode ^ y.hashCode ^ from.hashCode ^ to.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TileTransition &&
+          runtimeType == other.runtimeType &&
+          x == other.x &&
+          y == other.y &&
+          from == other.from &&
+          to == other.to;
 }
