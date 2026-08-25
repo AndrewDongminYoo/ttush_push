@@ -155,6 +155,59 @@ void main() {
     expect(store.writtenVersions, isEmpty);
   });
 
+  testWidgets(
+    'announces coach steps as live regions when opened and advanced',
+    (
+      tester,
+    ) async {
+      final semantics = tester.ensureSemantics();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GamePage(
+            coachStore: _FakeFirstPlayCoachStore(
+              completedVersions: {firstPlayCoachVersion},
+            ),
+            rulesEngine: FakeRulesEngine.playing(
+              initial: matchOf(
+                const GameSnapshot(
+                  currentPlayer: GamePlayer.first,
+                  tiles: [],
+                  pieces: [],
+                  snapshotHash: 'coach-live-region',
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('coach-help')));
+      await tester.pump();
+
+      expect(
+        tester.getSemantics(find.byKey(const Key('coach-message'))),
+        matchesSemantics(
+          label: 'Select an Azure explorer.',
+          isLiveRegion: true,
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('coach-next')));
+      await tester.pump();
+
+      expect(
+        tester.getSemantics(find.byKey(const Key('coach-message'))),
+        matchesSemantics(
+          label: 'A filled glowing marker is a move. A ring is a Push.',
+          isLiveRegion: true,
+        ),
+      );
+      semantics.dispose();
+    },
+  );
+
   testWidgets('shows a new coach version after an older version completed', (
     tester,
   ) async {

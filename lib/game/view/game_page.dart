@@ -561,7 +561,17 @@ class _FirstPlayCoach extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(message, style: const TextStyle(color: Colors.white)),
+                Semantics(
+                  key: const Key('coach-message'),
+                  label: message,
+                  liveRegion: true,
+                  child: ExcludeSemantics(
+                    child: Text(
+                      message,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
                 const SizedBox(height: 8),
                 OverflowBar(
                   spacing: 8,
