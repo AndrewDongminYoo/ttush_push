@@ -904,9 +904,7 @@ void main() {
           child: child!,
         ),
         home: GamePage(
-          coachStore: _FakeFirstPlayCoachStore(
-            completedVersions: {firstPlayCoachVersion},
-          ),
+          coachStore: _FakeFirstPlayCoachStore(),
           rulesEngine: FakeRulesEngine(
             initial: [
               matchOverMatch(snapshot, winner: GamePlayer.first),
@@ -933,6 +931,9 @@ void main() {
         reason: 'result rect: $rect',
       );
     }
+    expect(actionRect.width, greaterThanOrEqualTo(kMinInteractiveDimension));
+    expect(actionRect.height, greaterThanOrEqualTo(kMinInteractiveDimension));
+    expect(find.byKey(const Key('first-play-coach')), findsNothing);
     expect(find.text('Azure Expedition'), findsWidgets);
     expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);

@@ -170,7 +170,7 @@ class _GamePageState extends State<GamePage>
                     onRetry: replaying ? null : _retry,
                     error: _controller.error!,
                   ),
-                if (_coachVisible)
+                if (_coachVisible && playing)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                     child: _FirstPlayCoach(
@@ -816,74 +816,88 @@ class _ResultOverlay extends StatelessWidget {
       child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          // A short screen scales the result down rather than clipping it,
-          // for the same reason the board shrinks instead of being cut.
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Column(
-              key: const Key('result-overlay'),
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Who won and what they won are separate lines. On one line
-                // the sentence runs past a phone's width and ellipsis eats
-                // exactly the half that says what happened.
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _PlayerMark(player: winner, isActive: false),
-                    const SizedBox(width: 12),
-                    Flexible(
-                      child: Text(
-                        _playerLabel(l10n, winner),
-                        overflow: TextOverflow.ellipsis,
+          child: Column(
+            key: const Key('result-overlay'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                // Only the result copy scales on a short screen. The primary
+                // action keeps its full touch target.
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Who won and what they won are separate lines. On one
+                      // line the sentence runs past a phone's width and
+                      // ellipsis eats exactly the half that says what happened.
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _PlayerMark(player: winner, isActive: false),
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(
+                              _playerLabel(l10n, winner),
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        matchWinner == null ? l10n.takesRound : l10n.winsMatch,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  matchWinner == null ? l10n.takesRound : l10n.winsMatch,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                      const SizedBox(height: 8),
+                      Text(
+                        switch (snapshot.roundWinReason!) {
+                          rust.GameWinReason.knockout => l10n.byKnockout,
+                          rust.GameWinReason.immobilization =>
+                            l10n.byImmobilization,
+                        },
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: _mutedTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.score(
+                          snapshot.firstPlayerWins,
+                          snapshot.secondPlayerWins,
+                        ),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: _mutedTextColor,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  switch (snapshot.roundWinReason!) {
-                    rust.GameWinReason.knockout => l10n.byKnockout,
-                    rust.GameWinReason.immobilization => l10n.byImmobilization,
-                  },
-                  style: const TextStyle(fontSize: 16, color: _mutedTextColor),
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(64, kMinInteractiveDimension),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.score(
-                    snapshot.firstPlayerWins,
-                    snapshot.secondPlayerWins,
-                  ),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: _mutedTextColor,
-                  ),
+                onPressed: onContinue,
+                child: Text(
+                  matchWinner == null ? l10n.nextRound : l10n.newMatch,
                 ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: onContinue,
-                  child: Text(
-                    matchWinner == null ? l10n.nextRound : l10n.newMatch,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
