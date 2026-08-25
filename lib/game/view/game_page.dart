@@ -210,7 +210,10 @@ class _GamePageState extends State<GamePage>
                                   reducedMotion: _reducedMotion,
                                 )
                               : null,
-                          onCellTap: replaying || _controller.isBotTurn
+                          onCellTap:
+                              replaying ||
+                                  _controller.isBotTurn ||
+                                  _controller.error != null
                               ? null
                               : (x, y) => _onCellTap(round, x, y),
                         ),

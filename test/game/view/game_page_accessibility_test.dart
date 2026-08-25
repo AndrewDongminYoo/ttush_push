@@ -1198,6 +1198,15 @@ void main() {
         isLiveRegion: true,
       ),
     );
+    expect(
+      find.semantics.byLabel('Right move to row 1, column 2'),
+      findsNothing,
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(1, 0));
+    await tester.pump();
+    expect(engine.appliedMoves, [move]);
 
     await tester.tap(find.text('Retry'));
     await tester.pump();
