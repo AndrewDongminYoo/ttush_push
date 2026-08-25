@@ -545,8 +545,8 @@ void main() {
           ),
         );
         final offset = switch (direction) {
-          GameDirection.up => const Offset(0, -_cellSize * 0.65),
-          GameDirection.down => const Offset(0, _cellSize * 0.65),
+          GameDirection.up => const Offset(0, _cellSize * 0.65),
+          GameDirection.down => const Offset(0, -_cellSize * 0.65),
           GameDirection.left => const Offset(-_cellSize * 0.65, 0),
           GameDirection.right => const Offset(_cellSize * 0.65, 0),
         };
