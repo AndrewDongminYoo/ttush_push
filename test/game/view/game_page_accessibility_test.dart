@@ -1273,6 +1273,55 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('disables result continuation while Retry owns an error', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    const finalBoard = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [GameTile(x: 0, y: 0, kind: GameTileKind.damaged)],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'advance-error',
+    );
+    final engine = FakeRulesEngine(
+      initial: [roundOverMatch(finalBoard, winner: GamePlayer.first)],
+      advanceResults: [StateError('bridge unavailable')],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          coachStore: _FakeFirstPlayCoachStore(
+            completedVersions: {firstPlayCoachVersion},
+          ),
+          rulesEngine: engine,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final nextRound = find.widgetWithText(FilledButton, 'Next Round');
+    await tester.tap(nextRound);
+    await tester.pump();
+
+    expect(engine.advanceCount, 1);
+    expect(find.textContaining('Unable to update round'), findsOneWidget);
+    expect(
+      tester
+          .getSemantics(nextRound)
+          .getSemanticsData()
+          .hasAction(SemanticsAction.tap),
+      isFalse,
+    );
+
+    await tester.tap(nextRound);
+    await tester.pump();
+    expect(engine.advanceCount, 1);
+    semantics.dispose();
+  });
+
   testWidgets('announces a round result after the winning replay commits', (
     tester,
   ) async {

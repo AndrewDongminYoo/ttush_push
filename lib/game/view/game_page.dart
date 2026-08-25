@@ -222,7 +222,9 @@ class _GamePageState extends State<GamePage>
                         Positioned.fill(
                           child: _ResultOverlay(
                             snapshot: snapshot,
-                            onContinue: _controller.isMatchOver
+                            onContinue: _controller.error != null
+                                ? null
+                                : _controller.isMatchOver
                                 ? _restart
                                 : _advanceRound,
                           ),
@@ -841,7 +843,7 @@ class _ResultOverlay extends StatelessWidget {
   const _ResultOverlay({required this.snapshot, required this.onContinue});
 
   final MatchSnapshot snapshot;
-  final VoidCallback onContinue;
+  final VoidCallback? onContinue;
 
   @override
   Widget build(BuildContext context) {
