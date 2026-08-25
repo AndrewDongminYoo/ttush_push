@@ -22,13 +22,6 @@ enum Opponent {
     Opponent.greedy => rust.BotPolicy.greedy,
     Opponent.minimax => rust.BotPolicy.minimax,
   };
-
-  String get label => switch (this) {
-    Opponent.human => 'Player 2',
-    Opponent.random => 'Random bot',
-    Opponent.greedy => 'Greedy bot',
-    Opponent.minimax => 'Minimax bot',
-  };
 }
 
 /// Holds the match a screen is showing, and nothing about how it is drawn.
@@ -48,6 +41,7 @@ final class MatchController {
   MatchStatus _status = MatchStatus.initializing;
   Opponent _opponent = Opponent.human;
   _PendingMove? _pendingMove;
+  bool _hasAppliedMove = false;
 
   MatchSnapshot? get snapshot => _snapshot;
   GameSnapshot? get round => _snapshot?.round;
@@ -68,27 +62,35 @@ final class MatchController {
 
   Opponent get opponent => _opponent;
 
+  /// Whether the second seat can still be selected for this fresh match.
+  bool get canChangeOpponent => !hasPendingMove && !_hasAppliedMove;
+
   /// Whether the second seat is waiting on a policy rather than a person.
   ///
-  /// A policy carries nothing between moves, so this can change at any point
-  /// in a round without disturbing it.
+  /// A policy carries nothing between moves; selection itself remains locked
+  /// after the match's first committed move.
   bool get isBotTurn =>
       !hasPendingMove &&
       _opponent.policy != null &&
       isPlaying &&
       _snapshot?.round.currentPlayer == rust.GamePlayer.second;
 
-  /// Hands the second seat to the next opponent in the cycle.
+  /// Hands the second seat to the next opponent while selection is unlocked.
   ///
   /// A standing error is dropped with it: the action waiting behind Retry
   /// belonged to the seat as it was, and a bot-move retry left in place after
   /// the seat turns human does nothing at all, stranding the banner. A fault
   /// that is still there resurfaces on the next move.
   void cycleOpponent() {
-    if (hasPendingMove) {
+    selectOpponent(_opponent.next);
+  }
+
+  /// Assigns the second seat before this match's first committed move.
+  void selectOpponent(Opponent opponent) {
+    if (!canChangeOpponent) {
       return;
     }
-    _opponent = _opponent.next;
+    _opponent = opponent;
     _selectedPieceId = null;
     _error = null;
     _retryAction = null;
@@ -137,6 +139,7 @@ final class MatchController {
     _error = null;
     _status = MatchStatus.initializing;
     _pendingMove = null;
+    _hasAppliedMove = false;
 
     try {
       _adopt(_engine.initialMatch());
@@ -180,6 +183,7 @@ final class MatchController {
       _error = null;
       _retryAction = null;
       _status = MatchStatus.ready;
+      _hasAppliedMove = false;
     } on Object catch (error) {
       _snapshot = previousSnapshot;
       _legalMoves = previousLegalMoves;
@@ -299,6 +303,7 @@ final class MatchController {
     _snapshot = pendingMove.result.snapshot;
     _legalMoves = pendingMove.legalMoves;
     _pendingMove = null;
+    _hasAppliedMove = true;
     _selectedPieceId = null;
     _error = null;
     _retryAction = null;
