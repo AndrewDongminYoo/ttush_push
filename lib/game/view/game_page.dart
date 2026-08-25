@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
@@ -15,10 +17,15 @@ const _firstPlayerColor = Color(0xFF2A48DF);
 const _secondPlayerColor = Color(0xFFE14B4B);
 
 class GamePage extends StatefulWidget {
-  const GamePage({super.key, RulesEngine? rulesEngine, this._feedback})
-    : _rulesEngine = rulesEngine ?? const FrbRulesEngine();
+  const GamePage({
+    super.key,
+    RulesEngine? rulesEngine,
+    this._coachStore,
+    this._feedback,
+  }) : _rulesEngine = rulesEngine ?? const FrbRulesEngine();
 
   final RulesEngine _rulesEngine;
+  final FirstPlayCoachStore? _coachStore;
   final RoundFeedback? _feedback;
 
   @override
@@ -33,6 +40,10 @@ class _GamePageState extends State<GamePage>
   rust.MoveResolution? _replayResolution;
   bool _reducedMotion = false;
   int _replayGeneration = 0;
+  FirstPlayCoachStore? _coachStore;
+  bool _coachVisible = false;
+  int _coachStep = 0;
+  String? _announcement;
 
   /// Long enough that the board does not change while the person is still
   /// reading it. This delays a move the engine has already chosen; it does
@@ -47,6 +58,8 @@ class _GamePageState extends State<GamePage>
   void initState() {
     super.initState();
     _controller = MatchController(widget._rulesEngine)..initialize();
+    _coachStore = widget._coachStore;
+    unawaited(_loadCoach());
     _replayController = AnimationController(vsync: this)
       ..addListener(() {
         if (mounted && _controller.hasPendingMove) {
@@ -130,6 +143,13 @@ class _GamePageState extends State<GamePage>
       body: Stack(
         children: [
           const Positioned.fill(child: _AirRuinsBackground()),
+          if (_announcement case final String announcement)
+            Semantics(
+              key: const Key('match-announcement'),
+              label: announcement,
+              liveRegion: true,
+              child: const SizedBox.shrink(),
+            ),
           SafeArea(
             child: Column(
               children: [
@@ -181,6 +201,17 @@ class _GamePageState extends State<GamePage>
                                 : _advanceRound,
                           ),
                         ),
+                      if (_coachVisible)
+                        Positioned(
+                          top: 12,
+                          left: 12,
+                          right: 12,
+                          child: _FirstPlayCoach(
+                            step: _coachStep,
+                            onNext: _advanceCoach,
+                            onDismiss: _completeCoach,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -189,6 +220,7 @@ class _GamePageState extends State<GamePage>
                   wins: snapshot.firstPlayerWins,
                   isActive:
                       playing && round.currentPlayer == rust.GamePlayer.first,
+                  helpAction: _CoachHelp(onPressed: _showCoach),
                 ),
               ],
             ),
@@ -201,6 +233,60 @@ class _GamePageState extends State<GamePage>
   void _advanceRound() {
     setState(_controller.advanceRound);
   }
+
+  Future<void> _loadCoach() async {
+    var isComplete = false;
+    try {
+      isComplete = await _resolvedCoachStore.isComplete(
+        version: firstPlayCoachVersion,
+      );
+    } on Object catch (error, stackTrace) {
+      log(
+        'Failed to read first-play coach completion',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() => _coachVisible = !isComplete);
+  }
+
+  void _advanceCoach() {
+    if (_coachStep < 2) {
+      setState(() => _coachStep++);
+      return;
+    }
+    _completeCoach();
+  }
+
+  void _completeCoach() {
+    setState(() => _coachVisible = false);
+    unawaited(_markCoachComplete());
+  }
+
+  void _showCoach() {
+    setState(() {
+      _coachStep = 0;
+      _coachVisible = true;
+    });
+  }
+
+  Future<void> _markCoachComplete() async {
+    try {
+      await _resolvedCoachStore.markComplete(version: firstPlayCoachVersion);
+    } on Object catch (error, stackTrace) {
+      log(
+        'Failed to persist first-play coach completion',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
+  FirstPlayCoachStore get _resolvedCoachStore =>
+      _coachStore ??= SharedPreferencesFirstPlayCoachStore();
 
   Future<void> _showOpponentSheet(BuildContext context) async {
     if (!_controller.canChangeOpponent) {
@@ -255,11 +341,26 @@ class _GamePageState extends State<GamePage>
       return;
     }
 
+    final piece = snapshot.pieces[pieceIndex];
     final previousSelection = _controller.selectedPieceId;
-    setState(() => _controller.selectPiece(snapshot.pieces[pieceIndex].id));
-    final selection = _controller.selectedPieceId;
+    final l10n = _localizationsOf(context);
+    var announcedSelection = false;
+    setState(() {
+      _controller.selectPiece(piece.id);
+      final selection = _controller.selectedPieceId;
+      if (selection != null && selection != previousSelection) {
+        final moveCount = _controller.legalMoves
+            .where((move) => move.pieceId == selection)
+            .length;
+        _announcement = l10n.explorerSelectedAnnouncement(
+          _playerLabel(l10n, piece.owner),
+          moveCount,
+        );
+        announcedSelection = true;
+      }
+    });
     // Re-tapping the piece already selected changes nothing.
-    if (selection != null && selection != previousSelection) {
+    if (announcedSelection) {
       _feedback.pieceSelected();
     }
   }
@@ -299,6 +400,27 @@ class _GamePageState extends State<GamePage>
       setState(() {
         _controller.commitPendingMove();
         _replayResolution = null;
+        final l10n = _localizationsOf(context);
+        if (_controller.isMatchOver) {
+          final snapshot = _controller.snapshot!;
+          _announcement = l10n.matchResultAnnouncement(
+            _playerLabel(l10n, snapshot.matchWinner!),
+            _winReasonLabel(l10n, snapshot.roundWinReason!),
+            snapshot.firstPlayerWins,
+            snapshot.secondPlayerWins,
+          );
+        } else if (_controller.isRoundOver) {
+          final snapshot = _controller.snapshot!;
+          _announcement = l10n.roundResultAnnouncement(
+            _playerLabel(l10n, snapshot.roundWinner!),
+            _winReasonLabel(l10n, snapshot.roundWinReason!),
+          );
+        } else {
+          _announcement = switch (resolution.actionKind) {
+            rust.MoveActionKind.normal => l10n.moveAppliedAnnouncement,
+            rust.MoveActionKind.push => l10n.pushAppliedAnnouncement,
+          };
+        }
       });
       _feedbackForCommittedMove(resolution);
       _scheduleBotMove();
@@ -344,6 +466,16 @@ String _playerLabel(AppLocalizations l10n, rust.GamePlayer player) {
   };
 }
 
+String _winReasonLabel(
+  AppLocalizations l10n,
+  rust.GameWinReason winReason,
+) {
+  return switch (winReason) {
+    rust.GameWinReason.knockout => l10n.byKnockout,
+    rust.GameWinReason.immobilization => l10n.byImmobilization,
+  };
+}
+
 String _opponentLabel(AppLocalizations l10n, Opponent opponent) {
   return switch (opponent) {
     Opponent.human => l10n.opponentHuman,
@@ -351,6 +483,83 @@ String _opponentLabel(AppLocalizations l10n, Opponent opponent) {
     Opponent.greedy => l10n.opponentGreedy,
     Opponent.minimax => l10n.opponentMinimax,
   };
+}
+
+class _FirstPlayCoach extends StatelessWidget {
+  const _FirstPlayCoach({
+    required this.step,
+    required this.onNext,
+    required this.onDismiss,
+  });
+
+  final int step;
+  final VoidCallback onNext;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = _localizationsOf(context);
+    final message = switch (step) {
+      0 => l10n.coachSelectAzure,
+      1 => l10n.coachMovesAndPushes,
+      _ => l10n.coachCrackedFoothold,
+    };
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Material(
+          key: const Key('first-play-coach'),
+          color: _panelColor,
+          elevation: 8,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message, style: const TextStyle(color: Colors.white)),
+                const SizedBox(height: 8),
+                OverflowBar(
+                  spacing: 8,
+                  children: [
+                    TextButton(
+                      key: const Key('coach-dismiss'),
+                      onPressed: onDismiss,
+                      child: Text(l10n.dismiss),
+                    ),
+                    TextButton(
+                      key: const Key('coach-next'),
+                      onPressed: onNext,
+                      child: Text(step == 2 ? l10n.done : l10n.next),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CoachHelp extends StatelessWidget {
+  const _CoachHelp({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = _localizationsOf(context);
+    return IconButton(
+      key: const Key('coach-help'),
+      tooltip: l10n.howToPlay,
+      onPressed: onPressed,
+      icon: const Icon(Icons.help_outline),
+    );
+  }
 }
 
 class _AirRuinsBackground extends StatelessWidget {
@@ -403,6 +612,7 @@ class _PlayerPanel extends StatelessWidget {
     required this.wins,
     required this.isActive,
     this.action,
+    this.helpAction,
   });
 
   final rust.GamePlayer player;
@@ -410,6 +620,7 @@ class _PlayerPanel extends StatelessWidget {
   final bool isActive;
 
   final Widget? action;
+  final Widget? helpAction;
 
   @override
   Widget build(BuildContext context) {
@@ -439,6 +650,10 @@ class _PlayerPanel extends StatelessWidget {
                 ),
               ),
               _RoundWins(player: player, wins: wins, isActive: isActive),
+              if (helpAction case final Widget helpAction) ...[
+                const SizedBox(width: 4),
+                helpAction,
+              ],
             ],
           ),
           if (action case final Widget action) ...[
@@ -681,16 +896,25 @@ class _InitialError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = _localizationsOf(context);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          l10n.unableToStartRound,
-          style: const TextStyle(color: Colors.white),
-        ),
-        const SizedBox(height: 12),
-        FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
-      ],
+    return Semantics(
+      key: const Key('initial-error'),
+      label: l10n.unableToStartRound,
+      liveRegion: true,
+      container: true,
+      explicitChildNodes: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ExcludeSemantics(
+            child: Text(
+              l10n.unableToStartRound,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
+        ],
+      ),
     );
   }
 }
@@ -704,18 +928,28 @@ class _ActionError extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = _localizationsOf(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              l10n.unableToUpdateRound(error.toString()),
-              style: const TextStyle(color: _mutedTextColor),
+    final message = l10n.unableToUpdateRound(error.toString());
+    return Semantics(
+      key: const Key('action-error'),
+      label: message,
+      liveRegion: true,
+      container: true,
+      explicitChildNodes: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          children: [
+            Expanded(
+              child: ExcludeSemantics(
+                child: Text(
+                  message,
+                  style: const TextStyle(color: _mutedTextColor),
+                ),
+              ),
             ),
-          ),
-          TextButton(onPressed: onRetry, child: Text(l10n.retry)),
-        ],
+            TextButton(onPressed: onRetry, child: Text(l10n.retry)),
+          ],
+        ),
       ),
     );
   }

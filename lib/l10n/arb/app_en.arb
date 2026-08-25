@@ -7,6 +7,69 @@
   "opponentRandom": "Random",
   "opponentGreedy": "Greedy",
   "opponentMinimax": "Minimax",
+  "coachSelectAzure": "Select an Azure explorer.",
+  "coachMovesAndPushes": "A filled glowing marker is a move. A ring is a Push.",
+  "coachCrackedFoothold": "A cracked foothold collapses when an explorer leaves it again.",
+  "next": "Next",
+  "done": "Done",
+  "dismiss": "Dismiss",
+  "howToPlay": "How to play",
+  "explorerSemanticsLabel": "{expedition} explorer, row {row}, column {column}, {moveCount, plural, =1{1 available move} other{{moveCount} available moves}}",
+  "@explorerSemanticsLabel": {
+    "placeholders": {
+      "expedition": {"type": "String"},
+      "row": {"type": "int"},
+      "column": {"type": "int"},
+      "moveCount": {"type": "int"}
+    }
+  },
+  "moveDestinationSemanticsLabel": "{direction} move to row {row}, column {column}",
+  "@moveDestinationSemanticsLabel": {
+    "placeholders": {
+      "direction": {"type": "String"},
+      "row": {"type": "int"},
+      "column": {"type": "int"}
+    }
+  },
+  "pushDestinationSemanticsLabel": "{direction} Push to row {row}, column {column}, affecting {expedition}",
+  "@pushDestinationSemanticsLabel": {
+    "placeholders": {
+      "direction": {"type": "String"},
+      "row": {"type": "int"},
+      "column": {"type": "int"},
+      "expedition": {"type": "String"}
+    }
+  },
+  "directionUp": "Up",
+  "directionDown": "Down",
+  "directionLeft": "Left",
+  "directionRight": "Right",
+  "boardControlsDisabled": "Move resolution in progress. Board controls are disabled.",
+  "explorerSelectedAnnouncement": "{expedition} explorer selected. {moveCount, plural, =1{1 destination available.} other{{moveCount} destinations available.}}",
+  "@explorerSelectedAnnouncement": {
+    "placeholders": {
+      "expedition": {"type": "String"},
+      "moveCount": {"type": "int"}
+    }
+  },
+  "moveAppliedAnnouncement": "Move applied.",
+  "pushAppliedAnnouncement": "Push applied.",
+  "roundResultAnnouncement": "{expedition} takes the round {reason}.",
+  "@roundResultAnnouncement": {
+    "placeholders": {
+      "expedition": {"type": "String"},
+      "reason": {"type": "String"}
+    }
+  },
+  "matchResultAnnouncement": "{expedition} wins the match {reason}. Score {firstWins} to {secondWins}.",
+  "@matchResultAnnouncement": {
+    "placeholders": {
+      "expedition": {"type": "String"},
+      "reason": {"type": "String"},
+      "firstWins": {"type": "int"},
+      "secondWins": {"type": "int"}
+    }
+  },
   "opponentWithValue": "Opponent: {opponent}",
   "@opponentWithValue": {
     "placeholders": {

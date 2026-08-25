@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/game/view/round_board.dart';
+import 'package:ttush_push/l10n/l10n.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
 const double _boardSide = 250;
@@ -598,12 +599,14 @@ void main() {
     );
     const legalMoves = [GameMove(pieceId: 0, direction: GameDirection.down)];
     final sameMoves = List<GameMove>.of(legalMoves);
+    void onCellTap(int _, int _) {}
 
     await tester.pumpWidget(
       _boardHarness(
         snapshot: snapshot,
         legalMoves: legalMoves,
         selectedPieceId: 0,
+        onCellTap: onCellTap,
       ),
     );
     await tester.pumpWidget(
@@ -611,6 +614,7 @@ void main() {
         snapshot: snapshot,
         legalMoves: sameMoves,
         selectedPieceId: 0,
+        onCellTap: onCellTap,
       ),
     );
     await tester.pumpWidget(
@@ -618,6 +622,7 @@ void main() {
         snapshot: snapshot,
         legalMoves: sameMoves,
         selectedPieceId: null,
+        onCellTap: onCellTap,
         playback: const BoardPlayback(
           resolution: MoveResolution(
             actionKind: MoveActionKind.normal,
@@ -645,6 +650,7 @@ void main() {
         snapshot: snapshot,
         legalMoves: sameMoves,
         selectedPieceId: null,
+        onCellTap: onCellTap,
         playback: const BoardPlayback(
           resolution: MoveResolution(
             actionKind: MoveActionKind.normal,
@@ -756,6 +762,8 @@ Widget _boardHarness({
   );
   final content = ColoredBox(color: backgroundColor, child: board);
   return MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Center(
       child: SizedBox(
         width: _boardSide,

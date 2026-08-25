@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
+import 'package:ttush_push/l10n/l10n.dart';
 import 'package:ttush_push/src/rust/api.dart' as rust;
 
 /// How a legal destination is presented.
@@ -157,9 +159,13 @@ final class RoundBoard extends StatelessWidget {
         if (!geometry.hasCells) {
           return const SizedBox.shrink();
         }
+        final l10n =
+            Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+            lookupAppLocalizations(const Locale('en'));
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
+          excludeFromSemantics: true,
           onTapUp: onCellTap == null
               ? null
               : (details) {
@@ -180,6 +186,9 @@ final class RoundBoard extends StatelessWidget {
                 selectedPieceId: selectedPieceId,
                 geometry: geometry,
                 playback: playback,
+                onCellTap: onCellTap,
+                l10n: l10n,
+                textDirection: Directionality.of(context),
               ),
             ),
           ),
@@ -196,6 +205,9 @@ final class _RoundBoardPainter extends CustomPainter {
     required this.selectedPieceId,
     required this.geometry,
     required this.playback,
+    required this.onCellTap,
+    required this.l10n,
+    required this.textDirection,
   });
 
   static const _footholdColor = Color(0xFFE7ECF5);
@@ -221,6 +233,119 @@ final class _RoundBoardPainter extends CustomPainter {
   final int? selectedPieceId;
   final BoardGeometry geometry;
   final BoardPlayback? playback;
+  final void Function(int x, int y)? onCellTap;
+  final AppLocalizations l10n;
+  final TextDirection textDirection;
+
+  @override
+  SemanticsBuilderCallback get semanticsBuilder => (size) {
+    final onCellTap = this.onCellTap;
+    if (playback != null) {
+      return [
+        CustomPainterSemantics(
+          rect: Offset.zero & size,
+          properties: SemanticsProperties(
+            label: l10n.boardControlsDisabled,
+            textDirection: textDirection,
+            enabled: false,
+            liveRegion: true,
+          ),
+        ),
+      ];
+    }
+    if (onCellTap == null) {
+      return const [];
+    }
+
+    final semantics = <CustomPainterSemantics>[];
+    for (final piece in snapshot.pieces) {
+      final moveCount = legalMoves
+          .where((move) => move.pieceId == piece.id)
+          .length;
+      if (piece.owner != snapshot.currentPlayer || moveCount == 0) {
+        continue;
+      }
+      semantics.add(
+        CustomPainterSemantics(
+          rect: geometry.cellRect(piece.x, piece.y),
+          properties: SemanticsProperties(
+            label: l10n.explorerSemanticsLabel(
+              _expeditionLabel(piece.owner),
+              _semanticRow(piece.y),
+              _semanticColumn(piece.x),
+              moveCount,
+            ),
+            textDirection: textDirection,
+            button: true,
+            selected: piece.id == selectedPieceId,
+            onTap: () => onCellTap(piece.x, piece.y),
+          ),
+        ),
+      );
+    }
+
+    final selectedPieceIndex = snapshot.pieces.indexWhere(
+      (piece) => piece.id == selectedPieceId,
+    );
+    if (selectedPieceIndex == -1) {
+      return semantics;
+    }
+    final selectedPiece = snapshot.pieces[selectedPieceIndex];
+    for (final move in legalMoves) {
+      if (move.pieceId != selectedPiece.id) {
+        continue;
+      }
+      final position = _destinationPosition(selectedPiece, move.direction);
+      final kind = _destinationKind(position);
+      final label = switch (kind) {
+        DestinationKind.move => l10n.moveDestinationSemanticsLabel(
+          _directionLabel(move.direction),
+          _semanticRow(position.$2),
+          _semanticColumn(position.$1),
+        ),
+        DestinationKind.push => l10n.pushDestinationSemanticsLabel(
+          _directionLabel(move.direction),
+          _semanticRow(position.$2),
+          _semanticColumn(position.$1),
+          _expeditionLabel(
+            snapshot.pieces
+                .firstWhere(
+                  (piece) => piece.x == position.$1 && piece.y == position.$2,
+                )
+                .owner,
+          ),
+        ),
+      };
+      semantics.add(
+        CustomPainterSemantics(
+          rect: geometry.cellRect(position.$1, position.$2),
+          properties: SemanticsProperties(
+            label: label,
+            textDirection: textDirection,
+            button: true,
+            onTap: () => onCellTap(position.$1, position.$2),
+          ),
+        ),
+      );
+    }
+    return semantics;
+  };
+
+  String _expeditionLabel(rust.GamePlayer player) => switch (player) {
+    rust.GamePlayer.first => l10n.azureExpedition,
+    rust.GamePlayer.second => l10n.emberExpedition,
+  };
+
+  String _directionLabel(rust.GameDirection direction) => switch (direction) {
+    rust.GameDirection.up => l10n.directionUp,
+    rust.GameDirection.down => l10n.directionDown,
+    rust.GameDirection.left => l10n.directionLeft,
+    rust.GameDirection.right => l10n.directionRight,
+  };
+
+  int _semanticRow(int y) => geometry._visualRowFor(y) + 1;
+
+  int _semanticColumn(int x) => x - geometry.minX + 1;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -600,14 +725,21 @@ final class _RoundBoardPainter extends CustomPainter {
       if (move.pieceId != selectedPieceId) {
         continue;
       }
-      final position = switch (move.direction) {
-        rust.GameDirection.up => (piece.x, piece.y - 1),
-        rust.GameDirection.down => (piece.x, piece.y + 1),
-        rust.GameDirection.left => (piece.x - 1, piece.y),
-        rust.GameDirection.right => (piece.x + 1, piece.y),
-      };
+      final position = _destinationPosition(piece, move.direction);
       yield (position, _destinationKind(position));
     }
+  }
+
+  (int, int) _destinationPosition(
+    rust.GamePiece piece,
+    rust.GameDirection direction,
+  ) {
+    return switch (direction) {
+      rust.GameDirection.up => (piece.x, piece.y - 1),
+      rust.GameDirection.down => (piece.x, piece.y + 1),
+      rust.GameDirection.left => (piece.x - 1, piece.y),
+      rust.GameDirection.right => (piece.x + 1, piece.y),
+    };
   }
 
   DestinationKind _destinationKind((int, int) position) {
@@ -624,5 +756,13 @@ final class _RoundBoardPainter extends CustomPainter {
         legalMoves != oldDelegate.legalMoves ||
         selectedPieceId != oldDelegate.selectedPieceId ||
         geometry != oldDelegate.geometry;
+  }
+
+  @override
+  bool shouldRebuildSemantics(covariant _RoundBoardPainter oldDelegate) {
+    return onCellTap != oldDelegate.onCellTap ||
+        l10n != oldDelegate.l10n ||
+        textDirection != oldDelegate.textDirection ||
+        shouldRepaint(oldDelegate);
   }
 }

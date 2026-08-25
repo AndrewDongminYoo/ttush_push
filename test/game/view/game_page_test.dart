@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/view/game_page.dart';
 import 'package:ttush_push/game/view/round_board.dart';
@@ -38,6 +41,16 @@ const _secondBotDownResolution = MoveResolution(
 );
 
 void main() {
+  setUp(() async {
+    SharedPreferencesAsyncPlatform.instance =
+        InMemorySharedPreferencesAsync.empty();
+    await SharedPreferencesFirstPlayCoachStore().markComplete(
+      version: firstPlayCoachVersion,
+    );
+  });
+
+  tearDown(() => SharedPreferencesAsyncPlatform.instance = null);
+
   testWidgets('places Ember above Azure around the playable board', (
     tester,
   ) async {
