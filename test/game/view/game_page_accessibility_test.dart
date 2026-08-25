@@ -358,7 +358,10 @@ void main() {
     final coachRect = tester.getRect(
       find.byKey(const Key('first-play-coach')),
     );
-    expect(coachRect.contains(source), isTrue);
+    final boardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
+    expect(coachRect.overlaps(boardRect), isFalse);
 
     await tester.tapAt(source);
     await tester.pump();

@@ -170,6 +170,15 @@ class _GamePageState extends State<GamePage>
                     onRetry: replaying ? null : _retry,
                     error: _controller.error!,
                   ),
+                if (_coachVisible)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                    child: _FirstPlayCoach(
+                      step: _coachStep,
+                      onNext: _advanceCoach,
+                      onDismiss: _completeCoach,
+                    ),
+                  ),
                 Expanded(
                   child: Stack(
                     children: [
@@ -200,17 +209,6 @@ class _GamePageState extends State<GamePage>
                             onContinue: _controller.isMatchOver
                                 ? _restart
                                 : _advanceRound,
-                          ),
-                        ),
-                      if (_coachVisible)
-                        Positioned(
-                          top: 12,
-                          left: 12,
-                          right: 12,
-                          child: _FirstPlayCoach(
-                            step: _coachStep,
-                            onNext: _advanceCoach,
-                            onDismiss: _completeCoach,
                           ),
                         ),
                     ],
@@ -513,51 +511,37 @@ class _FirstPlayCoach extends StatelessWidget {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
-        child: Stack(
+        child: Material(
           key: const Key('first-play-coach'),
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Material(
-                  color: _panelColor,
-                  elevation: 8,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  IgnorePointer(
-                    child: Text(
-                      message,
-                      style: const TextStyle(color: Colors.white),
+          color: _panelColor,
+          elevation: 8,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(message, style: const TextStyle(color: Colors.white)),
+                const SizedBox(height: 8),
+                OverflowBar(
+                  spacing: 8,
+                  children: [
+                    TextButton(
+                      key: const Key('coach-dismiss'),
+                      onPressed: onDismiss,
+                      child: Text(l10n.dismiss),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  OverflowBar(
-                    spacing: 8,
-                    children: [
-                      TextButton(
-                        key: const Key('coach-dismiss'),
-                        onPressed: onDismiss,
-                        child: Text(l10n.dismiss),
-                      ),
-                      TextButton(
-                        key: const Key('coach-next'),
-                        onPressed: onNext,
-                        child: Text(step == 2 ? l10n.done : l10n.next),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    TextButton(
+                      key: const Key('coach-next'),
+                      onPressed: onNext,
+                      child: Text(step == 2 ? l10n.done : l10n.next),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
