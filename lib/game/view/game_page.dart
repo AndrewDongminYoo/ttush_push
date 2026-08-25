@@ -46,6 +46,7 @@ class _GamePageState extends State<GamePage>
   int _coachInteractionGeneration = 0;
   String? _announcement;
   int _announcementGeneration = 0;
+  int _errorAnnouncementGeneration = 0;
 
   /// Long enough that the board does not change while the person is still
   /// reading it. This delays a move the engine has already chosen; it does
@@ -129,7 +130,12 @@ class _GamePageState extends State<GamePage>
             const Positioned.fill(child: _AirRuinsBackground()),
             Center(
               child: _controller.status == MatchStatus.initializationError
-                  ? _InitialError(onRetry: _retry)
+                  ? _InitialError(
+                      key: ValueKey(
+                        'initial-error-$_errorAnnouncementGeneration',
+                      ),
+                      onRetry: _retry,
+                    )
                   : const CircularProgressIndicator(),
             ),
           ],
@@ -171,6 +177,9 @@ class _GamePageState extends State<GamePage>
                 ),
                 if (_controller.error != null)
                   _ActionError(
+                    key: ValueKey(
+                      'action-error-$_errorAnnouncementGeneration',
+                    ),
                     onRetry: replaying ? null : _retry,
                     error: _controller.error!,
                   ),
@@ -472,7 +481,12 @@ class _GamePageState extends State<GamePage>
   }
 
   void _retry() {
-    setState(_controller.retry);
+    setState(() {
+      _controller.retry();
+      if (_controller.error != null) {
+        _errorAnnouncementGeneration++;
+      }
+    });
     _playPendingMove();
   }
 }
@@ -926,7 +940,7 @@ class _ResultOverlay extends StatelessWidget {
 }
 
 class _InitialError extends StatelessWidget {
-  const _InitialError({required this.onRetry});
+  const _InitialError({required this.onRetry, super.key});
 
   final VoidCallback onRetry;
 
@@ -957,7 +971,7 @@ class _InitialError extends StatelessWidget {
 }
 
 class _ActionError extends StatelessWidget {
-  const _ActionError({required this.onRetry, required this.error});
+  const _ActionError({required this.onRetry, required this.error, super.key});
 
   final VoidCallback? onRetry;
   final Object error;

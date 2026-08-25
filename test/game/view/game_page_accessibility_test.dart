@@ -1188,13 +1188,31 @@ void main() {
     await tester.pump();
 
     expect(find.text('Retry'), findsOneWidget);
+    final firstError = tester.getSemantics(
+      find.byKey(const Key('action-error')),
+    );
     expect(
-      tester.getSemantics(find.byKey(const Key('action-error'))),
+      firstError,
       matchesSemantics(
         label: 'Unable to update round: Bad state: bridge unavailable',
         isLiveRegion: true,
       ),
     );
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    final repeatedError = tester.getSemantics(
+      find.byKey(const Key('action-error')),
+    );
+    expect(
+      repeatedError,
+      matchesSemantics(
+        label: 'Unable to update round: Bad state: bridge unavailable',
+        isLiveRegion: true,
+      ),
+    );
+    expect(repeatedError.id, isNot(firstError.id));
     semantics.dispose();
   });
 
@@ -1218,13 +1236,31 @@ void main() {
     await tester.pump();
 
     expect(find.text('Retry'), findsOneWidget);
+    final firstError = tester.getSemantics(
+      find.byKey(const Key('initial-error')),
+    );
     expect(
-      tester.getSemantics(find.byKey(const Key('initial-error'))),
+      firstError,
       matchesSemantics(
         label: 'Unable to start round',
         isLiveRegion: true,
       ),
     );
+
+    await tester.tap(find.text('Retry'));
+    await tester.pump();
+
+    final repeatedError = tester.getSemantics(
+      find.byKey(const Key('initial-error')),
+    );
+    expect(
+      repeatedError,
+      matchesSemantics(
+        label: 'Unable to start round',
+        isLiveRegion: true,
+      ),
+    );
+    expect(repeatedError.id, isNot(firstError.id));
     semantics.dispose();
   });
 
