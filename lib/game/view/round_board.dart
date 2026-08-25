@@ -86,7 +86,7 @@ final class BoardGeometry {
   Rect cellRect(int x, int y) {
     return Rect.fromLTWH(
       origin.dx + (x - minX) * cellSize,
-      origin.dy + (y - minY) * cellSize,
+      origin.dy + _visualRowFor(y) * cellSize,
       cellSize,
       cellSize,
     );
@@ -110,9 +110,11 @@ final class BoardGeometry {
     }
     return (
       minX + (localX / cellSize).floor(),
-      minY + (localY / cellSize).floor(),
+      minY + rowCount - 1 - (localY / cellSize).floor(),
     );
   }
+
+  int _visualRowFor(int y) => rowCount - 1 - (y - minY);
 }
 
 /// Rust-authored move facts being replayed over the currently visible board.
@@ -196,9 +198,10 @@ final class _RoundBoardPainter extends CustomPainter {
     required this.playback,
   });
 
-  static const _voidColor = Color(0xFF0B0D12);
   static const _footholdColor = Color(0xFFE7ECF5);
+  static const _slabShadowColor = Color(0xFFC5CBD6);
   static const _damagedFootholdColor = Color(0xFFF3CE8E);
+  static const _damagedSlabShadowColor = Color(0xFFD9AF68);
   static const _crackColor = Color(0xFF6B4A16);
   static const _footholdEdgeColor = Color(0xFFA9B4C6);
   static const _firstPlayerColor = Color(0xFF2A48DF);
@@ -221,7 +224,7 @@ final class _RoundBoardPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = _voidColor);
+    canvas.saveLayer(Offset.zero & size, Paint());
     final playback = this.playback;
     final movingPieceId = playback?.resolution.mover.pieceId;
     final displacedPieceId = playback?.resolution.displaced?.pieceId;
@@ -242,6 +245,7 @@ final class _RoundBoardPainter extends CustomPainter {
     if (playback != null) {
       _paintPlayback(canvas, playback);
     }
+    canvas.restore();
   }
 
   /// Paints one foothold.
@@ -272,6 +276,10 @@ final class _RoundBoardPainter extends CustomPainter {
         body,
         Paint()..color = isDamaged ? _damagedFootholdColor : _footholdColor,
       )
+      ..drawPath(
+        _slabFacet(body.outerRect, cellSize),
+        Paint()..color = isDamaged ? _damagedSlabShadowColor : _slabShadowColor,
+      )
       ..drawRRect(
         body,
         Paint()
@@ -283,6 +291,17 @@ final class _RoundBoardPainter extends CustomPainter {
     if (isDamaged) {
       canvas.drawPath(_crackPath(body.outerRect), _crackPaint(cellSize));
     }
+  }
+
+  Path _slabFacet(Rect body, double cellSize) {
+    final top = body.bottom - cellSize * 0.24;
+    final bottom = body.bottom - cellSize * 0.055;
+    return Path()
+      ..moveTo(body.left + cellSize * 0.08, top)
+      ..lineTo(body.right - cellSize * 0.08, top)
+      ..lineTo(body.right - cellSize * 0.14, bottom)
+      ..lineTo(body.left + cellSize * 0.14, bottom)
+      ..close();
   }
 
   /// A jagged fracture across the foothold, so damage reads as damage rather
@@ -322,17 +341,9 @@ final class _RoundBoardPainter extends CustomPainter {
 
   void _paintPieceAt(Canvas canvas, rust.GamePiece piece, Offset center) {
     final cellSize = geometry.cellSize;
-    final radius = cellSize * 0.3;
     final body = switch (piece.owner) {
-      rust.GamePlayer.first =>
-        Path()..addOval(Rect.fromCircle(center: center, radius: radius)),
-      rust.GamePlayer.second =>
-        Path()..addRRect(
-          RRect.fromRectAndRadius(
-            Rect.fromCircle(center: center, radius: radius),
-            Radius.circular(radius * 0.32),
-          ),
-        ),
+      rust.GamePlayer.first => _azureExplorerPath(center, cellSize),
+      rust.GamePlayer.second => _emberExplorerPath(center, cellSize),
     };
 
     canvas
@@ -362,6 +373,41 @@ final class _RoundBoardPainter extends CustomPainter {
           ..strokeWidth = cellSize * 0.07,
       );
     }
+  }
+
+  /// Azure wears a broad, rounded travel cloak beneath a round head.
+  Path _azureExplorerPath(Offset center, double cellSize) {
+    final head = Rect.fromCircle(
+      center: center.translate(0, -cellSize * 0.19),
+      radius: cellSize * 0.13,
+    );
+    final cloakTop = center.dy - cellSize * 0.04;
+    final cloakHem = center.dy + cellSize * 0.42;
+    return Path()
+      ..addOval(head)
+      ..moveTo(center.dx - cellSize * 0.14, cloakTop)
+      ..lineTo(center.dx - cellSize * 0.28, cloakHem)
+      ..lineTo(center.dx + cellSize * 0.28, cloakHem)
+      ..lineTo(center.dx + cellSize * 0.14, cloakTop)
+      ..close();
+  }
+
+  /// Ember's angular hood and narrow robe remain distinct from Azure's cloak.
+  Path _emberExplorerPath(Offset center, double cellSize) {
+    final hoodTop = center.dy - cellSize * 0.34;
+    final hoodBase = center.dy - cellSize * 0.03;
+    final robeHem = center.dy + cellSize * 0.42;
+    return Path()
+      ..moveTo(center.dx, hoodTop)
+      ..lineTo(center.dx - cellSize * 0.16, hoodBase)
+      ..lineTo(center.dx, center.dy + cellSize * 0.06)
+      ..lineTo(center.dx + cellSize * 0.16, hoodBase)
+      ..close()
+      ..moveTo(center.dx - cellSize * 0.1, hoodBase)
+      ..lineTo(center.dx - cellSize * 0.1, robeHem)
+      ..lineTo(center.dx + cellSize * 0.1, robeHem)
+      ..lineTo(center.dx + cellSize * 0.1, hoodBase)
+      ..close();
   }
 
   void _paintPlayback(Canvas canvas, BoardPlayback playback) {
@@ -498,7 +544,7 @@ final class _RoundBoardPainter extends CustomPainter {
     if (transition.to == rust.GameTileKind.hole) {
       canvas.drawRect(
         geometry.cellRect(transition.x, transition.y),
-        Paint()..color = _voidColor,
+        Paint()..blendMode = BlendMode.clear,
       );
       return;
     }

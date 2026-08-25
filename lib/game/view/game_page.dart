@@ -5,6 +5,7 @@ import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/round_board.dart';
+import 'package:ttush_push/l10n/l10n.dart';
 import 'package:ttush_push/src/rust/api.dart' as rust;
 
 const _surfaceColor = Color(0xFF0B0D12);
@@ -108,10 +109,15 @@ class _GamePageState extends State<GamePage>
     if (snapshot == null) {
       return Scaffold(
         backgroundColor: _surfaceColor,
-        body: Center(
-          child: _controller.status == MatchStatus.initializationError
-              ? _InitialError(onRetry: _retry)
-              : const CircularProgressIndicator(),
+        body: Stack(
+          children: [
+            const Positioned.fill(child: _AirRuinsBackground()),
+            Center(
+              child: _controller.status == MatchStatus.initializationError
+                  ? _InitialError(onRetry: _retry)
+                  : const CircularProgressIndicator(),
+            ),
+          ],
         ),
       );
     }
@@ -121,64 +127,73 @@ class _GamePageState extends State<GamePage>
     final replaying = _controller.hasPendingMove && _replayResolution != null;
     return Scaffold(
       backgroundColor: _surfaceColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _PlayerPanel(
-              player: rust.GamePlayer.first,
-              wins: snapshot.firstPlayerWins,
-              isActive: playing && round.currentPlayer == rust.GamePlayer.first,
-            ),
-            if (_controller.error != null)
-              _ActionError(
-                onRetry: replaying ? null : _retry,
-                error: _controller.error!,
-              ),
-            Expanded(
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: RoundBoard(
-                      key: replaying
-                          ? const Key('move-resolution-playback')
-                          : null,
-                      snapshot: round,
-                      legalMoves: _controller.legalMoves,
-                      selectedPieceId: _controller.selectedPieceId,
-                      playback: replaying
-                          ? BoardPlayback(
-                              resolution: _replayResolution!,
-                              progress: _replayController.value,
-                              reducedMotion: _reducedMotion,
-                            )
-                          : null,
-                      onCellTap: replaying
-                          ? null
-                          : (x, y) => _onCellTap(round, x, y),
-                    ),
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _AirRuinsBackground()),
+          SafeArea(
+            child: Column(
+              children: [
+                _PlayerPanel(
+                  player: rust.GamePlayer.second,
+                  wins: snapshot.secondPlayerWins,
+                  isActive:
+                      playing && round.currentPlayer == rust.GamePlayer.second,
+                  action: _OpponentControl(
+                    opponent: _controller.opponent,
+                    enabled: _controller.canChangeOpponent,
+                    onPressed: () => _showOpponentSheet(context),
                   ),
-                  if (!playing)
-                    Positioned.fill(
-                      child: _ResultOverlay(
-                        snapshot: snapshot,
-                        onContinue: _controller.isMatchOver
-                            ? _restart
-                            : _advanceRound,
+                ),
+                if (_controller.error != null)
+                  _ActionError(
+                    onRetry: replaying ? null : _retry,
+                    error: _controller.error!,
+                  ),
+                Expanded(
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: RoundBoard(
+                          key: replaying
+                              ? const Key('move-resolution-playback')
+                              : null,
+                          snapshot: round,
+                          legalMoves: _controller.legalMoves,
+                          selectedPieceId: _controller.selectedPieceId,
+                          playback: replaying
+                              ? BoardPlayback(
+                                  resolution: _replayResolution!,
+                                  progress: _replayController.value,
+                                  reducedMotion: _reducedMotion,
+                                )
+                              : null,
+                          onCellTap: replaying
+                              ? null
+                              : (x, y) => _onCellTap(round, x, y),
+                        ),
                       ),
-                    ),
-                ],
-              ),
+                      if (!playing)
+                        Positioned.fill(
+                          child: _ResultOverlay(
+                            snapshot: snapshot,
+                            onContinue: _controller.isMatchOver
+                                ? _restart
+                                : _advanceRound,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                _PlayerPanel(
+                  player: rust.GamePlayer.first,
+                  wins: snapshot.firstPlayerWins,
+                  isActive:
+                      playing && round.currentPlayer == rust.GamePlayer.first,
+                ),
+              ],
             ),
-            _PlayerPanel(
-              player: rust.GamePlayer.second,
-              wins: snapshot.secondPlayerWins,
-              isActive:
-                  playing && round.currentPlayer == rust.GamePlayer.second,
-              label: _controller.opponent.label,
-              onTap: replaying ? null : _cycleOpponent,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -187,9 +202,30 @@ class _GamePageState extends State<GamePage>
     setState(_controller.advanceRound);
   }
 
-  void _cycleOpponent() {
+  Future<void> _showOpponentSheet(BuildContext context) async {
+    if (!_controller.canChangeOpponent) {
+      return;
+    }
     _botTimer?.cancel();
-    setState(_controller.cycleOpponent);
+    final opponent = await showModalBottomSheet<Opponent>(
+      context: context,
+      backgroundColor: _panelColor,
+      builder: (context) => _OpponentSelectionSheet(
+        selectedOpponent: _controller.opponent,
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    if (opponent == null) {
+      _scheduleBotMove();
+      return;
+    }
+    if (!_controller.canChangeOpponent) {
+      return;
+    }
+    setState(() => _controller.selectOpponent(opponent));
+    _scheduleBotMove();
   }
 
   void _onCellTap(GameSnapshot snapshot, int x, int y) {
@@ -296,11 +332,54 @@ class _GamePageState extends State<GamePage>
   }
 }
 
-String _playerLabel(rust.GamePlayer player) {
+AppLocalizations _localizationsOf(BuildContext context) {
+  return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+      lookupAppLocalizations(const Locale('en'));
+}
+
+String _playerLabel(AppLocalizations l10n, rust.GamePlayer player) {
   return switch (player) {
-    rust.GamePlayer.first => 'Player 1',
-    rust.GamePlayer.second => 'Player 2',
+    rust.GamePlayer.first => l10n.azureExpedition,
+    rust.GamePlayer.second => l10n.emberExpedition,
   };
+}
+
+String _opponentLabel(AppLocalizations l10n, Opponent opponent) {
+  return switch (opponent) {
+    Opponent.human => l10n.opponentHuman,
+    Opponent.random => l10n.opponentRandom,
+    Opponent.greedy => l10n.opponentGreedy,
+    Opponent.minimax => l10n.opponentMinimax,
+  };
+}
+
+class _AirRuinsBackground extends StatelessWidget {
+  const _AirRuinsBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/air_ruins_twilight.png',
+            key: const Key('air-ruins-background'),
+            fit: BoxFit.cover,
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0x660B0D12), Color(0xBB0B0D12)],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 Color _playerColor(rust.GamePlayer player) {
@@ -319,48 +398,106 @@ class _PlayerPanel extends StatelessWidget {
     required this.player,
     required this.wins,
     required this.isActive,
-    this.label,
-    this.onTap,
+    this.action,
   });
 
   final rust.GamePlayer player;
   final int wins;
   final bool isActive;
 
-  /// Overrides the player's name, so the second seat can say which opponent
-  /// is playing it.
-  final String? label;
-  final VoidCallback? onTap;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
     final color = _playerColor(player);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        key: Key('player-panel-${player.name}'),
-        width: double.infinity,
-        color: isActive ? color : _panelColor,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        child: Row(
-          children: [
-            _PlayerMark(player: player, isActive: isActive),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label ?? _playerLabel(player),
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: isActive ? Colors.white : _mutedTextColor,
+    final l10n = _localizationsOf(context);
+    return Container(
+      key: Key('player-panel-${player.name}'),
+      width: double.infinity,
+      color: isActive ? color : _panelColor,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              _PlayerMark(player: player, isActive: isActive),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  _playerLabel(l10n, player),
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: isActive ? Colors.white : _mutedTextColor,
+                  ),
                 ),
               ),
-            ),
-            // Whose turn it is reads off the filled panel and the white
-            // mark. A second, textual say-so competed for the row with the
-            // longest opponent name and lost it to an ellipsis.
-            _RoundWins(player: player, wins: wins, isActive: isActive),
+              _RoundWins(player: player, wins: wins, isActive: isActive),
+            ],
+          ),
+          if (action case final Widget action) ...[
+            const SizedBox(height: 8),
+            Align(alignment: Alignment.centerRight, child: action),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _OpponentControl extends StatelessWidget {
+  const _OpponentControl({
+    required this.opponent,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final Opponent opponent;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = _localizationsOf(context);
+    return OutlinedButton.icon(
+      key: const Key('opponent-control'),
+      onPressed: enabled ? onPressed : null,
+      icon: const Icon(Icons.groups_outlined, size: 18),
+      label: Text(l10n.opponentWithValue(_opponentLabel(l10n, opponent))),
+    );
+  }
+}
+
+class _OpponentSelectionSheet extends StatelessWidget {
+  const _OpponentSelectionSheet({required this.selectedOpponent});
+
+  final Opponent selectedOpponent;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = _localizationsOf(context);
+    return SafeArea(
+      top: false,
+      child: RadioGroup<Opponent>(
+        groupValue: selectedOpponent,
+        onChanged: (opponent) => Navigator.pop(context, opponent),
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+          children: [
+            Text(l10n.opponent, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            for (final opponent in Opponent.values)
+              Semantics(
+                selected: opponent == selectedOpponent,
+                child: RadioListTile<Opponent>(
+                  key: Key('opponent-choice-${opponent.name}'),
+                  value: opponent,
+                  title: Text(_opponentLabel(l10n, opponent)),
+                ),
+              ),
           ],
         ),
       ),
@@ -451,6 +588,7 @@ class _ResultOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final winner = snapshot.roundWinner!;
     final matchWinner = snapshot.matchWinner;
+    final l10n = _localizationsOf(context);
     return ColoredBox(
       color: _surfaceColor.withValues(alpha: 0.78),
       child: Center(
@@ -474,7 +612,7 @@ class _ResultOverlay extends StatelessWidget {
                     const SizedBox(width: 12),
                     Flexible(
                       child: Text(
-                        _playerLabel(winner),
+                        _playerLabel(l10n, winner),
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 28,
@@ -487,7 +625,7 @@ class _ResultOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  matchWinner == null ? 'takes the round' : 'wins the match',
+                  matchWinner == null ? l10n.takesRound : l10n.winsMatch,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 22,
@@ -498,14 +636,17 @@ class _ResultOverlay extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   switch (snapshot.roundWinReason!) {
-                    rust.GameWinReason.knockout => 'by knockout',
-                    rust.GameWinReason.immobilization => 'by immobilization',
+                    rust.GameWinReason.knockout => l10n.byKnockout,
+                    rust.GameWinReason.immobilization => l10n.byImmobilization,
                   },
                   style: const TextStyle(fontSize: 16, color: _mutedTextColor),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${snapshot.firstPlayerWins} - ${snapshot.secondPlayerWins}',
+                  l10n.score(
+                    snapshot.firstPlayerWins,
+                    snapshot.secondPlayerWins,
+                  ),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -516,7 +657,7 @@ class _ResultOverlay extends StatelessWidget {
                 FilledButton(
                   onPressed: onContinue,
                   child: Text(
-                    matchWinner == null ? 'Next Round' : 'New Match',
+                    matchWinner == null ? l10n.nextRound : l10n.newMatch,
                   ),
                 ),
               ],
@@ -535,15 +676,16 @@ class _InitialError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = _localizationsOf(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
-          'Unable to start round',
-          style: TextStyle(color: Colors.white),
+        Text(
+          l10n.unableToStartRound,
+          style: const TextStyle(color: Colors.white),
         ),
         const SizedBox(height: 12),
-        FilledButton(onPressed: onRetry, child: const Text('Retry')),
+        FilledButton(onPressed: onRetry, child: Text(l10n.retry)),
       ],
     );
   }
@@ -557,17 +699,18 @@ class _ActionError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = _localizationsOf(context);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           Expanded(
             child: Text(
-              'Unable to update round: $error',
+              l10n.unableToUpdateRound(error.toString()),
               style: const TextStyle(color: _mutedTextColor),
             ),
           ),
-          TextButton(onPressed: onRetry, child: const Text('Retry')),
+          TextButton(onPressed: onRetry, child: Text(l10n.retry)),
         ],
       ),
     );

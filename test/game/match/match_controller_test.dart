@@ -188,6 +188,59 @@ void main() {
       expect(controller.isBotTurn, isFalse);
     });
 
+    test('changes the opponent before the first move', () {
+      final controller =
+          MatchController(
+              FakeRulesEngine.playing(initial: matchOf(round())),
+            )
+            ..initialize()
+            ..selectOpponent(Opponent.greedy);
+
+      expect(controller.opponent, Opponent.greedy);
+      expect(controller.canChangeOpponent, isTrue);
+    });
+
+    test('locks opponent selection after the first applied move', () {
+      const move = GameMove(pieceId: 0, direction: GameDirection.down);
+      final initial = matchOf(round(), hash: 'initial-match');
+      final afterMove = matchOf(
+        round(current: GamePlayer.second, hash: 'after-move-round'),
+        hash: 'after-move-match',
+      );
+      final freshMatch = matchOf(
+        round(hash: 'fresh-round'),
+        hash: 'fresh-match',
+      );
+      final controller =
+          MatchController(
+              FakeRulesEngine(
+                initial: [initial, freshMatch],
+                moveResults: [
+                  moveResultOf(next: afterMove, resolution: testMoveResolution),
+                ],
+                legalMovesFor: (state) => state.snapshotHash == 'initial-match'
+                    ? const [move]
+                    : const [],
+              ),
+            )
+            ..initialize()
+            ..selectOpponent(Opponent.greedy)
+            ..selectPiece(move.pieceId);
+
+      expect(controller.prepareHumanMove(move), isTrue);
+      controller.commitPendingMove();
+
+      expect(controller.canChangeOpponent, isFalse);
+      controller.selectOpponent(Opponent.human);
+      expect(controller.opponent, Opponent.greedy);
+
+      controller.restart();
+
+      expect(controller.canChangeOpponent, isTrue);
+      controller.selectOpponent(Opponent.human);
+      expect(controller.opponent, Opponent.human);
+    });
+
     test(
       'does not read a bot turn from the first seat or a finished round',
       () {

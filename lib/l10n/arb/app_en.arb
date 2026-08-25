@@ -1,3 +1,45 @@
 {
-  "@@locale": "en"
+  "@@locale": "en",
+  "azureExpedition": "Azure Expedition",
+  "emberExpedition": "Ember Expedition",
+  "opponent": "Opponent",
+  "opponentHuman": "Human",
+  "opponentRandom": "Random",
+  "opponentGreedy": "Greedy",
+  "opponentMinimax": "Minimax",
+  "opponentWithValue": "Opponent: {opponent}",
+  "@opponentWithValue": {
+    "placeholders": {
+      "opponent": {
+        "type": "String"
+      }
+    }
+  },
+  "takesRound": "takes the round",
+  "winsMatch": "wins the match",
+  "byKnockout": "by knockout",
+  "byImmobilization": "by immobilization",
+  "score": "{firstWins} - {secondWins}",
+  "@score": {
+    "placeholders": {
+      "firstWins": {
+        "type": "int"
+      },
+      "secondWins": {
+        "type": "int"
+      }
+    }
+  },
+  "nextRound": "Next Round",
+  "newMatch": "New Match",
+  "unableToStartRound": "Unable to start round",
+  "unableToUpdateRound": "Unable to update round: {error}",
+  "@unableToUpdateRound": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "retry": "Retry"
 }

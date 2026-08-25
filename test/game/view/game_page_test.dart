@@ -38,7 +38,7 @@ const _secondBotDownResolution = MoveResolution(
 );
 
 void main() {
-  testWidgets('renders the current player and board from RulesEngine', (
+  testWidgets('places Ember above Azure around the playable board', (
     tester,
   ) async {
     const snapshot = GameSnapshot(
@@ -58,14 +58,33 @@ void main() {
 
     _expectActiveTurn(tester, GamePlayer.first);
     expect(find.byType(RoundBoard), findsOneWidget);
-    // The engine starts the first player on row 0, so their panel has to be
-    // the top one for each player to sit behind their own pieces.
+    expect(find.text('Ember Expedition'), findsOneWidget);
+    expect(find.text('Azure Expedition'), findsOneWidget);
     expect(
-      tester.getRect(find.byKey(const Key('player-panel-first'))).top,
-      lessThan(
-        tester.getRect(find.byKey(const Key('player-panel-second'))).top,
+      tester.getRect(find.byKey(const Key('player-panel-second'))).top,
+      lessThan(tester.getRect(find.byKey(const Key('player-panel-first'))).top),
+    );
+  });
+
+  testWidgets('renders the air-ruins environment behind the match', (
+    tester,
+  ) async {
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'air-ruins-background',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot)),
+        ),
       ),
     );
+
+    expect(find.byKey(const Key('air-ruins-background')), findsOneWidget);
   });
 
   testWidgets('retries an initial bridge failure', (tester) async {
@@ -119,7 +138,7 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
-    expect(_inOverlay('Player 1'), findsOneWidget);
+    expect(_inOverlay('Azure Expedition'), findsOneWidget);
     expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
     final boardRect = tester.getRect(
@@ -323,11 +342,18 @@ void main() {
     await tester.pump();
 
     await tester.tapAt(boardRect.topLeft + geometry.cellCenter(0, 1));
-    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await tester.tap(find.byKey(const Key('opponent-control')));
     await tester.pump();
 
     expect(engine.appliedMoves, [move]);
-    expect(find.text('Random bot'), findsNothing);
+    expect(
+      tester
+          .widget<OutlinedButton>(
+            find.byKey(const Key('opponent-control')),
+          )
+          .onPressed,
+      isNull,
+    );
     expect(find.byKey(const Key('move-resolution-playback')), findsOneWidget);
   });
 
@@ -485,7 +511,7 @@ void main() {
       ),
     );
 
-    expect(_inOverlay('Player 2'), findsOneWidget);
+    expect(_inOverlay('Ember Expedition'), findsOneWidget);
     expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by immobilization'), findsOneWidget);
     // The position that ended the round stays readable underneath.
@@ -955,7 +981,7 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
-    expect(_inOverlay('Player 1'), findsOneWidget);
+    expect(_inOverlay('Azure Expedition'), findsOneWidget);
     expect(find.text('takes the round'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
     expect(find.text('1 - 0'), findsOneWidget);
@@ -1029,7 +1055,7 @@ void main() {
       // Ellipsis is silent: it raises no exception and passes every layout
       // assertion while removing the half that says what happened.
       for (final text in const [
-        'Player 2',
+        'Ember Expedition',
         'takes the round',
         'by immobilization',
       ]) {
@@ -1046,7 +1072,81 @@ void main() {
     }
   });
 
-  testWidgets('cycles the opponent from the second seat panel', (tester) async {
+  testWidgets('opens opponent choices before the first move', (tester) async {
+    const board = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'opponent-sheet',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine.playing(initial: matchOf(board)),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('opponent-control')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Opponent'), findsWidgets);
+    expect(find.text('Minimax'), findsOneWidget);
+    for (final choice in const ['human', 'random', 'greedy', 'minimax']) {
+      expect(
+        tester.getRect(find.byKey(Key('opponent-choice-$choice'))).bottom,
+        lessThanOrEqualTo(tester.view.physicalSize.height),
+        reason: '$choice is reachable',
+      );
+    }
+  });
+
+  testWidgets('keeps opponent choices locked after the first move', (
+    tester,
+  ) async {
+    const initialSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'opponent-lock-initial',
+    );
+    const nextSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
+      snapshotHash: 'opponent-lock-next',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine.playing(
+      initial: matchOf(initialSnapshot),
+      next: matchOf(nextSnapshot, hash: 'opponent-lock-match'),
+      legalMoves: const [move],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(0, 0));
+    await tester.tapAt(cellCenter(0, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    await tester.tap(find.byKey(const Key('opponent-control')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Minimax'), findsNothing);
+  });
+
+  testWidgets('selects an opponent from the explicit bottom sheet', (
+    tester,
+  ) async {
     const board = GameSnapshot(
       currentPlayer: GamePlayer.first,
       tiles: [],
@@ -1062,21 +1162,70 @@ void main() {
       ),
     );
 
-    expect(_inPanel('second', 'Player 2'), findsOneWidget);
+    expect(_inPanel('second', 'Ember Expedition'), findsOneWidget);
 
-    for (final label in const ['Random bot', 'Greedy bot', 'Minimax bot']) {
-      await tester.tap(find.byKey(const Key('player-panel-second')));
-      await tester.pump();
+    for (final choice in const ['random', 'greedy', 'minimax', 'human']) {
+      await _selectOpponent(tester, choice);
 
-      expect(_inPanel('second', label), findsOneWidget, reason: label);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('opponent-control')),
+          matching: find.text(
+            'Opponent: ${switch (choice) {
+              'random' => 'Random',
+              'greedy' => 'Greedy',
+              'minimax' => 'Minimax',
+              _ => 'Human',
+            }}',
+          ),
+        ),
+        findsOneWidget,
+        reason: choice,
+      );
     }
 
-    await tester.tap(find.byKey(const Key('player-panel-second')));
-    await tester.pump();
+    expect(_inPanel('second', 'Ember Expedition'), findsOneWidget);
+    expect(_inPanel('first', 'Azure Expedition'), findsOneWidget);
+  });
 
-    expect(_inPanel('second', 'Player 2'), findsOneWidget);
-    // The first seat is always the person and never changes.
-    expect(_inPanel('first', 'Player 1'), findsOneWidget);
+  testWidgets('reschedules a bot after dismissing opponent selection', (
+    tester,
+  ) async {
+    const board = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'dismiss-opponent-sheet',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(board)],
+      moveResults: [
+        moveResultOf(
+          next: matchOf(board, hash: 'dismissed-sheet-bot-move'),
+          resolution: testMoveResolution,
+        ),
+      ],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(rulesEngine: engine),
+      ),
+    );
+    await _selectOpponent(tester, 'random');
+
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.tap(find.byKey(const Key('opponent-control')));
+    await tester.pump();
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(engine.botRequests, isEmpty);
+    await tester.pump(const Duration(milliseconds: 450));
+    expect(engine.botRequests, [BotPolicy.random]);
   });
 
   testWidgets('lets the bot answer after a pause, not instantly', (
@@ -1114,8 +1263,7 @@ void main() {
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
-    await tester.tap(find.byKey(const Key('player-panel-second')));
-    await tester.pump();
+    await _selectOpponent(tester, 'random');
 
     // The board must not change while the person is still reading it.
     expect(engine.appliedMoves, isEmpty);
@@ -1154,17 +1302,14 @@ void main() {
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
-    await tester.tap(find.byKey(const Key('player-panel-second')));
-    await tester.pump();
+    await _selectOpponent(tester, 'random');
     // Hand the seat back to a person before the pause elapses.
     await tester.pump(const Duration(milliseconds: 200));
-    await tester.tap(find.byKey(const Key('player-panel-second')));
-    await tester.tap(find.byKey(const Key('player-panel-second')));
-    await tester.tap(find.byKey(const Key('player-panel-second')));
+    await _selectOpponent(tester, 'human');
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(engine.appliedMoves, isEmpty);
-    expect(_inPanel('second', 'Player 2'), findsOneWidget);
+    expect(_inPanel('second', 'Ember Expedition'), findsOneWidget);
   });
 
   testWidgets('refuses a tap on the seat a bot is about to play', (
@@ -1203,8 +1348,7 @@ void main() {
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
-    await tester.tap(find.byKey(const Key('player-panel-second')));
-    await tester.pump();
+    await _selectOpponent(tester, 'random');
 
     // Inside the pause it is still the bot's turn and its moves are still the
     // legal ones, so without a turn guard these two taps play its move for it.
@@ -1254,8 +1398,7 @@ void main() {
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
-    await tester.tap(find.byKey(const Key('player-panel-second')));
-    await tester.pump();
+    await _selectOpponent(tester, 'random');
     await tester.pump(const Duration(milliseconds: 600));
 
     expect(engine.botRequests, hasLength(1));
@@ -1297,20 +1440,16 @@ void main() {
       );
 
       await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
-      await tester.tap(find.byKey(const Key('player-panel-second')));
-      await tester.pump();
+      await _selectOpponent(tester, 'random');
       await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.textContaining('Unable to update round'), findsOneWidget);
 
       // Retry still points at a bot move, so handing the seat back to a person
       // would leave a banner whose only button does nothing.
-      for (var tap = 0; tap < 3; tap++) {
-        await tester.tap(find.byKey(const Key('player-panel-second')));
-      }
-      await tester.pump();
+      await _selectOpponent(tester, 'human');
 
-      expect(_inPanel('second', 'Player 2'), findsOneWidget);
+      expect(_inPanel('second', 'Ember Expedition'), findsOneWidget);
       expect(find.textContaining('Unable to update round'), findsNothing);
     },
   );
@@ -1363,8 +1502,7 @@ void main() {
         home: GamePage(feedback: feedback, rulesEngine: engine),
       ),
     );
-    await tester.tap(find.byKey(const Key('player-panel-second')));
-    await tester.pump();
+    await _selectOpponent(tester, 'random');
     feedback.events.clear();
     await tester.pump(const Duration(milliseconds: 450));
     await _finishReplay(tester);
@@ -1376,7 +1514,7 @@ void main() {
     tester,
   ) async {
     const botTurn = GameSnapshot(
-      currentPlayer: GamePlayer.second,
+      currentPlayer: GamePlayer.first,
       tiles: [],
       pieces: [],
       snapshotHash: 'narrow-bot',
@@ -1396,17 +1534,17 @@ void main() {
       ),
     );
 
-    // Cycle to the longest label, which shares the row with both score pips.
-    for (var i = 0; i < 3; i++) {
-      await tester.tap(find.byKey(const Key('player-panel-second')));
-      await tester.pump();
-    }
+    await _selectOpponent(tester, 'minimax');
 
-    expect(_inPanel('second', 'Minimax bot'), findsOneWidget);
+    final opponentValue = find.descendant(
+      of: find.byKey(const Key('opponent-control')),
+      matching: find.text('Opponent: Minimax'),
+    );
+    expect(opponentValue, findsOneWidget);
     expect(tester.takeException(), isNull);
 
     final label = tester.renderObject<RenderParagraph>(
-      _inPanel('second', 'Minimax bot'),
+      opponentValue,
     );
 
     expect(label.didExceedMaxLines, isFalse);
@@ -1469,6 +1607,22 @@ Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
   final board = tester.widget<RoundBoard>(find.byType(RoundBoard));
   final geometry = BoardGeometry.fromSnapshot(board.snapshot, boardRect.size);
   return (x, y) => boardRect.topLeft + geometry.cellCenter(x, y);
+}
+
+Future<void> _selectOpponent(
+  WidgetTester tester,
+  String opponent, {
+  bool settle = false,
+}) async {
+  await tester.tap(find.byKey(const Key('opponent-control')));
+  await tester.pumpAndSettle();
+  final choice = find.byKey(Key('opponent-choice-$opponent'));
+  await tester.ensureVisible(choice);
+  await tester.tap(choice);
+  await tester.pump();
+  if (settle) {
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> _finishReplay(WidgetTester tester) async {
