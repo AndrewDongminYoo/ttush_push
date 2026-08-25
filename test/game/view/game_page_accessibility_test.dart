@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -245,26 +247,94 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('does not reopen a coach dismissed during a pending read', (
+    tester,
+  ) async {
+    final completion = Completer<bool>();
+    final store = _FakeFirstPlayCoachStore(readResult: completion.future);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          coachStore: store,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(
+              const GameSnapshot(
+                currentPlayer: GamePlayer.first,
+                tiles: [],
+                pieces: [],
+                snapshotHash: 'dismiss-during-coach-read',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('coach-help')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('coach-dismiss')));
+    await tester.pump();
+
+    completion.complete(false);
+    await tester.pump();
+
+    expect(find.byKey(const Key('first-play-coach')), findsNothing);
+  });
+
+  testWidgets('does not close a coach opened during a pending read', (
+    tester,
+  ) async {
+    final completion = Completer<bool>();
+    final store = _FakeFirstPlayCoachStore(readResult: completion.future);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          coachStore: store,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(
+              const GameSnapshot(
+                currentPlayer: GamePlayer.first,
+                tiles: [],
+                pieces: [],
+                snapshotHash: 'open-during-coach-read',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('coach-help')));
+    await tester.pump();
+
+    completion.complete(true);
+    await tester.pump();
+
+    expect(find.byKey(const Key('first-play-coach')), findsOneWidget);
+  });
+
   testWidgets('keeps visual board actions available while the coach is open', (
     tester,
   ) async {
-    const move = GameMove(pieceId: 0, direction: GameDirection.right);
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
     const initial = GameSnapshot(
       currentPlayer: GamePlayer.first,
       tiles: [
         GameTile(x: 0, y: 0, kind: GameTileKind.normal),
-        GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
       ],
-      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 1)],
       snapshotHash: 'coach-board-action',
     );
     const next = GameSnapshot(
       currentPlayer: GamePlayer.second,
       tiles: [
-        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
-        GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.damaged),
       ],
-      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 1, y: 0)],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
       snapshotHash: 'coach-board-action-applied',
     );
     final engine = FakeRulesEngine.playing(
@@ -284,13 +354,112 @@ void main() {
     await tester.pump();
 
     final cellCenter = _cellCenterOf(tester);
-    await tester.tapAt(cellCenter(0, 0));
+    final source = cellCenter(0, 1);
+    final coachRect = tester.getRect(
+      find.byKey(const Key('first-play-coach')),
+    );
+    expect(coachRect.contains(source), isTrue);
+
+    await tester.tapAt(source);
     await tester.pump();
-    await tester.tapAt(cellCenter(1, 0));
+    await tester.tapAt(cellCenter(0, 0));
     await tester.pump();
 
     expect(engine.appliedMoves, [move]);
     expect(find.byKey(const Key('first-play-coach')), findsOneWidget);
+  });
+
+  testWidgets('announces vertical destinations in visual board direction', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'visual-direction',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          coachStore: _FakeFirstPlayCoachStore(
+            completedVersions: {firstPlayCoachVersion},
+          ),
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(snapshot),
+            legalMoves: const [move],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    tester.semantics.tap(
+      find.semantics.byLabel(
+        'Azure Expedition explorer, row 2, column 1, 1 available move',
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.semantics.byLabel('Up move to row 1, column 1'),
+      findsOneWidget,
+    );
+    semantics.dispose();
+  });
+
+  testWidgets('omits actionable board semantics while a bot owns the turn', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    const move = GameMove(pieceId: 1, direction: GameDirection.down);
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
+      snapshotHash: 'bot-turn-semantics',
+    );
+    final engine = FakeRulesEngine(
+      initial: [matchOf(snapshot)],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          coachStore: _FakeFirstPlayCoachStore(
+            completedVersions: {firstPlayCoachVersion},
+          ),
+          rulesEngine: engine,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('opponent-control')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('opponent-choice-random')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    expect(
+      find.semantics.byLabel(
+        'Ember Expedition explorer, row 2, column 1, 1 available move',
+      ),
+      findsNothing,
+    );
+    expect(engine.botRequests, isEmpty);
+    semantics.dispose();
   });
 
   testWidgets('applies and announces a normal semantic move after replay', (
@@ -1087,11 +1256,13 @@ final class _FakeFirstPlayCoachStore implements FirstPlayCoachStore {
     Set<int>? completedVersions,
     this.readError,
     this.writeError,
+    this.readResult,
   }) : completedVersions = completedVersions ?? {};
 
   final Set<int> completedVersions;
   final Error? readError;
   final Error? writeError;
+  final Future<bool>? readResult;
   final List<int> readVersions = [];
   final List<int> writtenVersions = [];
 
@@ -1100,6 +1271,9 @@ final class _FakeFirstPlayCoachStore implements FirstPlayCoachStore {
     readVersions.add(version);
     if (readError case final Error error) {
       throw error;
+    }
+    if (readResult case final Future<bool> result) {
+      return result;
     }
     return completedVersions.contains(version);
   }

@@ -336,9 +336,10 @@ final class _RoundBoardPainter extends CustomPainter {
     rust.GamePlayer.second => l10n.emberExpedition,
   };
 
+  // Painted rows invert Rust y coordinates, so vertical labels invert too.
   String _directionLabel(rust.GameDirection direction) => switch (direction) {
-    rust.GameDirection.up => l10n.directionUp,
-    rust.GameDirection.down => l10n.directionDown,
+    rust.GameDirection.up => l10n.directionDown,
+    rust.GameDirection.down => l10n.directionUp,
     rust.GameDirection.left => l10n.directionLeft,
     rust.GameDirection.right => l10n.directionRight,
   };

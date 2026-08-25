@@ -43,6 +43,7 @@ class _GamePageState extends State<GamePage>
   FirstPlayCoachStore? _coachStore;
   bool _coachVisible = false;
   int _coachStep = 0;
+  int _coachInteractionGeneration = 0;
   String? _announcement;
 
   /// Long enough that the board does not change while the person is still
@@ -187,7 +188,7 @@ class _GamePageState extends State<GamePage>
                                   reducedMotion: _reducedMotion,
                                 )
                               : null,
-                          onCellTap: replaying
+                          onCellTap: replaying || _controller.isBotTurn
                               ? null
                               : (x, y) => _onCellTap(round, x, y),
                         ),
@@ -235,6 +236,7 @@ class _GamePageState extends State<GamePage>
   }
 
   Future<void> _loadCoach() async {
+    final interactionGeneration = _coachInteractionGeneration;
     var isComplete = false;
     try {
       isComplete = await _resolvedCoachStore.isComplete(
@@ -247,13 +249,14 @@ class _GamePageState extends State<GamePage>
         stackTrace: stackTrace,
       );
     }
-    if (!mounted) {
+    if (!mounted || interactionGeneration != _coachInteractionGeneration) {
       return;
     }
     setState(() => _coachVisible = !isComplete);
   }
 
   void _advanceCoach() {
+    _coachInteractionGeneration++;
     if (_coachStep < 2) {
       setState(() => _coachStep++);
       return;
@@ -262,11 +265,13 @@ class _GamePageState extends State<GamePage>
   }
 
   void _completeCoach() {
+    _coachInteractionGeneration++;
     setState(() => _coachVisible = false);
     unawaited(_markCoachComplete());
   }
 
   void _showCoach() {
+    _coachInteractionGeneration++;
     setState(() {
       _coachStep = 0;
       _coachVisible = true;
@@ -508,37 +513,51 @@ class _FirstPlayCoach extends StatelessWidget {
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
-        child: Material(
+        child: Stack(
           key: const Key('first-play-coach'),
-          color: _panelColor,
-          elevation: 8,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(message, style: const TextStyle(color: Colors.white)),
-                const SizedBox(height: 8),
-                OverflowBar(
-                  spacing: 8,
-                  children: [
-                    TextButton(
-                      key: const Key('coach-dismiss'),
-                      onPressed: onDismiss,
-                      child: Text(l10n.dismiss),
-                    ),
-                    TextButton(
-                      key: const Key('coach-next'),
-                      onPressed: onNext,
-                      child: Text(step == 2 ? l10n.done : l10n.next),
-                    ),
-                  ],
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Material(
+                  color: _panelColor,
+                  elevation: 8,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-              ],
+              ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IgnorePointer(
+                    child: Text(
+                      message,
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  OverflowBar(
+                    spacing: 8,
+                    children: [
+                      TextButton(
+                        key: const Key('coach-dismiss'),
+                        onPressed: onDismiss,
+                        child: Text(l10n.dismiss),
+                      ),
+                      TextButton(
+                        key: const Key('coach-next'),
+                        onPressed: onNext,
+                        child: Text(step == 2 ? l10n.done : l10n.next),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
