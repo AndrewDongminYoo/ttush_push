@@ -87,6 +87,35 @@ void main() {
     expect(find.byKey(const Key('air-ruins-background')), findsOneWidget);
   });
 
+  testWidgets('keeps ruins inside the portrait background crop', (
+    tester,
+  ) async {
+    addTearDown(tester.view.reset);
+    tester.view
+      ..physicalSize = const Size(320, 480)
+      ..devicePixelRatio = 1;
+
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'portrait-air-ruins-background',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot)),
+        ),
+      ),
+    );
+
+    final background = tester.widget<Image>(
+      find.byKey(const Key('air-ruins-background')),
+    );
+    expect(background.alignment, Alignment.centerLeft);
+  });
+
   testWidgets('retries an initial bridge failure', (tester) async {
     const readySnapshot = GameSnapshot(
       currentPlayer: GamePlayer.first,
