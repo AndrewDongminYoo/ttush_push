@@ -155,6 +155,37 @@ void main() {
     expect(store.writtenVersions, isEmpty);
   });
 
+  testWidgets('renders HUD help visibly on the dark player panel', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          coachStore: _FakeFirstPlayCoachStore(
+            completedVersions: {firstPlayCoachVersion},
+          ),
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(
+              const GameSnapshot(
+                currentPlayer: GamePlayer.second,
+                tiles: [],
+                pieces: [],
+                snapshotHash: 'visible-coach-help',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final helpIcon = find.descendant(
+      of: find.byKey(const Key('coach-help')),
+      matching: find.byIcon(Icons.help_outline),
+    );
+    expect(IconTheme.of(tester.element(helpIcon)).color, Colors.white);
+  });
+
   testWidgets(
     'announces coach steps as live regions when opened and advanced',
     (

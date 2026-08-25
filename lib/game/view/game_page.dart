@@ -608,6 +608,7 @@ class _CoachHelp extends StatelessWidget {
     return IconButton(
       key: const Key('coach-help'),
       tooltip: l10n.howToPlay,
+      color: Colors.white,
       onPressed: onPressed,
       icon: const Icon(Icons.help_outline),
     );
