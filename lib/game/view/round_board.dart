@@ -508,8 +508,8 @@ final class _RoundBoardPainter extends CustomPainter {
     final direction = displacement.exitDirection!;
     final distance = geometry.cellSize * 1.3;
     return switch (direction) {
-      rust.GameDirection.up => from.translate(0, -distance),
-      rust.GameDirection.down => from.translate(0, distance),
+      rust.GameDirection.up => from.translate(0, distance),
+      rust.GameDirection.down => from.translate(0, -distance),
       rust.GameDirection.left => from.translate(-distance, 0),
       rust.GameDirection.right => from.translate(distance, 0),
     };
