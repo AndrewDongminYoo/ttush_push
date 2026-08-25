@@ -358,6 +358,9 @@ class _AirRuinsBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final alignment = MediaQuery.orientationOf(context) == Orientation.portrait
+        ? Alignment.centerLeft
+        : Alignment.center;
     return IgnorePointer(
       child: Stack(
         fit: StackFit.expand,
@@ -366,6 +369,7 @@ class _AirRuinsBackground extends StatelessWidget {
             'assets/images/air_ruins_twilight.png',
             key: const Key('air-ruins-background'),
             fit: BoxFit.cover,
+            alignment: alignment,
           ),
           const DecoratedBox(
             decoration: BoxDecoration(
