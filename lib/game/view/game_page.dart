@@ -45,6 +45,7 @@ class _GamePageState extends State<GamePage>
   int _coachStep = 0;
   int _coachInteractionGeneration = 0;
   String? _announcement;
+  int _announcementGeneration = 0;
 
   /// Long enough that the board does not change while the person is still
   /// reading it. This delays a move the engine has already chosen; it does
@@ -145,11 +146,14 @@ class _GamePageState extends State<GamePage>
         children: [
           const Positioned.fill(child: _AirRuinsBackground()),
           if (_announcement case final String announcement)
-            Semantics(
+            KeyedSubtree(
               key: const Key('match-announcement'),
-              label: announcement,
-              liveRegion: true,
-              child: const SizedBox.shrink(),
+              child: Semantics(
+                key: ValueKey('match-announcement-$_announcementGeneration'),
+                label: announcement,
+                liveRegion: true,
+                child: const SizedBox.shrink(),
+              ),
             ),
           SafeArea(
             child: Column(
@@ -219,7 +223,9 @@ class _GamePageState extends State<GamePage>
                   wins: snapshot.firstPlayerWins,
                   isActive:
                       playing && round.currentPlayer == rust.GamePlayer.first,
-                  helpAction: _CoachHelp(onPressed: _showCoach),
+                  helpAction: playing
+                      ? _CoachHelp(onPressed: _showCoach)
+                      : null,
                 ),
               ],
             ),
@@ -355,9 +361,11 @@ class _GamePageState extends State<GamePage>
         final moveCount = _controller.legalMoves
             .where((move) => move.pieceId == selection)
             .length;
-        _announcement = l10n.explorerSelectedAnnouncement(
-          _playerLabel(l10n, piece.owner),
-          moveCount,
+        _announce(
+          l10n.explorerSelectedAnnouncement(
+            _playerLabel(l10n, piece.owner),
+            moveCount,
+          ),
         );
         announcedSelection = true;
       }
@@ -406,23 +414,29 @@ class _GamePageState extends State<GamePage>
         final l10n = _localizationsOf(context);
         if (_controller.isMatchOver) {
           final snapshot = _controller.snapshot!;
-          _announcement = l10n.matchResultAnnouncement(
-            _playerLabel(l10n, snapshot.matchWinner!),
-            _winReasonLabel(l10n, snapshot.roundWinReason!),
-            snapshot.firstPlayerWins,
-            snapshot.secondPlayerWins,
+          _announce(
+            l10n.matchResultAnnouncement(
+              _playerLabel(l10n, snapshot.matchWinner!),
+              _winReasonLabel(l10n, snapshot.roundWinReason!),
+              snapshot.firstPlayerWins,
+              snapshot.secondPlayerWins,
+            ),
           );
         } else if (_controller.isRoundOver) {
           final snapshot = _controller.snapshot!;
-          _announcement = l10n.roundResultAnnouncement(
-            _playerLabel(l10n, snapshot.roundWinner!),
-            _winReasonLabel(l10n, snapshot.roundWinReason!),
+          _announce(
+            l10n.roundResultAnnouncement(
+              _playerLabel(l10n, snapshot.roundWinner!),
+              _winReasonLabel(l10n, snapshot.roundWinReason!),
+            ),
           );
         } else {
-          _announcement = switch (resolution.actionKind) {
-            rust.MoveActionKind.normal => l10n.moveAppliedAnnouncement,
-            rust.MoveActionKind.push => l10n.pushAppliedAnnouncement,
-          };
+          _announce(
+            switch (resolution.actionKind) {
+              rust.MoveActionKind.normal => l10n.moveAppliedAnnouncement,
+              rust.MoveActionKind.push => l10n.pushAppliedAnnouncement,
+            },
+          );
         }
       });
       _feedbackForCommittedMove(resolution);
@@ -431,6 +445,12 @@ class _GamePageState extends State<GamePage>
     _replayController
       ..addStatusListener(onReplayComplete)
       ..forward();
+  }
+
+  /// Replaces the live-region node so identical consecutive messages speak.
+  void _announce(String announcement) {
+    _announcement = announcement;
+    _announcementGeneration++;
   }
 
   /// Fires only after the replay has committed the Rust-prepared snapshot.

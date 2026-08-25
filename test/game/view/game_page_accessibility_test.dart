@@ -545,6 +545,162 @@ void main() {
     semantics.dispose();
   });
 
+  testWidgets('replaces the live region for repeated move announcements', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    const humanMove = GameMove(pieceId: 0, direction: GameDirection.right);
+    const botMove = GameMove(pieceId: 1, direction: GameDirection.left);
+    const startingPieces = [
+      GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+      GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 1),
+    ];
+    const initial = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 1, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: startingPieces,
+      snapshotHash: 'repeated-announcement-initial',
+    );
+    const afterHuman = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 1, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 1, y: 0),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 1),
+      ],
+      snapshotHash: 'repeated-announcement-after-human',
+    );
+    const afterBot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 1, y: 1, kind: GameTileKind.damaged),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 1, y: 0),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 1),
+      ],
+      snapshotHash: 'repeated-announcement-after-bot',
+    );
+    const humanResolution = MoveResolution(
+      actionKind: MoveActionKind.normal,
+      mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
+      tileTransition: TileTransition(
+        x: 0,
+        y: 0,
+        from: GameTileKind.normal,
+        to: GameTileKind.damaged,
+      ),
+    );
+    const botResolution = MoveResolution(
+      actionKind: MoveActionKind.normal,
+      mover: PieceTravel(pieceId: 1, fromX: 1, fromY: 1, toX: 0, toY: 1),
+      tileTransition: TileTransition(
+        x: 1,
+        y: 1,
+        from: GameTileKind.normal,
+        to: GameTileKind.damaged,
+      ),
+    );
+    final engine = FakeRulesEngine(
+      initial: [
+        matchOf(
+          initial,
+          startingPieces: startingPieces,
+          hash: 'repeated-announcement-match-initial',
+        ),
+      ],
+      moveResults: [
+        moveResultOf(
+          next: matchOf(
+            afterHuman,
+            startingPieces: startingPieces,
+            hash: 'repeated-announcement-match-after-human',
+          ),
+          resolution: humanResolution,
+        ),
+        moveResultOf(
+          next: matchOf(
+            afterBot,
+            startingPieces: startingPieces,
+            hash: 'repeated-announcement-match-after-bot',
+          ),
+          resolution: botResolution,
+        ),
+      ],
+      legalMovesFor: (state) => switch (state.snapshotHash) {
+        'repeated-announcement-match-initial' => const [humanMove],
+        'repeated-announcement-match-after-human' => const [botMove],
+        _ => const [],
+      },
+      botMove: (_, _) => botMove,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          coachStore: _FakeFirstPlayCoachStore(
+            completedVersions: {firstPlayCoachVersion},
+          ),
+          rulesEngine: engine,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('opponent-control')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('opponent-choice-random')));
+    await tester.pumpAndSettle();
+    tester.semantics.tap(
+      find.semantics.byLabel(
+        'Azure Expedition explorer, row 2, column 1, 1 available move',
+      ),
+    );
+    await tester.pump();
+    tester.semantics.tap(
+      find.semantics.byLabel('Right move to row 2, column 2'),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+
+    final firstAnnouncement = tester.getSemantics(
+      find.byKey(const Key('match-announcement')),
+    );
+    expect(
+      firstAnnouncement,
+      matchesSemantics(label: 'Move applied.', isLiveRegion: true),
+    );
+
+    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+
+    final secondAnnouncement = tester.getSemantics(
+      find.byKey(const Key('match-announcement')),
+    );
+    expect(
+      secondAnnouncement,
+      matchesSemantics(label: 'Move applied.', isLiveRegion: true),
+    );
+    expect(secondAnnouncement.id, isNot(firstAnnouncement.id));
+    expect(engine.appliedMoves, [humanMove, botMove]);
+    semantics.dispose();
+  });
+
   testWidgets('applies and announces a semantic Push after replay', (
     tester,
   ) async {
@@ -934,6 +1090,7 @@ void main() {
     expect(actionRect.width, greaterThanOrEqualTo(kMinInteractiveDimension));
     expect(actionRect.height, greaterThanOrEqualTo(kMinInteractiveDimension));
     expect(find.byKey(const Key('first-play-coach')), findsNothing);
+    expect(find.byKey(const Key('coach-help')), findsNothing);
     expect(find.text('Azure Expedition'), findsWidgets);
     expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
