@@ -10,7 +10,7 @@ Every command string lives in `merry.yaml`. Run `merry ls` for the current list 
 Note that the CLI separates nested names with a space, while the config file references them as `$rust:test`.
 
 `merry run check` is the full local gate before committing, and it adds `trunk check`, which CI does not run.
-It does not stand in for the whole of CI. The `spell-check` job reads every `**/*.md` through `cspell.json`, and no local linter does: `trunk check` looks only at modified files and has no cspell among its enabled linters. Run `npx cspell check --config cspell.json '**/*.md'` after touching any markdown. The `semantic-pull-request` job reads the PR title and has no local form at all.
+It does not stand in for the whole of CI. The `spell-check` job reads every `**/*.md` through `cspell.json`, and no local linter does: `trunk check` looks only at modified files and has no cspell among its enabled linters. Run `npx cspell lint --config cspell.json '**/*.md'` after touching any markdown. The `semantic-pull-request` job reads the PR title and has no local form at all.
 
 It also crosses no bridge. Every Dart test builds a fake `RulesEngine` and no Rust test loads the Dart package, so nothing the gate runs calls `RustLib.init`, and a tree whose bridge cannot initialise at all passes it green. Bumping `flutter_rust_bridge` on the Dart side alone did exactly that: full gate, exit 0, and the app dead on its first frame. A change to `engine/src/api.rs`, to the generated glue, or to the `flutter_rust_bridge` version needs the parity test below on a real runtime before the gate says anything about it.
 
