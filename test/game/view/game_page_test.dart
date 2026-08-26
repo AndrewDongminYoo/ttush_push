@@ -278,7 +278,10 @@ void main() {
 
     expect(engine.appliedMoves, [move]);
     _expectActiveTurn(tester, GamePlayer.first);
-    expect(find.byKey(const Key('move-resolution-playback')), findsOneWidget);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).playback,
+      isNotNull,
+    );
 
     await tester.pump(const Duration(milliseconds: 539));
     _expectActiveTurn(tester, GamePlayer.first);
@@ -396,7 +399,10 @@ void main() {
           .onPressed,
       isNull,
     );
-    expect(find.byKey(const Key('move-resolution-playback')), findsOneWidget);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).playback,
+      isNotNull,
+    );
   });
 
   testWidgets('does not commit a replay after the page is disposed', (

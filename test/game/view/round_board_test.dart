@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ttush_push/game/view/production_sprite_set.dart';
 import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/l10n/l10n.dart';
 import 'package:ttush_push/src/rust/api.dart';
@@ -17,6 +21,11 @@ const _crackColor = Color(0xFF6B4A16);
 const _firstPlayerColor = Color(0xFF2A48DF);
 const _secondPlayerColor = Color(0xFFE14B4B);
 const _destinationColor = Color(0xFF53D769);
+const _productionAzureColor = Color(0xFF1261A0);
+const _productionEmberColor = Color(0xFF9C2C22);
+const _productionIntactColor = Color(0xFF7289A8);
+const _productionDamagedColor = Color(0xFFB4793C);
+const _productionHoleColor = Color(0xFF7D6C91);
 
 void main() {
   const emptySnapshot = GameSnapshot(
@@ -182,6 +191,223 @@ void main() {
     expect(find.byKey(const Key('round-board-canvas')), findsNothing);
   });
 
+  testWidgets('keeps fallback unresolved and switches the complete set once', (
+    tester,
+  ) async {
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 1, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 3, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 4, y: 0, kind: GameTileKind.damaged),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
+      ],
+      snapshotHash: 'atomic-sprites',
+    );
+    final completion = Completer<ProductionSpriteSet>();
+    final spriteSet = await _testSpriteSet();
+    final disposalCounts = <ui.Image, int>{};
+    final previousOnDispose = ui.Image.onDispose;
+    ui.Image.onDispose = (image) {
+      if (spriteSet.images.contains(image)) {
+        disposalCounts.update(image, (count) => count + 1, ifAbsent: () => 1);
+      }
+      previousOnDispose?.call(image);
+    };
+    addTearDown(() => ui.Image.onDispose = previousOnDispose);
+
+    await tester.pumpWidget(
+      _boardHarness(
+        snapshot: snapshot,
+        legalMoves: const [],
+        selectedPieceId: null,
+        capturePixels: true,
+        spriteLoader: (_) => completion.future,
+      ),
+    );
+
+    final fallback = await _sampleCurrentBoard(tester);
+    expect(fallback(_cellCenter(0, 0)), _firstPlayerColor);
+    expect(fallback(_cellCenter(1, 0)), _secondPlayerColor);
+    expect(fallback(_cellCenter(2, 0)), _voidColor);
+
+    completion.complete(spriteSet);
+    await tester.pump();
+
+    final production = await _sampleCurrentBoard(tester);
+    expect(production(_cellCenter(0, 0)), _productionAzureColor);
+    expect(production(_cellCenter(1, 0)), _productionEmberColor);
+    expect(production(_cellCenter(2, 0)), _voidColor);
+    expect(production(_cellCenter(3, 0)), _productionIntactColor);
+    expect(production(_cellCenter(4, 0)), _productionDamagedColor);
+    expect(
+      production(
+        _cellCenter(2, 0) + const Offset(-_cellSize * 0.35, -_cellSize * 0.35),
+      ),
+      _productionHoleColor,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(spriteSet.images, everyElement(_isDisposedImage));
+    expect(
+      spriteSet.images.map((image) => disposalCounts[image]),
+      everyElement(1),
+    );
+  });
+
+  testWidgets('keeps fallback and reports a controlled load failure once', (
+    tester,
+  ) async {
+    final reports = <FlutterErrorDetails>[];
+    final previousOnError = FlutterError.onError;
+    FlutterError.onError = reports.add;
+    addTearDown(() => FlutterError.onError = previousOnError);
+    final failure = StateError('sprite decode failed');
+    final failureStack = StackTrace.current;
+    var loadCount = 0;
+
+    await tester.pumpWidget(
+      _boardHarness(
+        snapshot: const GameSnapshot(
+          currentPlayer: GamePlayer.first,
+          tiles: [GameTile(x: 0, y: 0, kind: GameTileKind.normal)],
+          pieces: [],
+          snapshotHash: 'sprite-failure',
+        ),
+        legalMoves: const [],
+        selectedPieceId: null,
+        capturePixels: true,
+        spriteLoader: (_) {
+          loadCount += 1;
+          return Future<ProductionSpriteSet>.error(failure, failureStack);
+        },
+      ),
+    );
+    await tester.pump();
+
+    final fallback = await _sampleCurrentBoard(tester);
+    expect(fallback(_cellCenter(0, 0)), _footholdColor);
+    expect(loadCount, 1);
+    expect(reports, hasLength(1));
+    expect(reports.single.exception, same(failure));
+    expect(reports.single.stack, same(failureStack));
+    expect(
+      reports.single.context.toString(),
+      contains('while loading production board sprites'),
+    );
+
+    await tester.pump();
+    expect(reports, hasLength(1));
+  });
+
+  testWidgets('disposes a stale complete set without updating the board', (
+    tester,
+  ) async {
+    final completion = Completer<ProductionSpriteSet>();
+    final spriteSet = await _testSpriteSet();
+    final disposalCounts = <ui.Image, int>{};
+    final previousOnDispose = ui.Image.onDispose;
+    ui.Image.onDispose = (image) {
+      if (spriteSet.images.contains(image)) {
+        disposalCounts.update(image, (count) => count + 1, ifAbsent: () => 1);
+      }
+      previousOnDispose?.call(image);
+    };
+    addTearDown(() => ui.Image.onDispose = previousOnDispose);
+
+    await tester.pumpWidget(
+      _boardHarness(
+        snapshot: emptySnapshot,
+        legalMoves: const [],
+        selectedPieceId: null,
+        spriteLoader: (_) => completion.future,
+      ),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    completion.complete(spriteSet);
+    await tester.pump();
+
+    expect(spriteSet.images, everyElement(_isDisposedImage));
+    expect(
+      spriteSet.images.map((image) => disposalCounts[image]),
+      everyElement(1),
+    );
+    spriteSet.dispose();
+    expect(
+      spriteSet.images.map((image) => disposalCounts[image]),
+      everyElement(1),
+    );
+  });
+
+  testWidgets('keeps one loader session across board and playback updates', (
+    tester,
+  ) async {
+    var loadCount = 0;
+    final completion = Completer<ProductionSpriteSet>();
+    Future<ProductionSpriteSet> loader(AssetBundle _) {
+      loadCount += 1;
+      return completion.future;
+    }
+
+    await tester.pumpWidget(
+      _boardHarness(
+        snapshot: emptySnapshot,
+        legalMoves: const [],
+        selectedPieceId: null,
+        spriteLoader: loader,
+      ),
+    );
+    await tester.pumpWidget(
+      _boardHarness(
+        snapshot: emptySnapshot,
+        legalMoves: const [],
+        selectedPieceId: null,
+        spriteLoader: loader,
+        playback: const BoardPlayback(
+          resolution: MoveResolution(
+            actionKind: MoveActionKind.normal,
+            mover: PieceTravel(
+              pieceId: 0,
+              fromX: 0,
+              fromY: 0,
+              toX: 0,
+              toY: 1,
+            ),
+            tileTransition: TileTransition(
+              x: 0,
+              y: 0,
+              from: GameTileKind.normal,
+              to: GameTileKind.damaged,
+            ),
+          ),
+          progress: 0.5,
+          reducedMotion: false,
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      _boardHarness(
+        snapshot: const GameSnapshot(
+          currentPlayer: GamePlayer.second,
+          tiles: [],
+          pieces: [],
+          snapshotHash: 'updated-board',
+        ),
+        legalMoves: const [],
+        selectedPieceId: 99,
+        spriteLoader: loader,
+      ),
+    );
+
+    expect(loadCount, 1);
+  });
+
   testWidgets('distinguishes each tile kind by shape, not only by color', (
     tester,
   ) async {
@@ -200,7 +426,7 @@ void main() {
 
     expect(sample(_cellCenter(0, 0)), _footholdColor);
     expect(sample(_cellCenter(1, 0)), isNot(_footholdColor));
-    // A hole is the absence of a foothold, so the void shows through.
+    // A hole keeps its center open, so the void shows through.
     expect(sample(_cellCenter(2, 0)), _voidColor);
     // An untouched cell has no tile at all and reads the same way.
     expect(sample(_cellCenter(4, 4)), _voidColor);
@@ -224,6 +450,70 @@ void main() {
     );
 
     expect(sample(_cellCenter(1, 0)), _environmentColor);
+    expect(
+      sample(
+        _cellCenter(1, 0) + const Offset(-_cellSize * 0.35, -_cellSize * 0.35),
+      ),
+      isNot(_environmentColor),
+    );
+  });
+
+  testWidgets('paints production sprites below destinations and playback', (
+    tester,
+  ) async {
+    final spriteSet = await _testSpriteSet();
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
+      ],
+      snapshotHash: 'production-order',
+    );
+    const playback = BoardPlayback(
+      resolution: MoveResolution(
+        actionKind: MoveActionKind.push,
+        mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
+        displaced: PieceDisplacement(
+          pieceId: 1,
+          fromX: 1,
+          fromY: 0,
+          toX: 2,
+          toY: 0,
+        ),
+        tileTransition: TileTransition(
+          x: 0,
+          y: 0,
+          from: GameTileKind.normal,
+          to: GameTileKind.hole,
+        ),
+      ),
+      progress: 0.9,
+      reducedMotion: true,
+    );
+
+    final sample = await _paintAndSample(
+      tester,
+      snapshot: snapshot,
+      playback: playback,
+      backgroundColor: _environmentColor,
+      spriteLoader: (_) async => spriteSet,
+    );
+
+    expect(sample(_cellCenter(0, 0)), _environmentColor);
+    expect(
+      sample(
+        _cellCenter(0, 0) + const Offset(-_cellSize * 0.35, -_cellSize * 0.35),
+      ),
+      _productionHoleColor,
+    );
+    expect(sample(_cellCenter(1, 0)), _productionAzureColor);
+    expect(sample(_cellCenter(2, 0)), _productionEmberColor);
   });
 
   testWidgets('draws a crack across a damaged foothold', (tester) async {
@@ -707,6 +997,7 @@ Future<Color Function(Offset)> _paintAndSample(
   int? selectedPieceId,
   BoardPlayback? playback,
   Color backgroundColor = _voidColor,
+  ProductionSpriteLoader spriteLoader = _unresolvedSpriteLoader,
 }) async {
   await tester.pumpWidget(
     _boardHarness(
@@ -716,9 +1007,15 @@ Future<Color Function(Offset)> _paintAndSample(
       playback: playback,
       capturePixels: true,
       backgroundColor: backgroundColor,
+      spriteLoader: spriteLoader,
     ),
   );
 
+  await tester.pump();
+  return _sampleCurrentBoard(tester);
+}
+
+Future<Color Function(Offset)> _sampleCurrentBoard(WidgetTester tester) async {
   final boundary = tester.renderObject<RenderRepaintBoundary>(
     find.byKey(const Key('round-board-boundary')),
   );
@@ -751,6 +1048,7 @@ Widget _boardHarness({
   void Function(int x, int y)? onCellTap,
   bool capturePixels = false,
   Color backgroundColor = _voidColor,
+  ProductionSpriteLoader spriteLoader = _unresolvedSpriteLoader,
 }) {
   final renderedSnapshot = _withFiveByFiveTestTiles(snapshot);
   final board = RoundBoard(
@@ -759,6 +1057,7 @@ Widget _boardHarness({
     selectedPieceId: selectedPieceId,
     playback: playback,
     onCellTap: onCellTap ?? (_, _) {},
+    spriteLoader: spriteLoader,
   );
   final content = ColoredBox(color: backgroundColor, child: board);
   return MaterialApp(
@@ -777,6 +1076,51 @@ Widget _boardHarness({
       ),
     ),
   );
+}
+
+Future<ProductionSpriteSet> _unresolvedSpriteLoader(AssetBundle _) {
+  return Completer<ProductionSpriteSet>().future;
+}
+
+Future<ProductionSpriteSet> _testSpriteSet() async {
+  return ProductionSpriteSet(
+    azureExplorer: await _solidImage(_productionAzureColor),
+    emberExplorer: await _solidImage(_productionEmberColor),
+    intactFoothold: await _solidImage(_productionIntactColor),
+    damagedFoothold: await _solidImage(_productionDamagedColor),
+    holeFoothold: await _cornerImage(_productionHoleColor),
+  );
+}
+
+Future<ui.Image> _solidImage(Color color) async {
+  final recorder = ui.PictureRecorder();
+  Canvas(recorder).drawRect(
+    const Rect.fromLTWH(0, 0, 8, 8),
+    Paint()..color = color,
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(8, 8);
+  picture.dispose();
+  return image;
+}
+
+Future<ui.Image> _cornerImage(Color color) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final paint = Paint()..color = color;
+  canvas
+    ..drawRect(const Rect.fromLTWH(0, 0, 3, 3), paint)
+    ..drawRect(const Rect.fromLTWH(5, 0, 3, 3), paint)
+    ..drawRect(const Rect.fromLTWH(0, 5, 3, 3), paint)
+    ..drawRect(const Rect.fromLTWH(5, 5, 3, 3), paint);
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(8, 8);
+  picture.dispose();
+  return image;
+}
+
+bool _isDisposedImage(Object? value) {
+  return value is ui.Image && value.debugDisposed;
 }
 
 /// Production snapshots include one tile record for every board coordinate.

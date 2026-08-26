@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
+import 'package:ttush_push/game/view/production_sprite_set.dart';
 import 'package:ttush_push/l10n/l10n.dart';
 import 'package:ttush_push/src/rust/api.dart' as rust;
 
@@ -132,13 +135,14 @@ final class BoardPlayback {
   final bool reducedMotion;
 }
 
-final class RoundBoard extends StatelessWidget {
+final class RoundBoard extends StatefulWidget {
   const RoundBoard({
     required this.snapshot,
     required this.legalMoves,
     required this.selectedPieceId,
     required this.onCellTap,
     this.playback,
+    this.spriteLoader = loadProductionSpriteSet,
     super.key,
   });
 
@@ -147,13 +151,63 @@ final class RoundBoard extends StatelessWidget {
   final int? selectedPieceId;
   final void Function(int x, int y)? onCellTap;
   final BoardPlayback? playback;
+  final ProductionSpriteLoader spriteLoader;
+
+  @override
+  State<RoundBoard> createState() => _RoundBoardState();
+}
+
+final class _RoundBoardState extends State<RoundBoard> {
+  ProductionSpriteSet? _spriteSet;
+  bool _loadStarted = false;
+  bool _reportedLoadFailure = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loadStarted) {
+      return;
+    }
+    _loadStarted = true;
+    unawaited(_loadSprites(DefaultAssetBundle.of(context)));
+  }
+
+  Future<void> _loadSprites(AssetBundle bundle) async {
+    try {
+      final spriteSet = await widget.spriteLoader(bundle);
+      if (!mounted) {
+        spriteSet.dispose();
+        return;
+      }
+      setState(() => _spriteSet = spriteSet);
+    } on Object catch (error, stack) {
+      if (!mounted || _reportedLoadFailure) {
+        return;
+      }
+      _reportedLoadFailure = true;
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stack,
+          library: 'ttush_push',
+          context: ErrorDescription('while loading production board sprites'),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _spriteSet?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final geometry = BoardGeometry.fromSnapshot(
-          snapshot,
+          widget.snapshot,
           constraints.biggest,
         );
         if (!geometry.hasCells) {
@@ -166,27 +220,28 @@ final class RoundBoard extends StatelessWidget {
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           excludeFromSemantics: true,
-          onTapUp: onCellTap == null
+          onTapUp: widget.onCellTap == null
               ? null
               : (details) {
                   final cell = geometry.cellAt(details.localPosition);
                   if (cell != null &&
-                      snapshot.tiles.any(
+                      widget.snapshot.tiles.any(
                         (tile) => tile.x == cell.$1 && tile.y == cell.$2,
                       )) {
-                    onCellTap!(cell.$1, cell.$2);
+                    widget.onCellTap!(cell.$1, cell.$2);
                   }
                 },
           child: SizedBox.expand(
             child: CustomPaint(
               key: const Key('round-board-canvas'),
               painter: _RoundBoardPainter(
-                snapshot: snapshot,
-                legalMoves: legalMoves,
-                selectedPieceId: selectedPieceId,
+                snapshot: widget.snapshot,
+                legalMoves: widget.legalMoves,
+                selectedPieceId: widget.selectedPieceId,
                 geometry: geometry,
-                playback: playback,
-                onCellTap: onCellTap,
+                playback: widget.playback,
+                onCellTap: widget.onCellTap,
+                sprites: _spriteSet,
                 l10n: l10n,
                 textDirection: Directionality.of(context),
               ),
@@ -206,6 +261,7 @@ final class _RoundBoardPainter extends CustomPainter {
     required this.geometry,
     required this.playback,
     required this.onCellTap,
+    required this.sprites,
     required this.l10n,
     required this.textDirection,
   });
@@ -234,6 +290,7 @@ final class _RoundBoardPainter extends CustomPainter {
   final BoardGeometry geometry;
   final BoardPlayback? playback;
   final void Function(int x, int y)? onCellTap;
+  final ProductionSpriteSet? sprites;
   final AppLocalizations l10n;
   final TextDirection textDirection;
 
@@ -358,28 +415,39 @@ final class _RoundBoardPainter extends CustomPainter {
     for (final tile in snapshot.tiles) {
       _paintTile(canvas, tile);
     }
+    if (playback != null) {
+      _paintPlaybackTransition(canvas, playback);
+    }
     for (final piece in snapshot.pieces) {
       if (piece.id == movingPieceId || piece.id == displacedPieceId) {
         continue;
       }
       _paintPiece(canvas, piece);
     }
+    if (playback != null) {
+      _paintPlayback(canvas, playback);
+    }
     // Destinations paint last so an occupied one stays visible.
     for (final destination in _legalDestinations()) {
       _paintDestination(canvas, destination);
-    }
-    if (playback != null) {
-      _paintPlayback(canvas, playback);
     }
     canvas.restore();
   }
 
   /// Paints one foothold.
-  ///
-  /// A hole is the absence of a foothold rather than a differently colored
-  /// one, so nothing is drawn and the void behind the board shows through.
   void _paintTile(Canvas canvas, rust.GameTile tile) {
+    final sprites = this.sprites;
+    if (sprites != null) {
+      _paintImageInCell(
+        canvas,
+        sprites.footholdFor(tile.kind),
+        geometry.cellRect(tile.x, tile.y),
+      );
+      return;
+    }
+
     if (tile.kind == rust.GameTileKind.hole) {
+      _paintHoleFragments(canvas, geometry.cellRect(tile.x, tile.y));
       return;
     }
 
@@ -416,6 +484,52 @@ final class _RoundBoardPainter extends CustomPainter {
 
     if (isDamaged) {
       canvas.drawPath(_crackPath(body.outerRect), _crackPaint(cellSize));
+    }
+  }
+
+  void _paintHoleFragments(Canvas canvas, Rect cellRect) {
+    final inset = geometry.cellSize * 0.06;
+    final extent = geometry.cellSize * 0.3;
+    final fragments = [
+      Rect.fromLTWH(
+        cellRect.left + inset,
+        cellRect.top + inset,
+        extent,
+        extent,
+      ),
+      Rect.fromLTWH(
+        cellRect.right - inset - extent,
+        cellRect.top + inset,
+        extent,
+        extent,
+      ),
+      Rect.fromLTWH(
+        cellRect.left + inset,
+        cellRect.bottom - inset - extent,
+        extent,
+        extent,
+      ),
+      Rect.fromLTWH(
+        cellRect.right - inset - extent,
+        cellRect.bottom - inset - extent,
+        extent,
+        extent,
+      ),
+    ];
+    for (final fragment in fragments) {
+      final body = RRect.fromRectAndRadius(
+        fragment,
+        Radius.circular(geometry.cellSize * 0.05),
+      );
+      canvas
+        ..drawRRect(body, Paint()..color = _footholdColor)
+        ..drawRRect(
+          body,
+          Paint()
+            ..color = _footholdEdgeColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = geometry.cellSize * 0.02,
+        );
     }
   }
 
@@ -467,27 +581,36 @@ final class _RoundBoardPainter extends CustomPainter {
 
   void _paintPieceAt(Canvas canvas, rust.GamePiece piece, Offset center) {
     final cellSize = geometry.cellSize;
-    final body = switch (piece.owner) {
-      rust.GamePlayer.first => _azureExplorerPath(center, cellSize),
-      rust.GamePlayer.second => _emberExplorerPath(center, cellSize),
-    };
-
-    canvas
-      ..drawPath(
-        body,
-        Paint()
-          ..color = switch (piece.owner) {
-            rust.GamePlayer.first => _firstPlayerColor,
-            rust.GamePlayer.second => _secondPlayerColor,
-          },
-      )
-      ..drawPath(
-        body,
-        Paint()
-          ..color = _pieceEdgeColor
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = cellSize * 0.03,
+    final sprites = this.sprites;
+    if (sprites != null) {
+      _paintImageInCell(
+        canvas,
+        sprites.explorerFor(piece.owner),
+        Rect.fromCenter(center: center, width: cellSize, height: cellSize),
       );
+    } else {
+      final body = switch (piece.owner) {
+        rust.GamePlayer.first => _azureExplorerPath(center, cellSize),
+        rust.GamePlayer.second => _emberExplorerPath(center, cellSize),
+      };
+
+      canvas
+        ..drawPath(
+          body,
+          Paint()
+            ..color = switch (piece.owner) {
+              rust.GamePlayer.first => _firstPlayerColor,
+              rust.GamePlayer.second => _secondPlayerColor,
+            },
+        )
+        ..drawPath(
+          body,
+          Paint()
+            ..color = _pieceEdgeColor
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = cellSize * 0.03,
+        );
+    }
 
     if (piece.id == selectedPieceId) {
       canvas.drawCircle(
@@ -499,6 +622,15 @@ final class _RoundBoardPainter extends CustomPainter {
           ..strokeWidth = cellSize * 0.07,
       );
     }
+  }
+
+  void _paintImageInCell(Canvas canvas, ui.Image image, Rect destination) {
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      destination,
+      Paint()..filterQuality = FilterQuality.medium,
+    );
   }
 
   /// Azure wears a broad, rounded travel cloak beneath a round head.
@@ -563,7 +695,6 @@ final class _RoundBoardPainter extends CustomPainter {
     );
 
     if (isPush) {
-      _paintPushImpact(canvas, resolution, playback.progress);
       final displaced = resolution.displaced;
       if (displaced != null) {
         final displacedIndex = snapshot.pieces.indexWhere(
@@ -577,14 +708,30 @@ final class _RoundBoardPainter extends CustomPainter {
           );
         }
       }
+      _paintPushImpact(canvas, resolution, playback.progress);
     }
+  }
 
-    final transitionStart = isPush
+  void _paintPlaybackTransition(Canvas canvas, BoardPlayback playback) {
+    final resolution = playback.resolution;
+    final transitionStart = resolution.actionKind == rust.MoveActionKind.push
         ? _pushTransitionStart
         : _normalTransitionStart;
-    if (playback.progress >= transitionStart) {
-      _paintTransition(canvas, resolution.tileTransition);
+    if (playback.progress < transitionStart) {
+      return;
     }
+    _paintTransition(canvas, resolution.tileTransition);
+  }
+
+  void _paintTransition(Canvas canvas, rust.TileTransition transition) {
+    canvas.drawRect(
+      geometry.cellRect(transition.x, transition.y),
+      Paint()..blendMode = BlendMode.clear,
+    );
+    _paintTile(
+      canvas,
+      rust.GameTile(x: transition.x, y: transition.y, kind: transition.to),
+    );
   }
 
   double _phaseProgress(double progress, {required double end}) {
@@ -666,20 +813,6 @@ final class _RoundBoardPainter extends CustomPainter {
     );
   }
 
-  void _paintTransition(Canvas canvas, rust.TileTransition transition) {
-    if (transition.to == rust.GameTileKind.hole) {
-      canvas.drawRect(
-        geometry.cellRect(transition.x, transition.y),
-        Paint()..blendMode = BlendMode.clear,
-      );
-      return;
-    }
-    _paintTile(
-      canvas,
-      rust.GameTile(x: transition.x, y: transition.y, kind: transition.to),
-    );
-  }
-
   /// A move destination is a filled dot, a push destination a ring around the
   /// piece already standing there, so the two never read as the same action.
   void _paintDestination(
@@ -756,6 +889,7 @@ final class _RoundBoardPainter extends CustomPainter {
         snapshot != oldDelegate.snapshot ||
         legalMoves != oldDelegate.legalMoves ||
         selectedPieceId != oldDelegate.selectedPieceId ||
+        sprites != oldDelegate.sprites ||
         geometry != oldDelegate.geometry;
   }
 
