@@ -197,9 +197,6 @@ class _GamePageState extends State<GamePage>
                     children: [
                       Positioned.fill(
                         child: RoundBoard(
-                          key: replaying
-                              ? const Key('move-resolution-playback')
-                              : null,
                           snapshot: round,
                           legalMoves: _controller.legalMoves,
                           selectedPieceId: _controller.selectedPieceId,
