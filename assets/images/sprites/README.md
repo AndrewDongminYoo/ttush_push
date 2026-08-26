@@ -17,6 +17,7 @@ The three footholds share the intact structure's viewpoint, stone language, pale
 Each asset was generated independently or edited from the approved intact foothold instead of being cut from a sprite sheet.
 The approved Azure, Ember, and intact foothold outputs received an `imagegen` background-extraction edit that preserved the selected artwork while replacing the generated checker field with alpha transparency.
 The damaged and collapsed outputs retained a flattened near-white checker field after four distinct `imagegen` alpha-extraction attempts, so their generated artwork was preserved and the 247–255 background range was removed deterministically with ImageMagick's `-fuzz 5% -transparent white` operation.
+After device-scale inspection exposed isolated remnants in the collapsed file, its alpha mask was filtered with 8-connected components to remove components smaller than 1,024 pixels while preserving the intended stone fragments.
 All five selected outputs were trimmed, centered on a square transparent canvas, and resized with Lanczos filtering to 512 by 512 pixels.
 Explorer bounds occupy at most 78% of the canvas dimension, while foothold bounds occupy at most 88%, leaving a stable cell gutter.
 The final PNG metadata was checked for RGBA channels, 512 by 512 dimensions, transparent corner pixels, and a transparent center in `foothold_hole.png`.
