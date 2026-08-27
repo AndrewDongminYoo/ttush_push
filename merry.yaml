@@ -52,6 +52,17 @@ rust:
     (description): Replays a fixed seed so balance changes can be diffed run to run.
     (scripts): cargo run --release --manifest-path engine/Cargo.toml -- --games 100000 --seed 42
 
+# --- Bridge gate ------------------------------------------------------------
+bridge:
+  (description): Gates the generated Dart/Rust bridge on a host runtime.
+  (default): $bridge:host
+
+  host:
+    (description): Builds and loads the Rust library through the generated Dart bridge.
+    (scripts):
+      - cargo build --release --manifest-path engine/Cargo.toml --lib
+      - flutter test tool/rules_engine_host_test.dart
+
 # --- Code generation --------------------------------------------------------
 generate:
   (description): Regenerates code that is owned by a generator, never by hand.
@@ -80,4 +91,5 @@ check:
     - $rust:format:check
     - $rust:lint
     - $rust:test
+    - $bridge:host
     - trunk check --no-progress

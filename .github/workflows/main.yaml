@@ -47,6 +47,25 @@ jobs:
       - name: Test
         run: cargo test --manifest-path engine/Cargo.toml
 
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build the Rust host library
+        run: cargo build --release --manifest-path engine/Cargo.toml --lib
+
+      - name: Test the generated bridge
+        run: flutter test tool/rules_engine_host_test.dart
+
   spell-check:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
     with:
