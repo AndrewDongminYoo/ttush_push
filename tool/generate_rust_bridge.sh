@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly expected_codegen_version='flutter_rust_bridge_codegen 2.12.0'
+readonly expected_codegen_version='flutter_rust_bridge_codegen 2.13.0'
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly project_root
 actual_codegen_version="$(flutter_rust_bridge_codegen --version)"

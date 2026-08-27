@@ -46,9 +46,9 @@ Error: A value of type 'RustLibWire Function()' can't be returned from a functio
 
 The failing generated `frb_generated.web.dart` constructor takes no `ExternalLibrary` argument while the 2.12.0 Dart runtime expects one.
 
-`tool/generate_rust_bridge.sh` requires `flutter_rust_bridge_codegen 2.12.0` before generating glue.
+`tool/generate_rust_bridge.sh` requires `flutter_rust_bridge_codegen 2.13.0` before generating glue.
 
-The Dart and Rust dependencies are pinned to 2.12.0 in their manifests.
+The Dart and Rust dependencies are pinned to 2.13.0 in their manifests.
 
 `web: false` records the MVP scope in `flutter_rust_bridge.yaml`.
 

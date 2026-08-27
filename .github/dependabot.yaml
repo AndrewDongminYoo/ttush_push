@@ -9,3 +9,6 @@ updates:
     directory: /
     schedule:
       interval: daily
+    ignore:
+      # FRB must move with the Rust crate, codegen, and generated glue.
+      - dependency-name: flutter_rust_bridge
