@@ -1,5 +1,8 @@
 # Playable Round Vertical Slice Specification
 
+> **Status:** Historical milestone snapshot.
+> Names, paths, and non-goals below describe this milestone and are not current repository guidance; use [CLAUDE.md](../../CLAUDE.md) and the current source for the active contract.
+
 ## Goal
 
 Deliver one locally playable 5-by-5 round in Flutter.

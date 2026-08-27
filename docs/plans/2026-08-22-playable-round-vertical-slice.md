@@ -1,5 +1,8 @@
 # Playable Round Vertical Slice Implementation Plan
 
+> **Status:** Historical milestone snapshot.
+> Names, paths, and non-goals below describe this milestone and are not current repository guidance; use [CLAUDE.md](../../CLAUDE.md) and the current source for the active contract.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a local hot-seat 5-by-5 round that renders only Rust snapshots, accepts only Rust legal moves, shows terminal results, and restarts.

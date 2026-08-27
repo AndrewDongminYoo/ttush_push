@@ -28,7 +28,7 @@ Alpha-beta pruning and a transposition table are deferred until a depth is wante
 
 A move damages the tile it leaves, and a damaged tile becomes a hole; tiles never heal. The board therefore degrades monotonically, and a round cannot continue indefinitely.
 
-Measured over 100,000 random games at seed 42: `repetitions=0`, `turn_limits=0`, `max_observed_turns=47`, `mean_turns=29.634`. No game repeated a position or reached the 10,000-turn limit.
+Measured over 100,000 random games at seed 42: `repetitions=0`, `turn_limits=0`, `max_observed_turns=47`, `mean_turns=29.655`. No game repeated a position or reached the 10,000-turn limit.
 
 A depth-limited search therefore needs no repetition detection, and 47 is the observed ceiling a full search would have to reach.
 
@@ -77,16 +77,16 @@ Non-terminal leaves score on mobility alone. Material is deliberately absent: a 
 
 ## Measured
 
-500 games per pairing at seed 42, win counts by seat:
+Recorded pairings at seed 42 use 2,000 games for the first three rows and 500 games for the minimax rows:
 
-| First     | Second    | First wins | Second wins | Mean turns |
-| --------- | --------- | ---------- | ----------- | ---------- |
-| random    | random    | 980 / 2000 | 1020 / 2000 | 29.9       |
-| greedy    | random    | 1750       | 250         | 26.7       |
-| random    | greedy    | 222        | 1778        | 26.4       |
-| minimax:2 | random    | 488        | 12          | 20.6       |
-| minimax:2 | greedy    | 365        | 135         | 34.4       |
-| greedy    | minimax:2 | 107        | 393         | 33.4       |
+| First     | Second    | Games | First wins | Second wins | Mean turns |
+| --------- | --------- | ----- | ---------- | ----------- | ---------- |
+| random    | random    | 2,000 | 980        | 1,020       | 29.9       |
+| greedy    | random    | 2,000 | 1,750      | 250         | 26.7       |
+| random    | greedy    | 2,000 | 222        | 1,778       | 26.4       |
+| minimax:2 | random    | 500   | 488        | 12          | 20.6       |
+| minimax:2 | greedy    | 500   | 365        | 135         | 34.4       |
+| greedy    | minimax:2 | 500   | 107        | 393         | 33.4       |
 
 The ordering holds from either seat, so it reflects the policies rather than a first-move advantage — random against random is 49% / 51%, which is the baseline that makes the rest readable.
 

@@ -5,8 +5,8 @@ enum MatchStatus { initializing, ready, initializationError }
 
 /// Who plays the second seat.
 ///
-/// The first seat is always the person; this is the only choice the screen
-/// offers, and it cycles rather than opening anything.
+/// The first seat is always the person; this choice assigns only the second
+/// seat.
 enum Opponent {
   human,
   random,

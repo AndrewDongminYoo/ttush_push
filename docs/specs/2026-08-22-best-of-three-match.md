@@ -1,5 +1,8 @@
 # Best-of-Three Match Specification
 
+> **Status:** Historical milestone snapshot.
+> Names, paths, and non-goals below describe this milestone and are not current repository guidance; use [CLAUDE.md](../../CLAUDE.md) and the current source for the active contract.
+
 ## Goal
 
 Turn a single round into a match: two people play until one of them has won two rounds, seeing after each round who won it and how, with the score visible throughout.

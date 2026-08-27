@@ -1,5 +1,8 @@
 # Playtest-Ready Game Screen Specification
 
+> **Status:** Historical milestone snapshot.
+> Names, paths, and non-goals below describe this milestone and are not current repository guidance; use [CLAUDE.md](../../CLAUDE.md) and the current source for the active contract.
+
 ## Goal
 
 Make the board legible to someone opening the app for the first time.

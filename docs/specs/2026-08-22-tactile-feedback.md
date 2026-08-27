@@ -1,5 +1,8 @@
 # Tactile Feedback Specification
 
+> **Status:** Historical milestone snapshot.
+> Names, paths, and non-goals below describe this milestone and are not current repository guidance; use [CLAUDE.md](../../CLAUDE.md) and the current source for the active contract.
+
 ## Goal
 
 Let a player feel and hear what the board just did, so a move, a push, and a won round are distinguishable without watching for the change.
