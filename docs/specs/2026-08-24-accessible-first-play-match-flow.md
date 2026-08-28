@@ -6,6 +6,9 @@ Make the air-ruins match understandable on a first play and playable through Voi
 
 ## Context
 
+> **Verification status:** VoiceOver was manually reviewed by the operator.
+> The combined iOS-and-Android manual criterion below remains open until TalkBack has separate recorded evidence.
+
 The production match scene explains the world visually, but a first-time player still needs to learn explorer selection, the move-versus-Push affordance, and the meaning of a cracked foothold.
 The board is a `CustomPainter`, so it currently does not expose enough semantic controls for a screen-reader user to choose an explorer and a legal destination.
 

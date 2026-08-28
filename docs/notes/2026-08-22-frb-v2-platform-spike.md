@@ -52,7 +52,7 @@ The Dart and Rust dependencies are pinned to 2.13.0 in their manifests.
 
 `web: false` records the MVP scope in `flutter_rust_bridge.yaml`.
 
-Version 2.12.0 still emits conditional Web glue even with that setting, so the generated file is retained unmodified and Web builds remain unsupported for this MVP.
+The current generated tree contains no Web glue with that setting; `frb_generated.web.dart` was removed, and Web builds remain unsupported for this MVP.
 
 ## Native Verification Boundary
 

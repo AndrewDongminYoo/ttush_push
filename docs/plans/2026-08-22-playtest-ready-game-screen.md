@@ -1,5 +1,8 @@
 # Playtest-Ready Game Screen Implementation Plan
 
+> **Status:** Historical milestone snapshot.
+> Names, paths, and non-goals below describe this milestone and are not current repository guidance; use [CLAUDE.md](../../CLAUDE.md) and the current source for the active contract.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Turn the development-grade round screen into a board a first-time player can read, without adding animation or moving any rule into Flutter.

@@ -1,5 +1,8 @@
 # Single Player Specification
 
+> **Status:** Historical milestone snapshot.
+> Names, paths, and non-goals below describe this milestone and are not current repository guidance; use [CLAUDE.md](../../CLAUDE.md) and the current source for the active contract.
+
 ## Goal
 
 Let one person play against the engine, choosing how strong an opponent they want, without leaving the board.

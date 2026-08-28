@@ -10,9 +10,9 @@ Every command string lives in `merry.yaml`. Run `merry ls` for the current list 
 Note that the CLI separates nested names with a space, while the config file references them as `$rust:test`.
 
 `merry run check` is the full local gate before committing, and it adds `trunk check`, which CI does not run.
-It does not stand in for the whole of CI. The `spell-check` job reads every `**/*.md` through `cspell.json`, and no local linter does: `trunk check` looks only at modified files and has no cspell among its enabled linters. Run `npx cspell lint --config cspell.json '**/*.md'` after touching any markdown. The `semantic-pull-request` job reads the PR title and has no local form at all.
+It does not stand in for the whole of CI. The `spell-check` job reads every `**/*.md` through `cspell.json`, and no local linter does: `trunk check` looks only at modified files and has no cspell among its enabled linters. Run `npx cspell lint --config cspell.json --gitignore-root . '**/*.md'` after touching any markdown, including from a linked checkout whose parent is ignored. The `semantic-pull-request` job reads the PR title and has no local form at all.
 
-It also crosses no bridge. Every Dart test builds a fake `RulesEngine` and no Rust test loads the Dart package, so nothing the gate runs calls `RustLib.init`, and a tree whose bridge cannot initialise at all passes it green. Bumping `flutter_rust_bridge` on the Dart side alone did exactly that: full gate, exit 0, and the app dead on its first frame. A change to `engine/src/api.rs`, to the generated glue, or to the `flutter_rust_bridge` version needs the parity test below on a real runtime before the gate says anything about it.
+The aggregate gate builds the release Rust host library and runs `tool/rules_engine_host_test.dart` on macOS or Linux. That test calls `RustLib.init` through the generated bridge and reuses the device integration test's snapshot and bot-policy parity fixture, so a codegen/runtime/version mismatch fails before app startup. It does not validate Android or iOS packaging, so a change to mobile runner or build integration still needs the parity test below on the affected runtime.
 
 Two things the script list does not tell you:
 
@@ -42,7 +42,7 @@ Connect the iOS device over USB before running it. `flutter test` does not publi
 - `choose_bot_move` returns the move a policy would play, and never applies it.
 
 The bridge passes values, not handles, so no game state lives across the boundary between calls.
-Every snapshot carries a `snapshotHash`, and `state_from_snapshot` in `engine/src/api.rs` rejects any snapshot whose hash disagrees with its value fields.
+Every round and match snapshot carries a `snapshotHash`: `state_from_snapshot` validates the round value fields, while `match_state_from_snapshot` validates the match fields and its inner round.
 That check is what makes it impossible for Dart to fabricate or edit a position, and it is invisible from the Dart side, so a Dart-side "fix" that rebuilds a snapshot by hand fails at the bridge rather than in Flutter.
 
 Stop and reconsider the design if a function like any of these starts appearing in Dart, because each one re-implements a rule that belongs to Rust.
@@ -69,7 +69,7 @@ push resolution does.
 
 The controller enforces invariants that are easy to break during edits.
 
-- `winner == null` if and only if `winReason == null`. This is a bridge schema check rather than game logic, so a snapshot with only one field set is treated as a bridge failure.
+- `roundWinner == null` if and only if `roundWinReason == null`, and the match phase decides whether the round result and `matchWinner` must be present. These are bridge schema checks rather than game logic, so an inconsistent snapshot is treated as a bridge failure.
 - `applyMove` is atomic from the presentation's point of view: the new snapshot is assigned only after `legalMoves` for it also succeeds, so a mid-sequence bridge failure leaves a mutually consistent snapshot and legal-move list.
 - Irreversible moves fire on tap-up, never on tap-down, so a canceled gesture cannot change the round.
 - Legal destination markers paint after pieces, so a legal push destination stays visible even when it is currently occupied.
@@ -87,6 +87,7 @@ Keep CSpell additions scoped to `.cspell/custom-dictionary.txt`, and keep reposi
 
 The MVP is a local best-of-three match on Android and iOS, hot-seat or with a policy holding the second seat.
 Flutter Web is deliberately excluded because the stable `flutter_rust_bridge` Web toolchain boundary was never validated: `flutter_rust_bridge.yaml` sets `web: false`, and adopting a prerelease or patching generated glue to include Web is not an acceptable workaround.
-Flame, Bloc, online PvP, matchmaking, accounts, rankings, sound polish, and complex animations were all removed or deferred on purpose, so do not reintroduce them without an explicit request.
+Flame, Bloc, online PvP, matchmaking, accounts, rankings, and complex animations beyond the existing Rust-authored move replay were removed or deferred on purpose, so do not reintroduce them without an explicit request.
+The current haptic and synthesized sound feedback is intentional; do not expand it into a broader audio or animation system without an explicit request.
 
 Treat board topology and starting layouts as balance configuration rather than invariant game rules, and keep `engine/` free of dependencies beyond `flutter_rust_bridge` unless a change explicitly requires otherwise.
