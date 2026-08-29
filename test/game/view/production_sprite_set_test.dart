@@ -1,3 +1,6 @@
+@Tags(['skip_very_good_optimization'])
+library;
+
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
