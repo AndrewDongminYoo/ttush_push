@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 use engine::api::{
     BotPolicy, GameBoardCell, GameBoardDefinition, GameDirection, GameMatchPhase, GameMove,
     GamePiece, GamePlayer, GameTileKind, GameWinReason, MatchSnapshot, MoveActionKind,
@@ -86,6 +88,15 @@ fn value_api_accepts_an_irregular_board_definition() {
     let snapshot = initial_match_from_definition(definition).unwrap();
 
     assert_eq!(snapshot.round.tiles.len(), 3);
+    assert_eq!(
+        snapshot
+            .round
+            .tiles
+            .iter()
+            .map(|tile| (tile.x, tile.y))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from([(4, 7), (5, 7), (5, 8)]),
+    );
     assert_eq!(
         snapshot.starting_pieces,
         vec![
