@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
@@ -20,11 +21,14 @@ class GamePage extends StatefulWidget {
   const GamePage({
     super.key,
     RulesEngine? rulesEngine,
+    BoardDefinition? boardDefinition,
     this._coachStore,
     this._feedback,
-  }) : _rulesEngine = rulesEngine ?? const FrbRulesEngine();
+  }) : _rulesEngine = rulesEngine ?? const FrbRulesEngine(),
+       _boardDefinition = boardDefinition ?? baselineBoardDefinition;
 
   final RulesEngine _rulesEngine;
+  final BoardDefinition _boardDefinition;
   final FirstPlayCoachStore? _coachStore;
   final RoundFeedback? _feedback;
 
@@ -60,7 +64,10 @@ class _GamePageState extends State<GamePage>
   @override
   void initState() {
     super.initState();
-    _controller = MatchController(widget._rulesEngine)..initialize();
+    _controller = MatchController(
+      widget._rulesEngine,
+      boardDefinition: widget._boardDefinition.rules,
+    )..initialize();
     _coachStore = widget._coachStore;
     unawaited(_loadCoach());
     _replayController = AnimationController(vsync: this)
@@ -127,7 +134,11 @@ class _GamePageState extends State<GamePage>
         backgroundColor: _surfaceColor,
         body: Stack(
           children: [
-            const Positioned.fill(child: _AirRuinsBackground()),
+            Positioned.fill(
+              child: _AirRuinsBackground(
+                assetPath: widget._boardDefinition.backgroundAssetPath,
+              ),
+            ),
             Center(
               child: _controller.status == MatchStatus.initializationError
                   ? _InitialError(
@@ -150,7 +161,11 @@ class _GamePageState extends State<GamePage>
       backgroundColor: _surfaceColor,
       body: Stack(
         children: [
-          const Positioned.fill(child: _AirRuinsBackground()),
+          Positioned.fill(
+            child: _AirRuinsBackground(
+              assetPath: widget._boardDefinition.backgroundAssetPath,
+            ),
+          ),
           if (_announcement case final String announcement)
             KeyedSubtree(
               key: const Key('match-announcement'),
@@ -613,7 +628,9 @@ class _CoachHelp extends StatelessWidget {
 }
 
 class _AirRuinsBackground extends StatelessWidget {
-  const _AirRuinsBackground();
+  const _AirRuinsBackground({required this.assetPath});
+
+  final String assetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -625,7 +642,7 @@ class _AirRuinsBackground extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/images/air_ruins_twilight.png',
+            assetPath,
             key: const Key('air-ruins-background'),
             fit: BoxFit.cover,
             alignment: alignment,

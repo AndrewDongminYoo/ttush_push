@@ -16,6 +16,18 @@ void main() {
 
     expectRulesEngineParity(const FrbRulesEngine());
   });
+
+  test(
+    'accepts an irregular board definition through the host bridge',
+    () async {
+      await RustLib.init(
+        externalLibrary: ExternalLibrary.open(_hostLibraryPath),
+      );
+      addTearDown(RustLib.dispose);
+
+      expectIrregularBoardDefinition(const FrbRulesEngine());
+    },
+  );
 }
 
 String get _hostLibraryPath {

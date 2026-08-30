@@ -1,3 +1,4 @@
+import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/src/rust/api.dart' as rust;
 
@@ -30,9 +31,11 @@ enum Opponent {
 /// counts nothing: the score, the phase, and who starts the next round all
 /// arrive from Rust inside the snapshot.
 final class MatchController {
-  MatchController(this._engine);
+  MatchController(this._engine, {rust.GameBoardDefinition? boardDefinition})
+    : _boardDefinition = boardDefinition ?? baselineBoardDefinition.rules;
 
   final RulesEngine _engine;
+  final rust.GameBoardDefinition _boardDefinition;
   MatchSnapshot? _snapshot;
   List<GameMove> _legalMoves = const [];
   int? _selectedPieceId;
@@ -142,7 +145,7 @@ final class MatchController {
     _hasAppliedMove = false;
 
     try {
-      _adopt(_engine.initialMatch());
+      _adopt(_engine.initialMatch(_boardDefinition));
       _status = MatchStatus.ready;
       _retryAction = null;
     } on Object catch (error) {
@@ -178,7 +181,7 @@ final class MatchController {
     }
 
     try {
-      _adopt(_engine.initialMatch());
+      _adopt(_engine.initialMatch(_boardDefinition));
       _selectedPieceId = null;
       _error = null;
       _retryAction = null;

@@ -129,12 +129,14 @@ final class FakeRulesEngine implements RulesEngine {
 
   final List<GameMove> appliedMoves = [];
   final List<BotPolicy> botRequests = [];
+  final List<GameBoardDefinition> initialDefinitions = [];
   int initialCount = 0;
   int advanceCount = 0;
 
   @override
-  MatchSnapshot initialMatch() {
+  MatchSnapshot initialMatch(GameBoardDefinition boardDefinition) {
     initialCount++;
+    initialDefinitions.add(boardDefinition);
     return _withFixtureTiles(_take(_initial, 'initial match'));
   }
 

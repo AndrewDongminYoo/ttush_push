@@ -1,7 +1,10 @@
+use std::collections::BTreeSet;
+
 use engine::api::{
-    BotPolicy, GameDirection, GameMatchPhase, GameMove, GamePiece, GamePlayer, GameTileKind,
-    GameWinReason, MatchSnapshot, MoveActionKind, PieceDisplacement, PieceTravel, TileTransition,
-    advance_round, choose_bot_move, initial_match, match_apply_move, match_legal_moves,
+    BotPolicy, GameBoardCell, GameBoardDefinition, GameDirection, GameMatchPhase, GameMove,
+    GamePiece, GamePlayer, GameTileKind, GameWinReason, MatchSnapshot, MoveActionKind,
+    PieceDisplacement, PieceTravel, TileTransition, advance_round, choose_bot_move,
+    initial_match as initial_match_from_definition, match_apply_move, match_legal_moves,
 };
 
 fn game_move(piece_id: u8, direction: GameDirection) -> GameMove {
@@ -17,6 +20,175 @@ fn play(snapshot: MatchSnapshot, moves: &[(u8, GameDirection)]) -> MatchSnapshot
             .unwrap()
             .snapshot
     })
+}
+
+fn baseline_definition() -> GameBoardDefinition {
+    GameBoardDefinition {
+        playable_cells: (0..5)
+            .flat_map(|x| (0..5).map(move |y| GameBoardCell { x, y }))
+            .collect(),
+        starting_pieces: vec![
+            GamePiece {
+                id: 0,
+                owner: GamePlayer::First,
+                x: 1,
+                y: 0,
+            },
+            GamePiece {
+                id: 1,
+                owner: GamePlayer::First,
+                x: 3,
+                y: 0,
+            },
+            GamePiece {
+                id: 2,
+                owner: GamePlayer::Second,
+                x: 1,
+                y: 4,
+            },
+            GamePiece {
+                id: 3,
+                owner: GamePlayer::Second,
+                x: 3,
+                y: 4,
+            },
+        ],
+    }
+}
+
+fn initial_match() -> MatchSnapshot {
+    initial_match_from_definition(baseline_definition())
+        .expect("the baseline board definition must produce a valid match")
+}
+
+#[test]
+fn value_api_accepts_an_irregular_board_definition() {
+    let definition = GameBoardDefinition {
+        playable_cells: vec![
+            GameBoardCell { x: 4, y: 7 },
+            GameBoardCell { x: 5, y: 7 },
+            GameBoardCell { x: 5, y: 8 },
+        ],
+        starting_pieces: vec![
+            GamePiece {
+                id: 7,
+                owner: GamePlayer::First,
+                x: 4,
+                y: 7,
+            },
+            GamePiece {
+                id: 9,
+                owner: GamePlayer::Second,
+                x: 5,
+                y: 8,
+            },
+        ],
+    };
+
+    let snapshot = initial_match_from_definition(definition).unwrap();
+
+    assert_eq!(snapshot.round.tiles.len(), 3);
+    assert_eq!(
+        snapshot
+            .round
+            .tiles
+            .iter()
+            .map(|tile| (tile.x, tile.y))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from([(4, 7), (5, 7), (5, 8)]),
+    );
+    assert_eq!(
+        snapshot.starting_pieces,
+        vec![
+            GamePiece {
+                id: 7,
+                owner: GamePlayer::First,
+                x: 4,
+                y: 7,
+            },
+            GamePiece {
+                id: 9,
+                owner: GamePlayer::Second,
+                x: 5,
+                y: 8,
+            },
+        ],
+    );
+}
+
+#[test]
+fn value_api_rejects_invalid_board_definitions() {
+    assert_eq!(
+        initial_match_from_definition(GameBoardDefinition {
+            playable_cells: vec![GameBoardCell { x: 1, y: 1 }, GameBoardCell { x: 1, y: 1 },],
+            starting_pieces: vec![],
+        })
+        .unwrap_err(),
+        "invalid board definition: duplicate playable cell",
+    );
+    assert_eq!(
+        initial_match_from_definition(GameBoardDefinition {
+            playable_cells: vec![],
+            starting_pieces: vec![],
+        })
+        .unwrap_err(),
+        "invalid board definition: EmptyBoard",
+    );
+    assert_eq!(
+        initial_match_from_definition(GameBoardDefinition {
+            playable_cells: vec![GameBoardCell { x: 1, y: 1 }],
+            starting_pieces: vec![
+                GamePiece {
+                    id: 7,
+                    owner: GamePlayer::First,
+                    x: 1,
+                    y: 1,
+                },
+                GamePiece {
+                    id: 8,
+                    owner: GamePlayer::Second,
+                    x: 1,
+                    y: 1,
+                },
+            ],
+        })
+        .unwrap_err(),
+        "invalid board definition: OverlappingPieces",
+    );
+    assert_eq!(
+        initial_match_from_definition(GameBoardDefinition {
+            playable_cells: vec![GameBoardCell { x: 1, y: 1 }, GameBoardCell { x: 2, y: 1 },],
+            starting_pieces: vec![
+                GamePiece {
+                    id: 7,
+                    owner: GamePlayer::First,
+                    x: 1,
+                    y: 1,
+                },
+                GamePiece {
+                    id: 7,
+                    owner: GamePlayer::Second,
+                    x: 2,
+                    y: 1,
+                },
+            ],
+        })
+        .unwrap_err(),
+        "invalid board definition: DuplicatePieceId(PieceId(7))",
+    );
+    assert_eq!(
+        initial_match_from_definition(GameBoardDefinition {
+            playable_cells: vec![GameBoardCell { x: 1, y: 1 }],
+            starting_pieces: vec![GamePiece {
+                id: 7,
+                owner: GamePlayer::First,
+                x: 2,
+                y: 1,
+            }],
+        })
+        .unwrap_err(),
+        "invalid board definition: PieceOutsideBoard(PieceId(7))",
+    );
 }
 
 #[test]

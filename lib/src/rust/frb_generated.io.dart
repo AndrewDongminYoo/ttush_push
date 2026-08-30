@@ -30,6 +30,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GameBoardDefinition dco_decode_box_autoadd_game_board_definition(dynamic raw);
+
+  @protected
   GameDirection dco_decode_box_autoadd_game_direction(dynamic raw);
 
   @protected
@@ -52,6 +55,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CounterPushRestriction dco_decode_counter_push_restriction(dynamic raw);
+
+  @protected
+  GameBoardCell dco_decode_game_board_cell(dynamic raw);
+
+  @protected
+  GameBoardDefinition dco_decode_game_board_definition(dynamic raw);
 
   @protected
   GameDirection dco_decode_game_direction(dynamic raw);
@@ -82,6 +91,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int dco_decode_i_32(dynamic raw);
+
+  @protected
+  List<GameBoardCell> dco_decode_list_game_board_cell(dynamic raw);
 
   @protected
   List<GameMove> dco_decode_list_game_move(dynamic raw);
@@ -143,9 +155,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_u_8(dynamic raw);
 
   @protected
-  void dco_decode_unit(dynamic raw);
-
-  @protected
   String sse_decode_String(SseDeserializer deserializer);
 
   @protected
@@ -153,6 +162,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CounterPushRestriction sse_decode_box_autoadd_counter_push_restriction(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GameBoardDefinition sse_decode_box_autoadd_game_board_definition(
     SseDeserializer deserializer,
   );
 
@@ -191,6 +205,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GameBoardCell sse_decode_game_board_cell(SseDeserializer deserializer);
+
+  @protected
+  GameBoardDefinition sse_decode_game_board_definition(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GameDirection sse_decode_game_direction(SseDeserializer deserializer);
 
   @protected
@@ -219,6 +241,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int sse_decode_i_32(SseDeserializer deserializer);
+
+  @protected
+  List<GameBoardCell> sse_decode_list_game_board_cell(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<GameMove> sse_decode_list_game_move(SseDeserializer deserializer);
@@ -288,9 +315,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_u_8(SseDeserializer deserializer);
 
   @protected
-  void sse_decode_unit(SseDeserializer deserializer);
-
-  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
@@ -302,6 +326,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_counter_push_restriction(
     CounterPushRestriction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_game_board_definition(
+    GameBoardDefinition self,
     SseSerializer serializer,
   );
 
@@ -351,6 +381,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_game_board_cell(GameBoardCell self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_game_board_definition(
+    GameBoardDefinition self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_game_direction(GameDirection self, SseSerializer serializer);
 
   @protected
@@ -382,6 +421,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_game_board_cell(
+    List<GameBoardCell> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_game_move(List<GameMove> self, SseSerializer serializer);
@@ -475,9 +520,6 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);
-
-  @protected
-  void sse_encode_unit(void self, SseSerializer serializer);
 
   @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
