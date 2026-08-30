@@ -56,6 +56,18 @@ pub struct GamePiece {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GameBoardCell {
+    pub x: u8,
+    pub y: u8,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GameBoardDefinition {
+    pub playable_cells: Vec<GameBoardCell>,
+    pub starting_pieces: Vec<GamePiece>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GameMove {
     pub piece_id: u8,
     pub direction: GameDirection,
@@ -151,11 +163,11 @@ pub struct MoveResolution {
 }
 
 #[frb(sync)]
-pub fn initial_match() -> MatchSnapshot {
-    match_snapshot_from_state(
-        &MatchState::new(BoardConfig::baseline(), Player::First)
-            .expect("the baseline board configuration must produce a valid match"),
-    )
+pub fn initial_match(board_definition: GameBoardDefinition) -> Result<MatchSnapshot, String> {
+    let board = board_config_from_definition(board_definition)?;
+    let state = MatchState::new(board, Player::First).map_err(board_definition_error)?;
+
+    Ok(match_snapshot_from_state(&state))
 }
 
 #[frb(sync)]
@@ -229,6 +241,31 @@ pub fn choose_bot_move(
 
 fn seed_from_hash(hash: &str) -> u64 {
     u64::from_str_radix(hash, 16).unwrap_or(SNAPSHOT_HASH_OFFSET_BASIS)
+}
+
+fn board_config_from_definition(definition: GameBoardDefinition) -> Result<BoardConfig, String> {
+    let playable_cell_count = definition.playable_cells.len();
+    let playable_cells = definition
+        .playable_cells
+        .into_iter()
+        .map(|cell| Position::new(cell.x, cell.y))
+        .collect::<BTreeSet<_>>();
+    if playable_cells.len() != playable_cell_count {
+        return Err("invalid board definition: duplicate playable cell".to_owned());
+    }
+    let initial_pieces = definition
+        .starting_pieces
+        .into_iter()
+        .map(|piece| {
+            Piece::new(
+                PieceId(piece.id),
+                piece.owner.into(),
+                Position::new(piece.x, piece.y),
+            )
+        })
+        .collect();
+
+    BoardConfig::new(playable_cells, initial_pieces).map_err(board_definition_error)
 }
 
 fn match_snapshot_from_state(state: &MatchState) -> MatchSnapshot {
@@ -569,6 +606,10 @@ fn move_resolution_from_engine(
 
 fn state_error(error: StateError) -> String {
     format!("invalid snapshot: {error:?}")
+}
+
+fn board_definition_error(error: StateError) -> String {
+    format!("invalid board definition: {error:?}")
 }
 
 fn illegal_move_error(error: IllegalMove) -> String {

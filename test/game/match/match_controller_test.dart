@@ -48,6 +48,25 @@ void main() {
       expect(controller.isMatchOver, isFalse);
     });
 
+    test('forwards its board definition to RulesEngine', () {
+      const definition = GameBoardDefinition(
+        playableCells: [
+          GameBoardCell(x: 4, y: 7),
+          GameBoardCell(x: 5, y: 7),
+          GameBoardCell(x: 5, y: 8),
+        ],
+        startingPieces: [
+          GamePiece(id: 7, owner: GamePlayer.first, x: 4, y: 7),
+          GamePiece(id: 9, owner: GamePlayer.second, x: 5, y: 8),
+        ],
+      );
+      final engine = FakeRulesEngine.playing(initial: matchOf(round()));
+
+      MatchController(engine, boardDefinition: definition).initialize();
+
+      expect(engine.initialDefinitions, [definition]);
+    });
+
     test('rejects a snapshot with only one terminal field', () {
       final controller = MatchController(
         FakeRulesEngine(
@@ -660,6 +679,28 @@ void main() {
 
       expect(controller.status, MatchStatus.ready);
       expect(controller.snapshot, ready);
+    });
+
+    test('retries initialization with the same board definition', () {
+      const definition = GameBoardDefinition(
+        playableCells: [
+          GameBoardCell(x: 4, y: 7),
+          GameBoardCell(x: 5, y: 7),
+          GameBoardCell(x: 5, y: 8),
+        ],
+        startingPieces: [
+          GamePiece(id: 7, owner: GamePlayer.first, x: 4, y: 7),
+          GamePiece(id: 9, owner: GamePlayer.second, x: 5, y: 8),
+        ],
+      );
+      final engine = FakeRulesEngine(
+        initial: [StateError('bridge unavailable'), matchOf(round())],
+      );
+      MatchController(engine, boardDefinition: definition)
+        ..initialize()
+        ..retry();
+
+      expect(engine.initialDefinitions, [same(definition), same(definition)]);
     });
 
     test('keeps the finished match visible when restart fails', () {

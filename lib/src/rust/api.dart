@@ -6,10 +6,11 @@
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `game_move_from_engine`, `hash_byte`, `hash_bytes`, `illegal_move_error`, `match_hash`, `match_snapshot_from_state`, `match_state_from_snapshot`, `move_resolution_from_engine`, `move_to_engine`, `player_byte`, `seed_from_hash`, `snapshot_from_state`, `snapshot_hash`, `state_error`, `state_from_snapshot`, `tile_byte`, `win_reason_byte`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
+// These functions are ignored because they are not marked as `pub`: `board_config_from_definition`, `board_definition_error`, `game_move_from_engine`, `hash_byte`, `hash_bytes`, `illegal_move_error`, `match_hash`, `match_snapshot_from_state`, `match_state_from_snapshot`, `move_resolution_from_engine`, `move_to_engine`, `player_byte`, `seed_from_hash`, `snapshot_from_state`, `snapshot_hash`, `state_error`, `state_from_snapshot`, `tile_byte`, `win_reason_byte`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
 
-MatchSnapshot initialMatch() => RustLib.instance.api.crateApiInitialMatch();
+MatchSnapshot initialMatch({required GameBoardDefinition boardDefinition}) =>
+    RustLib.instance.api.crateApiInitialMatch(boardDefinition: boardDefinition);
 
 List<GameMove> matchLegalMoves({required MatchSnapshot snapshot}) =>
     RustLib.instance.api.crateApiMatchLegalMoves(snapshot: snapshot);
@@ -65,6 +66,48 @@ class CounterPushRestriction {
           runtimeType == other.runtimeType &&
           pusherPieceId == other.pusherPieceId &&
           pushedPieceId == other.pushedPieceId;
+}
+
+class GameBoardCell {
+  final int x;
+  final int y;
+
+  const GameBoardCell({
+    required this.x,
+    required this.y,
+  });
+
+  @override
+  int get hashCode => x.hashCode ^ y.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GameBoardCell &&
+          runtimeType == other.runtimeType &&
+          x == other.x &&
+          y == other.y;
+}
+
+class GameBoardDefinition {
+  final List<GameBoardCell> playableCells;
+  final List<GamePiece> startingPieces;
+
+  const GameBoardDefinition({
+    required this.playableCells,
+    required this.startingPieces,
+  });
+
+  @override
+  int get hashCode => playableCells.hashCode ^ startingPieces.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GameBoardDefinition &&
+          runtimeType == other.runtimeType &&
+          playableCells == other.playableCells &&
+          startingPieces == other.startingPieces;
 }
 
 enum GameDirection {

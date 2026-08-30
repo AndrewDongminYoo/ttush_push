@@ -129,9 +129,11 @@ fn wire__crate__api__initial_match_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_board_definition =
+                <crate::api::GameBoardDefinition>::sse_decode(&mut deserializer);
             deserializer.end();
-            transform_result_sse::<_, ()>((move || {
-                let output_ok = Ok::<_, ()>(crate::api::initial_match())?;
+            transform_result_sse::<_, String>((move || {
+                let output_ok = crate::api::initial_match(api_board_definition)?;
                 std::result::Result::Ok(output_ok)
             })())
         },
@@ -230,6 +232,27 @@ impl SseDecode for crate::api::CounterPushRestriction {
         return crate::api::CounterPushRestriction {
             pusher_piece_id: var_pusherPieceId,
             pushed_piece_id: var_pushedPieceId,
+        };
+    }
+}
+
+impl SseDecode for crate::api::GameBoardCell {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_x = <u8>::sse_decode(deserializer);
+        let mut var_y = <u8>::sse_decode(deserializer);
+        return crate::api::GameBoardCell { x: var_x, y: var_y };
+    }
+}
+
+impl SseDecode for crate::api::GameBoardDefinition {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_playableCells = <Vec<crate::api::GameBoardCell>>::sse_decode(deserializer);
+        let mut var_startingPieces = <Vec<crate::api::GamePiece>>::sse_decode(deserializer);
+        return crate::api::GameBoardDefinition {
+            playable_cells: var_playableCells,
+            starting_pieces: var_startingPieces,
         };
     }
 }
@@ -367,6 +390,18 @@ impl SseDecode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         deserializer.cursor.read_i32::<NativeEndian>().unwrap()
+    }
+}
+
+impl SseDecode for Vec<crate::api::GameBoardCell> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::GameBoardCell>::sse_decode(deserializer));
+        }
+        return ans_;
     }
 }
 
@@ -624,11 +659,6 @@ impl SseDecode for u8 {
     }
 }
 
-impl SseDecode for () {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {}
-}
-
 impl SseDecode for bool {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -703,6 +733,43 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::CounterPushRestriction>
     for crate::api::CounterPushRestriction
 {
     fn into_into_dart(self) -> crate::api::CounterPushRestriction {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::GameBoardCell {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.x.into_into_dart().into_dart(),
+            self.y.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for crate::api::GameBoardCell {}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::GameBoardCell> for crate::api::GameBoardCell {
+    fn into_into_dart(self) -> crate::api::GameBoardCell {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::GameBoardDefinition {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.playable_cells.into_into_dart().into_dart(),
+            self.starting_pieces.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::GameBoardDefinition
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::GameBoardDefinition>
+    for crate::api::GameBoardDefinition
+{
+    fn into_into_dart(self) -> crate::api::GameBoardDefinition {
         self
     }
 }
@@ -1027,6 +1094,22 @@ impl SseEncode for crate::api::CounterPushRestriction {
     }
 }
 
+impl SseEncode for crate::api::GameBoardCell {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u8>::sse_encode(self.x, serializer);
+        <u8>::sse_encode(self.y, serializer);
+    }
+}
+
+impl SseEncode for crate::api::GameBoardDefinition {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::api::GameBoardCell>>::sse_encode(self.playable_cells, serializer);
+        <Vec<crate::api::GamePiece>>::sse_encode(self.starting_pieces, serializer);
+    }
+}
+
 impl SseEncode for crate::api::GameDirection {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -1155,6 +1238,16 @@ impl SseEncode for i32 {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_i32::<NativeEndian>(self).unwrap();
+    }
+}
+
+impl SseEncode for Vec<crate::api::GameBoardCell> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::GameBoardCell>::sse_encode(item, serializer);
+        }
     }
 }
 
@@ -1355,11 +1448,6 @@ impl SseEncode for u8 {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         serializer.cursor.write_u8(self).unwrap();
     }
-}
-
-impl SseEncode for () {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {}
 }
 
 impl SseEncode for bool {

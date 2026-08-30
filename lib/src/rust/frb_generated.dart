@@ -87,7 +87,9 @@ abstract class RustLibApi extends BaseApi {
     required BotPolicy policy,
   });
 
-  MatchSnapshot crateApiInitialMatch();
+  MatchSnapshot crateApiInitialMatch({
+    required GameBoardDefinition boardDefinition,
+  });
 
   MoveResult crateApiMatchApplyMove({
     required MatchSnapshot snapshot,
@@ -160,19 +162,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  MatchSnapshot crateApiInitialMatch() {
+  MatchSnapshot crateApiInitialMatch({
+    required GameBoardDefinition boardDefinition,
+  }) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_game_board_definition(
+            boardDefinition,
+            serializer,
+          );
           return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 3)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_match_snapshot,
-          decodeErrorData: null,
+          decodeErrorData: sse_decode_String,
         ),
         constMeta: kCrateApiInitialMatchConstMeta,
-        argValues: [],
+        argValues: [boardDefinition],
         apiImpl: this,
       ),
     );
@@ -180,7 +188,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiInitialMatchConstMeta => const TaskConstMeta(
     debugName: "initial_match",
-    argNames: [],
+    argNames: ["boardDefinition"],
   );
 
   @override
@@ -258,6 +266,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GameBoardDefinition dco_decode_box_autoadd_game_board_definition(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_game_board_definition(raw);
+  }
+
+  @protected
   GameDirection dco_decode_box_autoadd_game_direction(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_game_direction(raw);
@@ -308,6 +324,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return CounterPushRestriction(
       pusherPieceId: dco_decode_u_8(arr[0]),
       pushedPieceId: dco_decode_u_8(arr[1]),
+    );
+  }
+
+  @protected
+  GameBoardCell dco_decode_game_board_cell(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return GameBoardCell(
+      x: dco_decode_u_8(arr[0]),
+      y: dco_decode_u_8(arr[1]),
+    );
+  }
+
+  @protected
+  GameBoardDefinition dco_decode_game_board_definition(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return GameBoardDefinition(
+      playableCells: dco_decode_list_game_board_cell(arr[0]),
+      startingPieces: dco_decode_list_game_piece(arr[1]),
     );
   }
 
@@ -401,6 +441,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int dco_decode_i_32(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as int;
+  }
+
+  @protected
+  List<GameBoardCell> dco_decode_list_game_board_cell(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_game_board_cell).toList();
   }
 
   @protected
@@ -578,12 +624,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void dco_decode_unit(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return;
-  }
-
-  @protected
   String sse_decode_String(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_list_prim_u_8_strict(deserializer);
@@ -603,6 +643,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_counter_push_restriction(deserializer));
+  }
+
+  @protected
+  GameBoardDefinition sse_decode_box_autoadd_game_board_definition(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_game_board_definition(deserializer));
   }
 
   @protected
@@ -665,6 +713,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return CounterPushRestriction(
       pusherPieceId: var_pusherPieceId,
       pushedPieceId: var_pushedPieceId,
+    );
+  }
+
+  @protected
+  GameBoardCell sse_decode_game_board_cell(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_x = sse_decode_u_8(deserializer);
+    var var_y = sse_decode_u_8(deserializer);
+    return GameBoardCell(x: var_x, y: var_y);
+  }
+
+  @protected
+  GameBoardDefinition sse_decode_game_board_definition(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_playableCells = sse_decode_list_game_board_cell(deserializer);
+    var var_startingPieces = sse_decode_list_game_piece(deserializer);
+    return GameBoardDefinition(
+      playableCells: var_playableCells,
+      startingPieces: var_startingPieces,
     );
   }
 
@@ -759,6 +828,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int sse_decode_i_32(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getInt32();
+  }
+
+  @protected
+  List<GameBoardCell> sse_decode_list_game_board_cell(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <GameBoardCell>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_game_board_cell(deserializer));
+    }
+    return ans_;
   }
 
   @protected
@@ -1007,11 +1090,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  void sse_decode_unit(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-  }
-
-  @protected
   bool sse_decode_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getUint8() != 0;
@@ -1036,6 +1114,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_counter_push_restriction(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_game_board_definition(
+    GameBoardDefinition self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_game_board_definition(self, serializer);
   }
 
   @protected
@@ -1106,6 +1193,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_u_8(self.pusherPieceId, serializer);
     sse_encode_u_8(self.pushedPieceId, serializer);
+  }
+
+  @protected
+  void sse_encode_game_board_cell(
+    GameBoardCell self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_8(self.x, serializer);
+    sse_encode_u_8(self.y, serializer);
+  }
+
+  @protected
+  void sse_encode_game_board_definition(
+    GameBoardDefinition self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_game_board_cell(self.playableCells, serializer);
+    sse_encode_list_game_piece(self.startingPieces, serializer);
   }
 
   @protected
@@ -1187,6 +1294,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_i_32(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putInt32(self);
+  }
+
+  @protected
+  void sse_encode_list_game_board_cell(
+    List<GameBoardCell> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_game_board_cell(item, serializer);
+    }
   }
 
   @protected
@@ -1405,11 +1524,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_u_8(int self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putUint8(self);
-  }
-
-  @protected
-  void sse_encode_unit(void self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
   }
 
   @protected

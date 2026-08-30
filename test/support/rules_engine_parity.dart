@@ -1,9 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
 void expectRulesEngineParity(RulesEngine rulesEngine) {
-  var match = rulesEngine.initialMatch();
+  var match = rulesEngine.initialMatch(baselineBoardDefinition.rules);
   const fixtureMoves = [
     GameMove(pieceId: 0, direction: GameDirection.down),
     GameMove(pieceId: 2, direction: GameDirection.up),
@@ -68,4 +69,32 @@ void expectRulesEngineParity(RulesEngine rulesEngine) {
       reason: '${entry.key} chose a different move on this runtime',
     );
   }
+}
+
+const irregularBoardRules = GameBoardDefinition(
+  playableCells: [
+    GameBoardCell(x: 4, y: 7),
+    GameBoardCell(x: 5, y: 7),
+    GameBoardCell(x: 5, y: 8),
+  ],
+  startingPieces: [
+    GamePiece(id: 7, owner: GamePlayer.first, x: 4, y: 7),
+    GamePiece(id: 9, owner: GamePlayer.second, x: 5, y: 8),
+  ],
+);
+
+void expectIrregularBoardDefinition(RulesEngine rulesEngine) {
+  final match = rulesEngine.initialMatch(irregularBoardRules);
+
+  expect(
+    match.round.tiles.map((tile) => (tile.x, tile.y)),
+    unorderedEquals(const [(4, 7), (5, 7), (5, 8)]),
+  );
+  expect(
+    match.startingPieces,
+    const [
+      GamePiece(id: 7, owner: GamePlayer.first, x: 4, y: 7),
+      GamePiece(id: 9, owner: GamePlayer.second, x: 5, y: 8),
+    ],
+  );
 }

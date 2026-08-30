@@ -3,6 +3,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/view/game_page.dart';
@@ -98,6 +99,54 @@ void main() {
     );
 
     expect(find.byKey(const Key('air-ruins-background')), findsOneWidget);
+  });
+
+  testWidgets('uses its BoardDefinition for rules and background', (
+    tester,
+  ) async {
+    const definition = BoardDefinition(
+      backgroundAssetPath: 'assets/images/sprites/foothold_hole.png',
+      rules: GameBoardDefinition(
+        playableCells: [
+          GameBoardCell(x: 4, y: 7),
+          GameBoardCell(x: 5, y: 7),
+          GameBoardCell(x: 5, y: 8),
+        ],
+        startingPieces: [
+          GamePiece(id: 7, owner: GamePlayer.first, x: 4, y: 7),
+          GamePiece(id: 9, owner: GamePlayer.second, x: 5, y: 8),
+        ],
+      ),
+    );
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 4, y: 7, kind: GameTileKind.normal),
+        GameTile(x: 5, y: 7, kind: GameTileKind.normal),
+        GameTile(x: 5, y: 8, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 7, owner: GamePlayer.first, x: 4, y: 7),
+        GamePiece(id: 9, owner: GamePlayer.second, x: 5, y: 8),
+      ],
+      snapshotHash: 'configured-board',
+    );
+    final engine = FakeRulesEngine.playing(initial: matchOf(snapshot));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(boardDefinition: definition, rulesEngine: engine),
+      ),
+    );
+
+    expect(engine.initialDefinitions, [definition.rules]);
+    final image = tester.widget<Image>(
+      find.byKey(const Key('air-ruins-background')),
+    );
+    expect(
+      (image.image as AssetImage).assetName,
+      definition.backgroundAssetPath,
+    );
   });
 
   testWidgets('keeps ruins inside the portrait background crop', (

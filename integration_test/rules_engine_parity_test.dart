@@ -16,4 +16,11 @@ void main() {
 
     expectRulesEngineParity(const FrbRulesEngine());
   });
+
+  testWidgets('RulesEngine returns an irregular board definition', (_) async {
+    await RustLib.init();
+    addTearDown(RustLib.dispose);
+
+    expectIrregularBoardDefinition(const FrbRulesEngine());
+  });
 }
