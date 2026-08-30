@@ -60,6 +60,8 @@ Rust converts that input to the existing `BoardConfig`, validates it, and return
 - [x] **Step 1: Write a failing irregular-definition bridge test.**
 
 ```rust
+use std::collections::BTreeSet;
+
 let definition = GameBoardDefinition {
     playable_cells: vec![
         GameBoardCell { x: 4, y: 7 },
@@ -75,8 +77,16 @@ let definition = GameBoardDefinition {
 let snapshot = initial_match(definition).unwrap();
 
 assert_eq!(snapshot.round.tiles.len(), 3);
+assert_eq!(
+    snapshot
+        .round
+        .tiles
+        .iter()
+        .map(|tile| (tile.x, tile.y))
+        .collect::<BTreeSet<_>>(),
+    BTreeSet::from([(4, 7), (5, 7), (5, 8)]),
+);
 assert_eq!(snapshot.starting_pieces.len(), 2);
-assert_eq!(snapshot.round.tiles[0].x, 4);
 ```
 
 - [x] **Step 2: Run the bridge API test and confirm the expected failure.**

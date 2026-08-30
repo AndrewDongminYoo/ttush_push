@@ -29,11 +29,15 @@ Recommended Answer:
 - Keep the existing baseline board and background behavior.
 - Do not add a JSON parser, a board picker, a new package, or persisted board selection.
 
-Answer: "좋습니다. 앞으로 2시간 동안 우선순위를 차례대로 진행해주세요. 스펙과 계획은 어드바이저와 오라클을 통해 협의하세요."
+Answer: The operator did not select a configuration format directly.
+
+Operator instruction: "좋습니다. 앞으로 2시간 동안 우선순위를 차례대로 진행해주세요. 스펙과 계획은 어드바이저와 오라클을 통해 협의하세요."
 
 Decision: Use one built-in typed BoardDefinition for this milestone.
 
 Reason: One board exists today. A runtime-loaded format would add parsing, startup, and validation behavior without a current product need.
+
+Source: Advisor and Oracle consultation on 2026-08-30, under the operator instruction above.
 
 ### L3
 
