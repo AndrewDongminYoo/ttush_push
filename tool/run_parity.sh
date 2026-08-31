@@ -22,6 +22,42 @@ readonly project_root
 
 devices=()
 
+# `flutter test -d` resolves the Android SDK from Flutter's own configuration,
+# not from PATH, and an Android Studio install routinely leaves platform-tools
+# off PATH. Finding no adb there would make this script report SKIPPED with an
+# emulator running, which is the one thing it exists not to do.
+# Each helper prints a path or nothing, and never fails: an exit status here
+# would have to be read in an `if`, which switches `set -e` off inside it.
+adb_under() {
+	if [[ -n ${1} && -x ${1}/platform-tools/adb ]]; then
+		printf '%s\n' "${1}/platform-tools/adb"
+	fi
+}
+
+resolve_adb() {
+	if command -v adb >/dev/null 2>&1; then
+		command -v adb
+		return
+	fi
+
+	local root found
+	for root in "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"; do
+		found="$(adb_under "${root}")"
+		if [[ -n ${found} ]]; then
+			printf '%s\n' "${found}"
+			return
+		fi
+	done
+
+	# Asked last because it costs a Flutter start-up. It reports the SDK
+	# Flutter auto-detected as well as one set through `flutter config`, so it
+	# subsumes the default install locations.
+	local listed configured
+	listed="$(flutter config --list 2>/dev/null || true)"
+	configured="$(sed -n 's/^[[:space:]]*android-sdk:[[:space:]]*//p' <<<"${listed}")"
+	adb_under "${configured}"
+}
+
 collect() {
 	# A here-string always yields one line, so an empty list would otherwise
 	# enter the loop once with an empty value and fail under `set -e`.
@@ -37,12 +73,17 @@ if command -v xcrun >/dev/null 2>&1; then
 	simulators="$(xcrun simctl list devices booted 2>/dev/null || true)"
 	booted_udids="$(sed -n 's/.*(\([0-9A-Fa-f-]\{36\}\)) (Booted).*/\1/p' <<<"${simulators}")"
 	collect "${booted_udids}"
+else
+	echo "parity: xcrun not found, so no iOS simulator was inspected." >&2
 fi
 
-if command -v adb >/dev/null 2>&1; then
-	attached="$(adb devices 2>/dev/null || true)"
+adb_bin="$(resolve_adb)"
+if [[ -n ${adb_bin} ]]; then
+	attached="$("${adb_bin}" devices 2>/dev/null || true)"
 	booted_serials="$(awk '$2 == "device" && $1 ~ /^emulator-/ { print $1 }' <<<"${attached}")"
 	collect "${booted_serials}"
+else
+	echo "parity: adb not found, so no Android emulator was inspected." >&2
 fi
 
 if [[ ${#devices[@]} -eq 0 ]]; then
