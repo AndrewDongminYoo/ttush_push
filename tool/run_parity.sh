@@ -74,7 +74,14 @@ if command -v xcrun >/dev/null 2>&1; then
 	# device, and Flutter discovers only iOS ones, so a booted watchOS or
 	# visionOS device would otherwise be handed to `flutter test -d` and fail
 	# the gate on a runtime nobody asked it to cover.
-	simulators="$(xcrun simctl list devices booted iOS 2>/dev/null || true)"
+	# A failed query is not an empty one. CoreSimulator wedges often enough
+	# that swallowing the error here would report SKIPPED with a simulator
+	# running, which is the false claim this script exists to prevent.
+	if ! simulators="$(xcrun simctl list devices booted iOS 2>&1)"; then
+		echo "parity: FAILED, could not list booted iOS simulators:" >&2
+		echo "${simulators}" >&2
+		exit 1
+	fi
 	booted_udids="$(sed -n 's/.*(\([0-9A-Fa-f-]\{36\}\)) (Booted).*/\1/p' <<<"${simulators}")"
 	collect "${booted_udids}"
 else
@@ -83,7 +90,13 @@ fi
 
 adb_bin="$(resolve_adb)"
 if [[ -n ${adb_bin} ]]; then
-	attached="$("${adb_bin}" devices 2>/dev/null || true)"
+	# Same reasoning: an adb that was found but cannot answer is an inspection
+	# failure, not evidence that no emulator is running.
+	if ! attached="$("${adb_bin}" devices 2>&1)"; then
+		echo "parity: FAILED, ${adb_bin} could not list devices:" >&2
+		echo "${attached}" >&2
+		exit 1
+	fi
 	booted_serials="$(awk '$2 == "device" && $1 ~ /^emulator-/ { print $1 }' <<<"${attached}")"
 	collect "${booted_serials}"
 else

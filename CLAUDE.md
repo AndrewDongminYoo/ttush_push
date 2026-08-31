@@ -16,6 +16,8 @@ The aggregate gate builds the release Rust host library and runs `tool/rules_eng
 
 The gate's last step, `merry run parity`, is what covers packaging, and it covers it only opportunistically: it runs the integration test on every simulator or emulator that is **already** running and skips when none is, because booting one costs more than a pre-commit gate may. So a green gate says nothing about native packaging on its own. Read the step's own last line, which is either `parity: covered N runtime(s)` or `parity: SKIPPED`, and start a runtime and re-run after any change to mobile runner or build integration.
 
+A skip means nothing was running, never that the step could not tell. A device query that fails — a wedged CoreSimulator, an adb that cannot start its daemon — fails the step instead of skipping it, because a discovery failure cannot distinguish an idle machine from a running one.
+
 Two things the script list does not tell you:
 
 - `merry run format` rewrites Dart sources, while `merry run format check` only fails on drift. The same pair exists under `merry run rust format`.
