@@ -339,7 +339,7 @@ void main() {
       holeFoothold: await _cornerImage(_productionHoleColor),
     );
     addTearDown(spriteSet.dispose);
-    final ProductionSpriteLoader loader = (_) async => spriteSet;
+    Future<ProductionSpriteSet> loader(AssetBundle _) async => spriteSet;
     const snapshot = GameSnapshot(
       currentPlayer: GamePlayer.first,
       tiles: [GameTile(x: 2, y: 2, kind: GameTileKind.normal)],
