@@ -17,6 +17,7 @@ Keep Rust, the bridge, and child board rendering unchanged.
 - Compare `BoardDefinition` instances by identity.
 - Preserve the current match when the identical instance is rebuilt.
 - Reset match state, opponent selection, bot work, and replay work when the instance changes.
+- Ignore an opponent-sheet result opened for the previous controller.
 - Preserve the retained page State, coach state, coach store, and feedback resource.
 - Do not change Rust, generated bridge files, `BoardDefinition`, `RulesEngine`, `MatchController`, `RoundBoard`, dependencies, assets, or localization.
 - Do not commit until the exact branch diff passes the local adversarial review.
@@ -116,6 +117,7 @@ void didUpdateWidget(covariant GamePage oldWidget) {
 ```
 
 Change `_controller` from `late final` to `late`.
+Capture the current controller in `_showOpponentSheet` and ignore the result if replacement changes that identity while the sheet is open.
 Do not recreate the coach store, replay controller, or feedback resource.
 
 - [x] **Step 5: Run the focused tests and prove both regressions are live.**

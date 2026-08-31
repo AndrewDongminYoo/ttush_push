@@ -342,7 +342,8 @@ class _GamePageState extends State<GamePage>
       _coachStore ??= SharedPreferencesFirstPlayCoachStore();
 
   Future<void> _showOpponentSheet(BuildContext context) async {
-    if (!_controller.canChangeOpponent) {
+    final controller = _controller;
+    if (!controller.canChangeOpponent) {
       return;
     }
     _botTimer?.cancel();
@@ -350,20 +351,20 @@ class _GamePageState extends State<GamePage>
       context: context,
       backgroundColor: _panelColor,
       builder: (context) => _OpponentSelectionSheet(
-        selectedOpponent: _controller.opponent,
+        selectedOpponent: controller.opponent,
       ),
     );
-    if (!mounted) {
+    if (!mounted || !identical(controller, _controller)) {
       return;
     }
     if (opponent == null) {
       _scheduleBotMove();
       return;
     }
-    if (!_controller.canChangeOpponent) {
+    if (!controller.canChangeOpponent) {
       return;
     }
-    setState(() => _controller.selectOpponent(opponent));
+    setState(() => controller.selectOpponent(opponent));
     _scheduleBotMove();
   }
 

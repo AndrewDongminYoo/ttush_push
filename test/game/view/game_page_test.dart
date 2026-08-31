@@ -291,6 +291,43 @@ void main() {
     },
   );
 
+  testWidgets(
+    'ignores an opponent choice opened before board replacement',
+    (tester) async {
+      const snapshotA = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [],
+        pieces: [],
+        snapshotHash: 'opponent-sheet-board-a',
+      );
+      final engine = FakeRulesEngine(
+        initial: [matchOf(snapshotA), matchOf(_runtimeSnapshotB)],
+      );
+      const pageKey = Key('opponent-sheet-board-game-page');
+      Widget host(BoardDefinition definition) => MaterialApp(
+        home: GamePage(
+          key: pageKey,
+          boardDefinition: definition,
+          rulesEngine: engine,
+        ),
+      );
+
+      await tester.pumpWidget(host(_runtimeDefinitionA));
+      await tester.tap(find.byKey(const Key('opponent-control')));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(host(_runtimeDefinitionB));
+      expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const Key('opponent-choice-random')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
+    },
+  );
+
   testWidgets('stops the previous board replay when its definition changes', (
     tester,
   ) async {
