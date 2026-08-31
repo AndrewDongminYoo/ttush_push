@@ -63,6 +63,10 @@ bridge:
       - cargo build --release --manifest-path engine/Cargo.toml --lib
       - flutter test tool/rules_engine_host_test.dart
 
+parity:
+  (description): Runs the native parity test on every simulator or emulator already running, and skips when none is.
+  (scripts): bash tool/run_parity.sh
+
 # --- Code generation --------------------------------------------------------
 generate:
   (description): Regenerates code that is owned by a generator, never by hand.
@@ -93,3 +97,4 @@ check:
     - $rust:test
     - $bridge:host
     - trunk check --no-progress
+    - $parity

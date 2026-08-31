@@ -12,7 +12,11 @@ Note that the CLI separates nested names with a space, while the config file ref
 `merry run check` is the full local gate before committing, and it adds `trunk check`, which CI does not run.
 It does not stand in for the whole of CI. The `spell-check` job reads every `**/*.md` through `cspell.json`, and no local linter does: `trunk check` looks only at modified files and has no cspell among its enabled linters. Run `npx cspell lint --config cspell.json --gitignore-root . '**/*.md'` after touching any markdown, including from a linked checkout whose parent is ignored. The `semantic-pull-request` job reads the PR title and has no local form at all.
 
-The aggregate gate builds the release Rust host library and runs `tool/rules_engine_host_test.dart` on macOS or Linux. That test calls `RustLib.init` through the generated bridge and reuses the device integration test's snapshot and bot-policy parity fixture, so a codegen/runtime/version mismatch fails before app startup. It does not validate Android or iOS packaging, so a change to mobile runner or build integration still needs the parity test below on the affected runtime.
+The aggregate gate builds the release Rust host library and runs `tool/rules_engine_host_test.dart` on macOS or Linux. That test calls `RustLib.init` through the generated bridge and reuses the device integration test's snapshot and bot-policy parity fixture, so a codegen/runtime/version mismatch fails before app startup. It does not validate Android or iOS packaging.
+
+The gate's last step, `merry run parity`, is what covers packaging, and it covers it only opportunistically: it runs the integration test on every simulator or emulator that is **already** running and skips when none is, because booting one costs more than a pre-commit gate may. So a green gate says nothing about native packaging on its own. Read the step's own last line, which is either `parity: covered N runtime(s)` or `parity: SKIPPED`, and start a runtime and re-run after any change to mobile runner or build integration.
+
+A skip means nothing was running, never that the step could not tell. A device query that fails — a wedged CoreSimulator, an adb that cannot start its daemon — fails the step instead of skipping it, because a discovery failure cannot distinguish an idle machine from a running one.
 
 Two things the script list does not tell you:
 
@@ -26,7 +30,8 @@ flutter test integration_test/rules_engine_parity_test.dart -d <device-id> --fla
 ```
 
 The parity integration test is the accepted native evidence: the same Rust-owned snapshot hash must appear on both an Android and an iOS runtime.
-Connect the iOS device over USB before running it. `flutter test` does not publish a port, so on a wirelessly tethered device it exits at `IOSDevice.startApp` with "Cannot start app on wirelessly tethered iOS device. Try running again with the --publish-port flag" — and no such flag exists on `flutter run` or `flutter drive` in the pinned Flutter, so the message is a dead end rather than an instruction. Over USB the command above works as written; it still prints a local-network warning, which is the mDNS lookup failing before the run falls back to the cable.
+`merry run parity` covers that on simulators and emulators without a device id, and refuses a physical device outright, so the direct form above is only for running it against a real phone.
+Connect the iOS device over USB before running it that way. `flutter test` does not publish a port, so on a wirelessly tethered device it exits at `IOSDevice.startApp` with "Cannot start app on wirelessly tethered iOS device. Try running again with the --publish-port flag" — and no such flag exists on `flutter run` or `flutter drive` in the pinned Flutter, so the message is a dead end rather than an instruction. Over USB the command above works as written; it still prints a local-network warning, which is the mDNS lookup failing before the run falls back to the cable.
 
 ## Architecture
 

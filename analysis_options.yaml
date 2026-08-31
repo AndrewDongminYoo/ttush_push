@@ -6,6 +6,10 @@ analyzer:
     - lib/l10n/gen/*
     # flutter_rust_bridge owns and regenerates this glue.
     - lib/src/rust/**
+    # Cargokit is vendored with flutter_rust_bridge and carries its own
+    # analysis_options. Its imports only resolve after its own `pub get`, which
+    # nothing local runs, so analyzing it here reports the vendor's tree.
+    - rust_builder/cargokit/build_tool/**
     - build/**
     - android/**
     - ios/**
