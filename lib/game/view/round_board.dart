@@ -141,6 +141,7 @@ final class RoundBoard extends StatefulWidget {
     required this.legalMoves,
     required this.selectedPieceId,
     required this.onCellTap,
+    this.pieceFacings = const {},
     this.playback,
     this.spriteLoader = loadProductionSpriteSet,
     super.key,
@@ -150,6 +151,7 @@ final class RoundBoard extends StatefulWidget {
   final List<GameMove> legalMoves;
   final int? selectedPieceId;
   final void Function(int x, int y)? onCellTap;
+  final Map<int, ExplorerFacing> pieceFacings;
   final BoardPlayback? playback;
   final ProductionSpriteLoader spriteLoader;
 
@@ -241,6 +243,7 @@ final class _RoundBoardState extends State<RoundBoard> {
                 snapshot: widget.snapshot,
                 legalMoves: widget.legalMoves,
                 selectedPieceId: widget.selectedPieceId,
+                pieceFacings: widget.pieceFacings,
                 geometry: geometry,
                 playback: widget.playback,
                 onCellTap: widget.onCellTap,
@@ -261,6 +264,7 @@ final class _RoundBoardPainter extends CustomPainter {
     required this.snapshot,
     required this.legalMoves,
     required this.selectedPieceId,
+    required this.pieceFacings,
     required this.geometry,
     required this.playback,
     required this.onCellTap,
@@ -293,6 +297,7 @@ final class _RoundBoardPainter extends CustomPainter {
   final GameSnapshot snapshot;
   final List<GameMove> legalMoves;
   final int? selectedPieceId;
+  final Map<int, ExplorerFacing> pieceFacings;
   final BoardGeometry geometry;
   final BoardPlayback? playback;
   final void Function(int x, int y)? onCellTap;
@@ -593,7 +598,10 @@ final class _RoundBoardPainter extends CustomPainter {
     if (sprites != null) {
       _paintImageInCell(
         canvas,
-        sprites.explorerFor(piece.owner),
+        sprites.explorerFor(
+          piece.owner,
+          pieceFacings[piece.id] ?? initialExplorerFacing(piece.owner),
+        ),
         Rect.fromCenter(center: center, width: cellSize, height: cellSize),
       );
     } else {
@@ -921,6 +929,7 @@ final class _RoundBoardPainter extends CustomPainter {
         snapshot != oldDelegate.snapshot ||
         legalMoves != oldDelegate.legalMoves ||
         selectedPieceId != oldDelegate.selectedPieceId ||
+        pieceFacings != oldDelegate.pieceFacings ||
         sprites != oldDelegate.sprites ||
         geometry != oldDelegate.geometry;
   }
