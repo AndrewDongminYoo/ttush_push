@@ -232,6 +232,9 @@ final class _RoundBoardState extends State<RoundBoard> {
                   }
                 },
           child: SizedBox.expand(
+            key: _spriteSet == null
+                ? null
+                : const Key('round-board-production-sprites'),
             child: CustomPaint(
               key: const Key('round-board-canvas'),
               painter: _RoundBoardPainter(
@@ -277,9 +280,12 @@ final class _RoundBoardPainter extends CustomPainter {
   static const _pieceEdgeColor = Color(0xFF0B0D12);
   static const _selectionColor = Color(0xFFFFD54F);
   static const _destinationColor = Color(0xFF53D769);
+  static const _pushImpactColor = Color(0xFFF3DB9A);
+  static const _pushImpactEdgeColor = Color(0xFF2A1B13);
   static const _pushArrival = 0.36;
-  static const _pushImpactEnd = 0.5;
+  static const _pushDisplacementStart = 0.5;
   static const _pushDisplacementEnd = 0.8;
+  static const double _pushImpactEnd = _pushDisplacementEnd;
   static const _pushTransitionStart = 0.84;
   static const _normalArrival = 0.64;
   static const _normalTransitionStart = 0.76;
@@ -427,9 +433,11 @@ final class _RoundBoardPainter extends CustomPainter {
     if (playback != null) {
       _paintPlayback(canvas, playback);
     }
-    // Destinations paint last so an occupied one stays visible.
-    for (final destination in _legalDestinations()) {
-      _paintDestination(canvas, destination);
+    if (playback == null) {
+      // Destinations paint last so an occupied one stays visible.
+      for (final destination in _legalDestinations()) {
+        _paintDestination(canvas, destination);
+      }
     }
     canvas.restore();
   }
@@ -612,7 +620,7 @@ final class _RoundBoardPainter extends CustomPainter {
         );
     }
 
-    if (piece.id == selectedPieceId) {
+    if (playback == null && piece.id == selectedPieceId) {
       canvas.drawCircle(
         center,
         cellSize * 0.4,
@@ -708,7 +716,7 @@ final class _RoundBoardPainter extends CustomPainter {
           );
         }
       }
-      _paintPushImpact(canvas, resolution, playback.progress);
+      _paintPushImpact(canvas, playback);
     }
   }
 
@@ -759,12 +767,12 @@ final class _RoundBoardPainter extends CustomPainter {
     BoardPlayback playback,
   ) {
     final from = geometry.cellCenter(displacement.fromX, displacement.fromY);
-    if (playback.progress < _pushImpactEnd) {
+    if (playback.progress < _pushDisplacementStart) {
       return from;
     }
     final progress = _phaseProgress(
-      playback.progress - _pushImpactEnd,
-      end: _pushDisplacementEnd - _pushImpactEnd,
+      playback.progress - _pushDisplacementStart,
+      end: _pushDisplacementEnd - _pushDisplacementStart,
     );
     final to = switch ((displacement.toX, displacement.toY)) {
       (final int x, final int y) => geometry.cellCenter(x, y),
@@ -788,29 +796,53 @@ final class _RoundBoardPainter extends CustomPainter {
     };
   }
 
-  void _paintPushImpact(
-    Canvas canvas,
-    rust.MoveResolution resolution,
-    double progress,
-  ) {
+  void _paintPushImpact(Canvas canvas, BoardPlayback playback) {
+    final resolution = playback.resolution;
+    final progress = playback.progress;
     if (progress < _pushArrival || progress > _pushImpactEnd) {
       return;
     }
+    final from = geometry.cellCenter(
+      resolution.mover.fromX,
+      resolution.mover.fromY,
+    );
     final impact = geometry.cellCenter(
       resolution.mover.toX,
       resolution.mover.toY,
     );
-    final impactProgress =
-        (progress - _pushArrival) / (_pushImpactEnd - _pushArrival);
-    final alpha = 1 - (impactProgress - 0.5).abs() * 2;
-    canvas.drawCircle(
-      impact,
-      geometry.cellSize * 0.42,
-      Paint()
-        ..color = _selectionColor.withValues(alpha: alpha)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = geometry.cellSize * 0.05,
-    );
+    final travel = impact - from;
+    if (travel.distance == 0) {
+      return;
+    }
+    final direction = travel / travel.distance;
+    final contactCenter = impact - direction * geometry.cellSize * 0.38;
+    final brace = Path()
+      ..moveTo(-geometry.cellSize * 0.12, -geometry.cellSize * 0.24)
+      ..lineTo(geometry.cellSize * 0.1, 0)
+      ..lineTo(-geometry.cellSize * 0.12, geometry.cellSize * 0.24);
+    canvas
+      ..save()
+      ..translate(contactCenter.dx, contactCenter.dy)
+      ..rotate(math.atan2(direction.dy, direction.dx))
+      ..drawPath(
+        brace,
+        Paint()
+          ..color = _pushImpactEdgeColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = geometry.cellSize * 0.1
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      )
+      ..drawPath(
+        brace,
+        Paint()
+          ..color = _pushImpactColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = geometry.cellSize * 0.055
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      )
+      ..restore();
   }
 
   /// A move destination is a filled dot, a push destination a ring around the

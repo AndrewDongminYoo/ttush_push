@@ -12,6 +12,11 @@ import 'package:ttush_push/src/rust/api.dart';
 
 import '../../support/match_fixtures.dart';
 
+const _sharedPanelColor = Color(0xFF161A22);
+const _panelBorderColor = Color(0xFF303846);
+const _firstPlayerColor = Color(0xFF2A48DF);
+const _secondPlayerColor = Color(0xFFE14B4B);
+
 const _pushResolution = MoveResolution(
   actionKind: MoveActionKind.push,
   mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 0, toY: 1),
@@ -78,6 +83,43 @@ void main() {
       tester.getRect(find.byKey(const Key('player-panel-second'))).top,
       lessThan(tester.getRect(find.byKey(const Key('player-panel-first'))).top),
     );
+  });
+
+  testWidgets('uses a shared panel surface with a board-facing turn accent', (
+    tester,
+  ) async {
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [GameTile(x: 0, y: 0, kind: GameTileKind.normal)],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0)],
+      snapshotHash: 'shared-panel-surface',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot)),
+        ),
+      ),
+    );
+
+    final firstPanel = tester.widget<Container>(
+      find.byKey(const Key('player-panel-first')),
+    );
+    final secondPanel = tester.widget<Container>(
+      find.byKey(const Key('player-panel-second')),
+    );
+    final firstDecoration = firstPanel.decoration! as BoxDecoration;
+    final secondDecoration = secondPanel.decoration! as BoxDecoration;
+    final firstBorder = firstDecoration.border! as Border;
+    final secondBorder = secondDecoration.border! as Border;
+
+    expect(firstDecoration.color, _sharedPanelColor);
+    expect(secondDecoration.color, _sharedPanelColor);
+    expect(firstBorder.top.color, _firstPlayerColor);
+    expect(firstBorder.top.width, 3);
+    expect(secondBorder.bottom.color, _panelBorderColor);
+    expect(secondBorder.bottom.width, 3);
   });
 
   testWidgets('renders the air-ruins environment behind the match', (
@@ -245,7 +287,8 @@ void main() {
     _expectActiveTurn(tester, GamePlayer.first);
   });
 
-  testWidgets('applies only the selected legal destination', (tester) async {
+  testWidgets('applies only the selected legal destination without shifting '
+      'the board', (tester) async {
     const initialSnapshot = GameSnapshot(
       currentPlayer: GamePlayer.first,
       tiles: [
@@ -273,6 +316,9 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
+    final initialBoardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
     final cellCenter = _cellCenterOf(tester);
 
     await tester.tapAt(cellCenter(0, 0));
@@ -282,6 +328,10 @@ void main() {
 
     expect(engine.appliedMoves, [move]);
     _expectActiveTurn(tester, GamePlayer.second);
+    expect(
+      tester.getRect(find.byKey(const Key('round-board-canvas'))),
+      initialBoardRect,
+    );
   });
 
   testWidgets('keeps the current snapshot visible until replay completes', (
@@ -1761,19 +1811,27 @@ final class _RecordingFeedback implements RoundFeedback {
   void roundWon() => events.add('win');
 }
 
-/// Reads the active side off the panel's mark, which turns white on the
-/// seat whose turn it is.
+/// Reads the active side off the white outline around the colored team mark.
 void _expectActiveTurn(WidgetTester tester, GamePlayer player) {
   for (final seat in GamePlayer.values) {
     final mark = tester.widget<Container>(
       find.byKey(Key('player-mark-${seat.name}')),
     );
     final decoration = mark.decoration! as BoxDecoration;
+    final border = decoration.border! as Border;
 
     expect(
       decoration.color,
-      seat == player ? Colors.white : isNot(Colors.white),
-      reason: 'the ${seat.name} seat',
+      switch (seat) {
+        GamePlayer.first => _firstPlayerColor,
+        GamePlayer.second => _secondPlayerColor,
+      },
+      reason: 'the ${seat.name} team color',
+    );
+    expect(
+      border.top.color,
+      seat == player ? Colors.white : Colors.transparent,
+      reason: 'the ${seat.name} turn outline',
     );
   }
 }

@@ -65,8 +65,8 @@ void main() {
       await expectLater(loadProductionSpriteSet(bundle), throwsA(anything));
 
       expect(bundle.loadedPaths, [
-        'assets/images/sprites/azure_explorer.png',
-        'assets/images/sprites/ember_explorer.png',
+        'assets/images/sprites/azure_explorer_top_down.png',
+        'assets/images/sprites/ember_explorer_top_down.png',
       ]);
       expect(createdImages, hasLength(1));
       expect(createdImages.single.debugDisposed, isTrue);

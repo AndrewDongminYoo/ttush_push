@@ -9,8 +9,8 @@ typedef ProductionSpriteLoader =
     );
 
 const productionSpriteAssetPaths = [
-  'assets/images/sprites/azure_explorer.png',
-  'assets/images/sprites/ember_explorer.png',
+  'assets/images/sprites/azure_explorer_top_down.png',
+  'assets/images/sprites/ember_explorer_top_down.png',
   'assets/images/sprites/foothold_intact.png',
   'assets/images/sprites/foothold_damaged.png',
   'assets/images/sprites/foothold_hole.png',
