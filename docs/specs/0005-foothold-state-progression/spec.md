@@ -18,7 +18,7 @@ Make intact, damaged, and collapsed footholds read as a clear three-step progres
 1. Replace only `assets/images/sprites/foothold_damaged.png` among the active foothold sprites.
 2. Preserve the current 512-by-512 transparent sRGB image contract and the matched orthographic square footprint.
 3. Show several bold branching fractures and modest edge chips that remain legible when the sprite is reduced to native board scale.
-4. Keep the damaged foothold landable: its center remains solid, its major slabs remain connected, and it has no transparent central hole.
+4. Keep the damaged foothold usable as a landing surface: its center remains solid, its major slabs remain connected, and it has no transparent central hole.
 5. Keep the intact and collapsed active sprites byte-for-byte unchanged.
 6. Keep the existing one-sprite-per-state runtime model.
 7. Preserve at least one unselected generated candidate under `assets/images/reference/foothold-state-progression-v1/`, which remains outside the bundled asset path.

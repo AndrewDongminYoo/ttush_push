@@ -1,5 +1,7 @@
 # Foothold State Progression V1 Reference Set
 
+<!-- cspell:words imagegen -->
+
 OpenAI's built-in `imagegen` tool generated both source outputs on 2026-09-01.
 `damaged_candidate_c_selected_source.png` is the source for the active damaged foothold.
 `damaged_candidate_b_rejected.png` preserves an alternate that strengthened the fractures but changed the established tile composition too far.

@@ -138,7 +138,7 @@ void main() {
   });
 
   testWidgets(
-    'damaged foothold remains fractured and landable at board scale',
+    'damaged foothold remains fractured and solid at board scale',
     (
       tester,
     ) async {
