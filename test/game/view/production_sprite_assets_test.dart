@@ -1,16 +1,22 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 const _productionSpritePaths = [
-  'assets/images/sprites/azure_explorer.png',
-  'assets/images/sprites/ember_explorer.png',
+  'assets/images/sprites/azure_explorer_top_down.png',
+  'assets/images/sprites/ember_explorer_top_down.png',
   'assets/images/sprites/foothold_intact.png',
   'assets/images/sprites/foothold_damaged.png',
   'assets/images/sprites/foothold_hole.png',
 ];
 const _holeSpritePath = 'assets/images/sprites/foothold_hole.png';
+const List<String> _footholdSpritePaths = [
+  'assets/images/sprites/foothold_intact.png',
+  'assets/images/sprites/foothold_damaged.png',
+  _holeSpritePath,
+];
 const _minimumReadableAlphaComponentArea = 1024;
 
 void main() {
@@ -81,6 +87,77 @@ void main() {
       );
     });
   });
+
+  testWidgets('foothold sprites share matched square alpha footprints', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final extents = <int>[];
+      for (final assetPath in _footholdSpritePaths) {
+        final data = await _loadAsset(assetPath);
+        final codec = await ui.instantiateImageCodec(
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        );
+        final frame = await codec.getNextFrame();
+        final image = frame.image;
+        addTearDown(() {
+          image.dispose();
+          codec.dispose();
+        });
+
+        final pixels = await image.toByteData();
+        expect(pixels, isNotNull, reason: assetPath);
+        final rgba = pixels!.buffer.asUint8List(
+          pixels.offsetInBytes,
+          pixels.lengthInBytes,
+        );
+        final bounds = _alphaBounds(
+          rgba,
+          width: image.width,
+          height: image.height,
+        );
+        expect(
+          (bounds.width - bounds.height).abs(),
+          lessThanOrEqualTo(8),
+          reason: '$assetPath must read as a top-down square',
+        );
+        extents
+          ..add(bounds.width)
+          ..add(bounds.height);
+      }
+
+      expect(
+        extents.reduce(math.max) - extents.reduce(math.min),
+        lessThanOrEqualTo(8),
+        reason: 'all foothold states must share one footprint scale',
+      );
+    });
+  });
+}
+
+({int width, int height}) _alphaBounds(
+  Uint8List rgba, {
+  required int width,
+  required int height,
+}) {
+  var minX = width;
+  var minY = height;
+  var maxX = -1;
+  var maxY = -1;
+
+  for (var pixelIndex = 0; pixelIndex < width * height; pixelIndex++) {
+    if (rgba[pixelIndex * 4 + 3] == 0) {
+      continue;
+    }
+    final x = pixelIndex % width;
+    final y = pixelIndex ~/ width;
+    minX = math.min(minX, x);
+    minY = math.min(minY, y);
+    maxX = math.max(maxX, x);
+    maxY = math.max(maxY, y);
+  }
+
+  return (width: maxX - minX + 1, height: maxY - minY + 1);
 }
 
 List<int> _alphaComponentAreas(
