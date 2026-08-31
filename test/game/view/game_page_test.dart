@@ -119,7 +119,7 @@ void main() {
     expect(firstBorder.top.color, _firstPlayerColor);
     expect(firstBorder.top.width, 3);
     expect(secondBorder.bottom.color, _panelBorderColor);
-    expect(secondBorder.bottom.width, 1);
+    expect(secondBorder.bottom.width, 3);
   });
 
   testWidgets('renders the air-ruins environment behind the match', (
@@ -287,7 +287,8 @@ void main() {
     _expectActiveTurn(tester, GamePlayer.first);
   });
 
-  testWidgets('applies only the selected legal destination', (tester) async {
+  testWidgets('applies only the selected legal destination without shifting '
+      'the board', (tester) async {
     const initialSnapshot = GameSnapshot(
       currentPlayer: GamePlayer.first,
       tiles: [
@@ -315,6 +316,9 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
+    final initialBoardRect = tester.getRect(
+      find.byKey(const Key('round-board-canvas')),
+    );
     final cellCenter = _cellCenterOf(tester);
 
     await tester.tapAt(cellCenter(0, 0));
@@ -324,6 +328,10 @@ void main() {
 
     expect(engine.appliedMoves, [move]);
     _expectActiveTurn(tester, GamePlayer.second);
+    expect(
+      tester.getRect(find.byKey(const Key('round-board-canvas'))),
+      initialBoardRect,
+    );
   });
 
   testWidgets('keeps the current snapshot visible until replay completes', (

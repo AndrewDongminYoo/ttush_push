@@ -133,6 +133,13 @@ void main() {
       );
     });
   });
+
+  test('rejects a fully transparent alpha footprint', () {
+    expect(
+      () => _alphaBounds(Uint8List(16), width: 2, height: 2),
+      throwsStateError,
+    );
+  });
 }
 
 ({int width, int height}) _alphaBounds(
@@ -157,6 +164,9 @@ void main() {
     maxY = math.max(maxY, y);
   }
 
+  if (maxX < 0) {
+    throw StateError('sprite contains no nontransparent pixels');
+  }
   return (width: maxX - minX + 1, height: maxY - minY + 1);
 }
 

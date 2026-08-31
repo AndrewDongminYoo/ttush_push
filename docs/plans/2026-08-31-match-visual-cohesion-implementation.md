@@ -41,7 +41,9 @@ It must not assert private constants or source text.
 
 - [x] Generate one transparent image for each explorer and foothold with the built-in image-generation tool.
 - [x] Select a cohesive matched set and process each file to a transparent 512 by 512 PNG.
-- [x] Replace only the five existing file paths.
+- [x] Preserve the original explorer files.
+- [x] Add the two top-down explorer paths and replace the three active foothold paths.
+- [x] Keep only those five paths active in `ProductionSpriteSet`.
 - [x] Update `assets/images/sprites/README.md` with final prompts and processing steps.
 - [x] Run `production_sprite_assets_test.dart`.
 
@@ -61,7 +63,7 @@ It must not directly fabricate a Flutter-only replay state.
 
 - [x] Run `dart format --output=none --set-exit-if-changed lib test integration_test test_driver`.
 - [x] Run focused Flutter view tests.
-- [x] Run `npx cspell lint --config cspell.json --gitignore-root . 'docs/specs/0003-match-visual-cohesion/**/*.md' 'docs/plans/2026-08-31-match-visual-cohesion-implementation.md' 'assets/images/sprites/README.md'`.
+- [x] Run `npx cspell lint --config cspell.json --gitignore-root . '**/*.md'`.
 - [x] Run `flutter pub get`.
 - [x] Run `flutter gen-l10n`.
 - [x] Run `dart pub get --offline` in `rust_builder/cargokit/build_tool`.

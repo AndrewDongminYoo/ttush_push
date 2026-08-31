@@ -695,9 +695,10 @@ class _PlayerPanel extends StatelessWidget {
     final color = _playerColor(player);
     final l10n = _localizationsOf(context);
     const sharedBorder = BorderSide(color: _panelBorderColor);
-    final boardFacingBorder = isActive
-        ? BorderSide(color: color, width: 3)
-        : sharedBorder;
+    final boardFacingBorder = BorderSide(
+      color: isActive ? color : _panelBorderColor,
+      width: 3,
+    );
     return Container(
       key: Key('player-panel-${player.name}'),
       width: double.infinity,
