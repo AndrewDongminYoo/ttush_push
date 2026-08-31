@@ -70,7 +70,11 @@ collect() {
 }
 
 if command -v xcrun >/dev/null 2>&1; then
-	simulators="$(xcrun simctl list devices booted 2>/dev/null || true)"
+	# The runtime filter matters: simctl lists every booted CoreSimulator
+	# device, and Flutter discovers only iOS ones, so a booted watchOS or
+	# visionOS device would otherwise be handed to `flutter test -d` and fail
+	# the gate on a runtime nobody asked it to cover.
+	simulators="$(xcrun simctl list devices booted iOS 2>/dev/null || true)"
 	booted_udids="$(sed -n 's/.*(\([0-9A-Fa-f-]\{36\}\)) (Booted).*/\1/p' <<<"${simulators}")"
 	collect "${booted_udids}"
 else
@@ -87,8 +91,10 @@ else
 fi
 
 if [[ ${#devices[@]} -eq 0 ]]; then
-	echo "parity: SKIPPED, no simulator or emulator is running."
+	# The status goes last in both branches, because that is where CLAUDE.md
+	# tells a reader to look for it.
 	echo "parity: this run covered no native packaging. Start a runtime and re-run to cover it."
+	echo "parity: SKIPPED, no simulator or emulator is running."
 	exit 0
 fi
 
