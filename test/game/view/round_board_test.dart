@@ -821,38 +821,91 @@ void main() {
         toX: 3,
         toY: 2,
       );
+      BoardPlayback fallPlayback(
+        GameDirection direction,
+        double progress, {
+        required bool reducedMotion,
+      }) => BoardPlayback(
+        resolution: MoveResolution(
+          actionKind: MoveActionKind.push,
+          mover: fallMover,
+          displaced: PieceDisplacement(
+            pieceId: 1,
+            fromX: 3,
+            fromY: 2,
+            exitDirection: direction,
+          ),
+          tileTransition: const TileTransition(
+            x: 2,
+            y: 2,
+            from: GameTileKind.normal,
+            to: GameTileKind.damaged,
+          ),
+        ),
+        progress: progress,
+        reducedMotion: reducedMotion,
+      );
       for (final direction in GameDirection.values) {
         final falling = await _paintAndSample(
           tester,
           snapshot: fallSnapshot,
-          playback: BoardPlayback(
-            resolution: MoveResolution(
-              actionKind: MoveActionKind.push,
-              mover: fallMover,
-              displaced: PieceDisplacement(
-                pieceId: 1,
-                fromX: 3,
-                fromY: 2,
-                exitDirection: direction,
-              ),
-              tileTransition: const TileTransition(
-                x: 2,
-                y: 2,
-                from: GameTileKind.normal,
-                to: GameTileKind.damaged,
-              ),
-            ),
-            progress: 0.65,
+          playback: fallPlayback(
+            direction,
+            0.65,
             reducedMotion: false,
           ),
         );
         final offset = switch (direction) {
-          GameDirection.up => const Offset(0, _cellSize * 0.65),
-          GameDirection.down => const Offset(0, -_cellSize * 0.65),
-          GameDirection.left => const Offset(-_cellSize * 0.65, 0),
-          GameDirection.right => const Offset(_cellSize * 0.65, 0),
+          GameDirection.up => const Offset(0, _cellSize * 0.5),
+          GameDirection.down => const Offset(0, -_cellSize * 0.5),
+          GameDirection.left => const Offset(-_cellSize * 0.5, 0),
+          GameDirection.right => const Offset(_cellSize * 0.5, 0),
         };
         expect(falling(_cellCenter(3, 2) + offset), _secondPlayerColor);
+      }
+      final beforeFall = await _paintAndSample(
+        tester,
+        snapshot: fallSnapshot,
+        playback: fallPlayback(
+          GameDirection.right,
+          0.49,
+          reducedMotion: false,
+        ),
+      );
+      final beforeBounds = _colorBounds(beforeFall, _secondPlayerColor)!;
+      for (final (direction, expectedOffset) in const [
+        (GameDirection.right, Offset(_cellSize, 0)),
+        (GameDirection.up, Offset(0, _cellSize)),
+      ]) {
+        for (final reducedMotion in [false, true]) {
+          final atEndpoint = await _paintAndSample(
+            tester,
+            snapshot: fallSnapshot,
+            playback: fallPlayback(
+              direction,
+              0.8,
+              reducedMotion: reducedMotion,
+            ),
+          );
+          final afterEndpoint = await _paintAndSample(
+            tester,
+            snapshot: fallSnapshot,
+            playback: fallPlayback(
+              direction,
+              0.81,
+              reducedMotion: reducedMotion,
+            ),
+          );
+          final endpointBounds = _colorBounds(
+            atEndpoint,
+            _secondPlayerColor,
+          )!;
+          final actualOffset = endpointBounds.center - beforeBounds.center;
+
+          expect(actualOffset.dx, closeTo(expectedOffset.dx, 1));
+          expect(actualOffset.dy, closeTo(expectedOffset.dy, 1));
+          expect(_colorBounds(afterEndpoint, _secondPlayerColor), isNull);
+        }
       }
     },
   );
@@ -1115,6 +1168,33 @@ Set<Color> _cellColors(Color Function(Offset) sample, int x, int y) {
     }
   }
   return colors;
+}
+
+Rect? _colorBounds(Color Function(Offset) sample, Color color) {
+  int? left;
+  int? top;
+  int? right;
+  int? bottom;
+  for (var x = 0; x < _boardSide; x++) {
+    for (var y = 0; y < _boardSide; y++) {
+      if (sample(Offset(x.toDouble(), y.toDouble())) != color) {
+        continue;
+      }
+      left = left == null || x < left ? x : left;
+      top = top == null || y < top ? y : top;
+      right = right == null || x > right ? x : right;
+      bottom = bottom == null || y > bottom ? y : bottom;
+    }
+  }
+  if (left == null || top == null || right == null || bottom == null) {
+    return null;
+  }
+  return Rect.fromLTRB(
+    left.toDouble(),
+    top.toDouble(),
+    (right + 1).toDouble(),
+    (bottom + 1).toDouble(),
+  );
 }
 
 /// Paints the board once and returns a sampler over its pixels, addressed in

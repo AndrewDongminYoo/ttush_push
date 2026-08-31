@@ -708,7 +708,9 @@ final class _RoundBoardPainter extends CustomPainter {
         final displacedIndex = snapshot.pieces.indexWhere(
           (piece) => piece.id == displaced.pieceId,
         );
-        if (displacedIndex != -1) {
+        if (displacedIndex != -1 &&
+            (displaced.exitDirection == null ||
+                playback.progress <= _pushDisplacementEnd)) {
           _paintPieceAt(
             canvas,
             snapshot.pieces[displacedIndex],
@@ -787,7 +789,7 @@ final class _RoundBoardPainter extends CustomPainter {
   Offset _fallCenter(rust.PieceDisplacement displacement) {
     final from = geometry.cellCenter(displacement.fromX, displacement.fromY);
     final direction = displacement.exitDirection!;
-    final distance = geometry.cellSize * 1.3;
+    final distance = geometry.cellSize;
     return switch (direction) {
       rust.GameDirection.up => from.translate(0, distance),
       rust.GameDirection.down => from.translate(0, -distance),
