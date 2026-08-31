@@ -6,6 +6,7 @@ import 'package:shared_preferences_platform_interface/shared_preferences_async_p
 import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
+import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/view/game_page.dart';
 import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/src/rust/api.dart';
@@ -44,6 +45,34 @@ const _secondBotDownResolution = MoveResolution(
     from: GameTileKind.normal,
     to: GameTileKind.damaged,
   ),
+);
+
+const BoardDefinition _runtimeDefinitionA = baselineBoardDefinition;
+const _runtimeDefinitionB = BoardDefinition(
+  backgroundAssetPath: 'assets/images/sprites/foothold_hole.png',
+  rules: GameBoardDefinition(
+    playableCells: [
+      GameBoardCell(x: 3, y: 4),
+      GameBoardCell(x: 3, y: 5),
+    ],
+    startingPieces: [
+      GamePiece(id: 8, owner: GamePlayer.first, x: 3, y: 4),
+      GamePiece(id: 9, owner: GamePlayer.second, x: 3, y: 5),
+    ],
+  ),
+);
+
+const _runtimeSnapshotB = GameSnapshot(
+  currentPlayer: GamePlayer.second,
+  tiles: [
+    GameTile(x: 3, y: 4, kind: GameTileKind.normal),
+    GameTile(x: 3, y: 5, kind: GameTileKind.normal),
+  ],
+  pieces: [
+    GamePiece(id: 8, owner: GamePlayer.first, x: 3, y: 4),
+    GamePiece(id: 9, owner: GamePlayer.second, x: 3, y: 5),
+  ],
+  snapshotHash: 'runtime-board-b',
 );
 
 void main() {
@@ -188,6 +217,141 @@ void main() {
     expect(
       (image.image as AssetImage).assetName,
       definition.backgroundAssetPath,
+    );
+  });
+
+  testWidgets(
+    'restarts the retained page when its BoardDefinition changes',
+    (tester) async {
+      const snapshotA = GameSnapshot(
+        currentPlayer: GamePlayer.second,
+        tiles: [],
+        pieces: [],
+        snapshotHash: 'runtime-board-a',
+      );
+      const botMove = GameMove(
+        pieceId: 1,
+        direction: GameDirection.left,
+      );
+      final engine = FakeRulesEngine(
+        initial: [matchOf(snapshotA), matchOf(_runtimeSnapshotB)],
+        legalMovesFor: (_) => const [botMove],
+        botMove: (_, _) => botMove,
+      );
+      const pageKey = Key('runtime-board-game-page');
+      Widget host(BoardDefinition definition) => MaterialApp(
+        home: GamePage(
+          key: pageKey,
+          boardDefinition: definition,
+          rulesEngine: engine,
+        ),
+      );
+
+      await tester.pumpWidget(host(_runtimeDefinitionA));
+      final stateBefore = tester.state(find.byType(GamePage));
+
+      await tester.pumpWidget(host(_runtimeDefinitionA));
+      expect(engine.initialDefinitions, [_runtimeDefinitionA.rules]);
+
+      await _selectOpponent(tester, 'random');
+      final oldTimerStartedAt = tester.binding.clock.now();
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(host(_runtimeDefinitionB));
+
+      expect(tester.state(find.byType(GamePage)), same(stateBefore));
+      expect(engine.initialDefinitions, [
+        _runtimeDefinitionA.rules,
+        _runtimeDefinitionB.rules,
+      ]);
+      expect(
+        tester.widget<RoundBoard>(find.byType(RoundBoard)).snapshot,
+        _runtimeSnapshotB,
+      );
+      final background = tester.widget<Image>(
+        find.byKey(const Key('air-ruins-background')),
+      );
+      expect(
+        (background.image as AssetImage).assetName,
+        _runtimeDefinitionB.backgroundAssetPath,
+      );
+      expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('opponent-control')));
+      await tester.pump();
+      Navigator.of(
+        tester.element(find.byKey(const Key('opponent-choice-random'))),
+      ).pop(Opponent.random);
+      await tester.pump();
+      const botPause = Duration(milliseconds: 450);
+      final elapsed = tester.binding.clock.now().difference(oldTimerStartedAt);
+      expect(elapsed, lessThan(botPause));
+      await tester.pump(botPause - elapsed);
+      expect(engine.botRequests, isEmpty);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets('stops the previous board replay when its definition changes', (
+    tester,
+  ) async {
+    const snapshotA = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 1, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 1),
+      ],
+      snapshotHash: 'replay-board-a',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [
+        matchOf(snapshotA, hash: 'replay-match-a'),
+        matchOf(_runtimeSnapshotB, hash: 'replay-match-b'),
+      ],
+      moveResults: [
+        moveResultOf(
+          next: matchOf(snapshotA, hash: 'replay-match-a-moved'),
+          resolution: testMoveResolution,
+        ),
+      ],
+      legalMovesFor: (state) =>
+          state.snapshotHash == 'replay-match-a' ? const [move] : const [],
+    );
+    const pageKey = Key('replay-board-game-page');
+    Widget host(BoardDefinition definition) => MaterialApp(
+      home: GamePage(
+        key: pageKey,
+        boardDefinition: definition,
+        rulesEngine: engine,
+      ),
+    );
+
+    await tester.pumpWidget(host(_runtimeDefinitionA));
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(0, 0));
+    await tester.tapAt(cellCenter(0, 1));
+    await tester.pump();
+    expect(tester.hasRunningAnimations, isTrue);
+
+    await tester.pumpWidget(host(_runtimeDefinitionB));
+
+    final board = tester.widget<RoundBoard>(find.byType(RoundBoard));
+    expect(board.playback, isNull);
+    expect(board.snapshot, _runtimeSnapshotB);
+    final settlePumps = await tester.pumpAndSettle();
+    // Six 100 ms pumps would let the old 540 ms replay finish normally.
+    expect(settlePumps, lessThan(6));
+
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).snapshot,
+      _runtimeSnapshotB,
     );
   });
 

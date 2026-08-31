@@ -39,7 +39,7 @@ class GamePage extends StatefulWidget {
 
 class _GamePageState extends State<GamePage>
     with SingleTickerProviderStateMixin {
-  late final MatchController _controller;
+  late MatchController _controller;
   Timer? _botTimer;
   late final AnimationController _replayController;
   rust.MoveResolution? _replayResolution;
@@ -65,10 +65,7 @@ class _GamePageState extends State<GamePage>
   @override
   void initState() {
     super.initState();
-    _controller = MatchController(
-      widget._rulesEngine,
-      boardDefinition: widget._boardDefinition.rules,
-    )..initialize();
+    _controller = _createMatchController();
     _coachStore = widget._coachStore;
     unawaited(_loadCoach());
     _replayController = AnimationController(vsync: this)
@@ -84,6 +81,26 @@ class _GamePageState extends State<GamePage>
       _feedback = _ownedFeedback = PlatformRoundFeedback();
     }
   }
+
+  @override
+  void didUpdateWidget(covariant GamePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (identical(oldWidget._boardDefinition, widget._boardDefinition)) {
+      return;
+    }
+
+    _botTimer?.cancel();
+    _botTimer = null;
+    _replayGeneration++;
+    _replayController.stop();
+    _replayResolution = null;
+    _controller = _createMatchController();
+  }
+
+  MatchController _createMatchController() => MatchController(
+    widget._rulesEngine,
+    boardDefinition: widget._boardDefinition.rules,
+  )..initialize();
 
   @override
   void dispose() {
