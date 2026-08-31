@@ -1,14 +1,14 @@
 # Production Sprite Set
 
-<!-- cspell:words desaturated imagegen landable Lanczos orthographic srgba -->
+<!-- cspell:words desaturated imagegen landable Lanczos orthographic recenter srgba -->
 
 ## Active top-down set
 
 The active `ProductionSpriteSet` uses `azure_explorer_top_down.png`, `ember_explorer_top_down.png`, `foothold_intact.png`, `foothold_damaged.png`, and `foothold_hole.png`.
-OpenAI's built-in `imagegen` tool generated the selected sources on 2026-08-31.
+OpenAI's built-in `imagegen` tool generated the original selected sources on 2026-08-31 and the replacement damaged source on 2026-09-01.
 No third-party asset pack was used.
 
-The selected intact, damaged, and collapsed foothold sources are `exec-14150cc0-00a8-45db-8714-b31a538b5bad.png`, `exec-436001a2-801b-4bcc-8494-8cda84755e9e.png`, and `exec-6d71f6db-7669-4426-8e63-6cf4dad791f1.png`.
+The selected intact, damaged, and collapsed foothold sources are `exec-14150cc0-00a8-45db-8714-b31a538b5bad.png`, `exec-af903cfa-fe60-42ca-8043-682ca3da8b65.png`, and `exec-6d71f6db-7669-4426-8e63-6cf4dad791f1.png`.
 The selected Azure source is `exec-1d826f3e-fde1-4459-8271-37efde206fd9.png`, which extracted genuine alpha from the high-angle base `exec-b77439d4-550b-4910-86ee-e591a3cb2c21.png`.
 The selected Ember source is `exec-476cce73-e2c3-4217-8a89-14e07b8439e4.png`, which extracted genuine alpha from the high-angle base `exec-d0b49152-757c-4238-80ce-51eb6f60d59d.png`.
 
@@ -19,11 +19,12 @@ The first generated five-sprite set remains under `assets/images/reference/match
 ## Active processing and checks
 
 ImageMagick derived each foothold crop from alpha values at or above 50 percent, resized the crop to a 420 by 420-pixel square, centered it on a transparent 512 by 512 canvas, and stripped nonessential metadata.
+For the replacement damaged source, ImageMagick cropped the 1,044-pixel source square at offset 106,103, resized it to 420 by 420 pixels, centered it on the 512-pixel canvas, copied the preceding damaged sprite's alpha mask, and stripped nonessential metadata.
 ImageMagick resized each explorer to fit a 320 by 340-pixel content box and centered it on the same transparent canvas.
 Each active asset is a 512 by 512 PNG with sRGBA channels.
 The collapsed foothold's alpha mask was filtered with 8-connected components to remove detached components smaller than 1,024 pixels.
 The collapsed foothold has a transparent canvas-center pixel.
-The asset tests verify the active paths, dimensions, transparency, matched square foothold footprints, and connected collapsed rim.
+The asset tests verify the active paths, dimensions, transparency, matched square foothold footprints, connected collapsed rim, damaged fracture contrast, and the solid damaged center region after a 64-pixel decode.
 An ImageMagick pixel check verifies the transparent center.
 
 ## Active generation prompts
@@ -73,15 +74,7 @@ Constraints: output an RGBA PNG with alpha-zero corner pixels; one isolated inta
 ### Damaged top-down foothold
 
 ```plaintext
-Use case: stylized-concept
-Asset type: production transparent 2D board-game terrain sprite for a Flutter game
-Primary request: Create one damaged but still landable orthographic top-down square foothold made from ancient pale slate paving stones. Add one clearly readable shallow diagonal fracture across the upper surface and only a few modest chips at the outer edges. The four outer edges are parallel to the square canvas. The tile is seen directly from above with no visible front wall, side wall, or slab thickness.
-Scene/backdrop: actual alpha transparency outside the stone object. Leave the transparent area empty. Do not draw, paint, or visualize a checkerboard.
-Style/medium: polished hand-painted 2D fantasy game art; broad readable stone planes; sparse low-contrast seams; simplified forms; no glossy toy treatment.
-Composition/framing: square canvas; centered square footprint filling about 76 percent of the canvas; generous equal transparent padding on all four sides.
-Lighting/mood: cool blue-violet twilight ambient light with restrained warm peach edge light.
-Color palette: pale weathered slate, desaturated blue-gray crevices, restrained warm stone edges.
-Constraints: output an RGBA PNG with alpha-zero corner pixels; one isolated damaged tile only; no perspective; no diamond; no trapezoid; no missing center; no large hole; no detached debris; no character; no floor; no shadow patch; no text; no logo; no watermark; no border; no extra tile; no checkerboard.
+Make a surgical in-place edit of this exact game sprite. DO NOT REDRAW, ROTATE, FLATTEN, RESTYLE, RESCALE, RECENTER, OR CHANGE THE SILHOUETTE. The existing visible front and side walls, foreshortened square top, outer contour, masonry blocks, palette, highlights, shadows, transparency, and every other visual element must remain visually identical. Change only the existing cracks on the top walkable surface: add two dark branching crack arms so there are three clearly readable fracture paths at 64-pixel scale. Add no hole and remove no major stone. The exact center remains filled by opaque stone. Do not add moss, dirt, debris, separated pieces, scenery, checkerboard, ground, text, characters, symbols, glow, frame, or background. Return the same isolated transparent RGBA sprite with only the crack edit.
 ```
 
 ### Collapsed top-down foothold

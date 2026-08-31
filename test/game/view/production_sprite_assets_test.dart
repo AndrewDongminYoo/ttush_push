@@ -12,12 +12,15 @@ const _productionSpritePaths = [
   'assets/images/sprites/foothold_hole.png',
 ];
 const _holeSpritePath = 'assets/images/sprites/foothold_hole.png';
+const _intactSpritePath = 'assets/images/sprites/foothold_intact.png';
+const _damagedSpritePath = 'assets/images/sprites/foothold_damaged.png';
 const List<String> _footholdSpritePaths = [
-  'assets/images/sprites/foothold_intact.png',
-  'assets/images/sprites/foothold_damaged.png',
+  _intactSpritePath,
+  _damagedSpritePath,
   _holeSpritePath,
 ];
 const _minimumReadableAlphaComponentArea = 1024;
+const _nativeScale = 64;
 
 void main() {
   testWidgets('bundles five transparent 512 pixel production sprites', (
@@ -134,6 +137,37 @@ void main() {
     });
   });
 
+  testWidgets(
+    'damaged foothold remains fractured and solid at board scale',
+    (
+      tester,
+    ) async {
+      await tester.runAsync(() async {
+        final intact = await _loadRgbaAtSize(_intactSpritePath, _nativeScale);
+        final damaged = await _loadRgbaAtSize(_damagedSpritePath, _nativeScale);
+        final hole = await _loadRgbaAtSize(_holeSpritePath, _nativeScale);
+        final intactDarkFraction = _darkVisiblePixelFraction(intact);
+        final damagedDarkFraction = _darkVisiblePixelFraction(damaged);
+
+        expect(
+          damagedDarkFraction,
+          greaterThan(intactDarkFraction),
+          reason: 'damage fractures must remain distinct after native scaling',
+        );
+        expect(
+          _centerAlphaValues(damaged, size: _nativeScale),
+          everyElement(greaterThanOrEqualTo(250)),
+          reason: 'the damaged foothold center region must remain solid',
+        );
+        expect(
+          _centerAlphaValues(hole, size: _nativeScale),
+          contains(lessThan(128)),
+          reason: 'the center-region check must detect a collapsed hole',
+        );
+      });
+    },
+  );
+
   test('rejects a fully transparent alpha footprint', () {
     expect(
       () => _alphaBounds(Uint8List(16), width: 2, height: 2),
@@ -226,4 +260,52 @@ Future<ByteData> _loadAsset(String assetPath) async {
   } on Object catch (error) {
     fail('$assetPath failed to load: $error');
   }
+}
+
+Future<Uint8List> _loadRgbaAtSize(String assetPath, int size) async {
+  final data = await _loadAsset(assetPath);
+  final codec = await ui.instantiateImageCodec(
+    data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+    targetWidth: size,
+    targetHeight: size,
+  );
+  final frame = await codec.getNextFrame();
+  final image = frame.image;
+  final pixels = await image.toByteData();
+  image.dispose();
+  codec.dispose();
+  if (pixels == null) {
+    throw StateError('$assetPath failed to decode at $size pixels');
+  }
+  return pixels.buffer.asUint8List(
+    pixels.offsetInBytes,
+    pixels.lengthInBytes,
+  );
+}
+
+double _darkVisiblePixelFraction(Uint8List rgba) {
+  var visiblePixels = 0;
+  var darkPixels = 0;
+  for (var index = 0; index < rgba.length; index += 4) {
+    if (rgba[index + 3] < 128) {
+      continue;
+    }
+    visiblePixels += 1;
+    final luminance =
+        (299 * rgba[index] + 587 * rgba[index + 1] + 114 * rgba[index + 2]) ~/
+        1000;
+    if (luminance <= 89) {
+      darkPixels += 1;
+    }
+  }
+  return darkPixels / visiblePixels;
+}
+
+List<int> _centerAlphaValues(Uint8List rgba, {required int size}) {
+  final start = size * 3 ~/ 8;
+  final end = size * 5 ~/ 8;
+  return [
+    for (var y = start; y < end; y++)
+      for (var x = start; x < end; x++) rgba[(y * size + x) * 4 + 3],
+  ];
 }
