@@ -22,11 +22,12 @@ void main() {
     );
 
     expect(find.byType(GamePage), findsOneWidget);
-    // The first seat opens on turn, which its mark says by turning white.
+    // The first seat opens on turn, which its mark says with a white outline.
     final mark = tester.widget<Container>(
       find.byKey(const Key('player-mark-first')),
     );
+    final decoration = mark.decoration! as BoxDecoration;
 
-    expect((mark.decoration! as BoxDecoration).color, Colors.white);
+    expect((decoration.border! as Border).top.color, Colors.white);
   });
 }

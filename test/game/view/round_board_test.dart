@@ -20,7 +20,9 @@ const _damagedFootholdColor = Color(0xFFF3CE8E);
 const _crackColor = Color(0xFF6B4A16);
 const _firstPlayerColor = Color(0xFF2A48DF);
 const _secondPlayerColor = Color(0xFFE14B4B);
+const _selectionColor = Color(0xFFFFD54F);
 const _destinationColor = Color(0xFF53D769);
+const _pushImpactColor = Color(0xFFF3DB9A);
 const _productionAzureColor = Color(0xFF1261A0);
 const _productionEmberColor = Color(0xFF9C2C22);
 const _productionIntactColor = Color(0xFF7289A8);
@@ -231,6 +233,10 @@ void main() {
       ),
     );
 
+    expect(
+      find.byKey(const Key('round-board-production-sprites')),
+      findsNothing,
+    );
     final fallback = await _sampleCurrentBoard(tester);
     expect(fallback(_cellCenter(0, 0)), _firstPlayerColor);
     expect(fallback(_cellCenter(1, 0)), _secondPlayerColor);
@@ -239,6 +245,10 @@ void main() {
     completion.complete(spriteSet);
     await tester.pump();
 
+    expect(
+      find.byKey(const Key('round-board-production-sprites')),
+      findsOneWidget,
+    );
     final production = await _sampleCurrentBoard(tester);
     expect(production(_cellCenter(0, 0)), _productionAzureColor);
     expect(production(_cellCenter(1, 0)), _productionEmberColor);
@@ -732,8 +742,9 @@ void main() {
         ),
       );
       final impactPoint =
-          _cellCenter(1, 0) + const Offset(0, -_cellSize * 0.42);
-      expect(impact(impactPoint), isNot(beforeImpact(impactPoint)));
+          _cellCenter(1, 0) + const Offset(-_cellSize * 0.28, 0);
+      expect(impact(impactPoint), _pushImpactColor);
+      expect(beforeImpact(impactPoint), isNot(_pushImpactColor));
 
       final displacedMidTravel = await _paintAndSample(
         tester,
@@ -843,6 +854,124 @@ void main() {
         };
         expect(falling(_cellCenter(3, 2) + offset), _secondPlayerColor);
       }
+    },
+  );
+
+  testWidgets(
+    'renders a directional contact brace behind a horizontal Push',
+    (tester) async {
+      const snapshot = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [
+          GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+          GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+          GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        ],
+        pieces: [
+          GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+          GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
+        ],
+        snapshotHash: 'directional-contact-brace',
+      );
+      const resolution = MoveResolution(
+        actionKind: MoveActionKind.push,
+        mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
+        displaced: PieceDisplacement(
+          pieceId: 1,
+          fromX: 1,
+          fromY: 0,
+          toX: 2,
+          toY: 0,
+        ),
+        tileTransition: TileTransition(
+          x: 0,
+          y: 0,
+          from: GameTileKind.normal,
+          to: GameTileKind.damaged,
+        ),
+      );
+
+      final impact = await _paintAndSample(
+        tester,
+        snapshot: snapshot,
+        legalMoves: const [
+          GameMove(pieceId: 0, direction: GameDirection.right),
+        ],
+        selectedPieceId: 0,
+        playback: const BoardPlayback(
+          resolution: resolution,
+          progress: 0.62,
+          reducedMotion: false,
+        ),
+      );
+
+      expect(
+        impact(
+          _cellCenter(1, 0) + const Offset(-_cellSize * 0.28, 0),
+        ),
+        _pushImpactColor,
+      );
+      expect(
+        impact(_cellCenter(1, 0) + const Offset(0, _cellSize * 0.37)),
+        isNot(_destinationColor),
+      );
+      expect(
+        impact(_cellCenter(1, 0) + const Offset(0, _cellSize * 0.42)),
+        isNot(_selectionColor),
+      );
+    },
+  );
+
+  testWidgets(
+    'keeps the contact brace static when reduced motion is enabled',
+    (tester) async {
+      const snapshot = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [
+          GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+          GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+          GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        ],
+        pieces: [
+          GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+          GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
+        ],
+        snapshotHash: 'reduced-motion-contact-brace',
+      );
+      const resolution = MoveResolution(
+        actionKind: MoveActionKind.push,
+        mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
+        displaced: PieceDisplacement(
+          pieceId: 1,
+          fromX: 1,
+          fromY: 0,
+          toX: 2,
+          toY: 0,
+        ),
+        tileTransition: TileTransition(
+          x: 0,
+          y: 0,
+          from: GameTileKind.normal,
+          to: GameTileKind.damaged,
+        ),
+      );
+
+      final impact = await _paintAndSample(
+        tester,
+        snapshot: snapshot,
+        playback: const BoardPlayback(
+          resolution: resolution,
+          progress: 0.62,
+          reducedMotion: true,
+        ),
+      );
+
+      expect(
+        impact(
+          _cellCenter(1, 0) + const Offset(-_cellSize * 0.28, 0),
+        ),
+        _pushImpactColor,
+      );
     },
   );
 

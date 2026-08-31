@@ -13,6 +13,7 @@ import 'package:ttush_push/src/rust/api.dart' as rust;
 
 const _surfaceColor = Color(0xFF0B0D12);
 const _panelColor = Color(0xFF161A22);
+const _panelBorderColor = Color(0xFF303846);
 const _mutedTextColor = Color(0xFF8A93A6);
 const _firstPlayerColor = Color(0xFF2A48DF);
 const _secondPlayerColor = Color(0xFFE14B4B);
@@ -671,8 +672,8 @@ Color _playerColor(rust.GamePlayer player) {
 
 /// One player's side of the screen.
 ///
-/// The active side is filled with that player's color rather than only
-/// labeled, so whose turn it is survives a glance from across the device.
+/// Both panels share one muted surface.
+/// The active side gains a board-facing accent.
 class _PlayerPanel extends StatelessWidget {
   const _PlayerPanel({
     required this.player,
@@ -693,10 +694,26 @@ class _PlayerPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = _playerColor(player);
     final l10n = _localizationsOf(context);
+    const sharedBorder = BorderSide(color: _panelBorderColor);
+    final boardFacingBorder = isActive
+        ? BorderSide(color: color, width: 3)
+        : sharedBorder;
     return Container(
       key: Key('player-panel-${player.name}'),
       width: double.infinity,
-      color: isActive ? color : _panelColor,
+      decoration: BoxDecoration(
+        color: _panelColor,
+        border: Border(
+          top: player == rust.GamePlayer.first
+              ? boardFacingBorder
+              : sharedBorder,
+          right: sharedBorder,
+          bottom: player == rust.GamePlayer.second
+              ? boardFacingBorder
+              : sharedBorder,
+          left: sharedBorder,
+        ),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -850,13 +867,17 @@ class _PlayerMark extends StatelessWidget {
       width: 20,
       height: 20,
       decoration: BoxDecoration(
-        color: isActive ? Colors.white : _playerColor(player),
+        color: _playerColor(player),
         shape: player == rust.GamePlayer.first
             ? BoxShape.circle
             : BoxShape.rectangle,
         borderRadius: player == rust.GamePlayer.first
             ? null
             : BorderRadius.circular(6),
+        border: Border.all(
+          color: isActive ? Colors.white : Colors.transparent,
+          width: 2,
+        ),
       ),
     );
   }

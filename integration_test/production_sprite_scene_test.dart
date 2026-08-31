@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ttush_push/game/coach/first_play_coach_store.dart';
@@ -19,13 +20,32 @@ void main() {
   ) async {
     const azurePieceId = 0;
     const azurePosition = (2, 2);
-    const normalMove = GameMove(
-      pieceId: azurePieceId,
-      direction: GameDirection.right,
-    );
     const pushMove = GameMove(
       pieceId: azurePieceId,
       direction: GameDirection.up,
+    );
+    const pushResolution = MoveResolution(
+      actionKind: MoveActionKind.push,
+      mover: PieceTravel(
+        pieceId: azurePieceId,
+        fromX: 2,
+        fromY: 2,
+        toX: 2,
+        toY: 1,
+      ),
+      displaced: PieceDisplacement(
+        pieceId: 1,
+        fromX: 2,
+        fromY: 1,
+        toX: 2,
+        toY: 0,
+      ),
+      tileTransition: TileTransition(
+        x: 2,
+        y: 2,
+        from: GameTileKind.normal,
+        to: GameTileKind.damaged,
+      ),
     );
     final snapshot = GameSnapshot(
       currentPlayer: GamePlayer.first,
@@ -53,9 +73,40 @@ void main() {
       ],
       snapshotHash: 'production-sprite-scene',
     );
+    final pushedSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        for (var x = 0; x < 5; x++)
+          for (var y = 0; y < 5; y++)
+            GameTile(
+              x: x,
+              y: y,
+              kind: switch ((x, y)) {
+                (2, 2) || (1, 3) || (4, 1) => GameTileKind.damaged,
+                (0, 1) || (3, 3) => GameTileKind.hole,
+                _ => GameTileKind.normal,
+              },
+            ),
+      ],
+      pieces: const [
+        GamePiece(
+          id: azurePieceId,
+          owner: GamePlayer.first,
+          x: 2,
+          y: 1,
+        ),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 0),
+      ],
+      snapshotHash: 'production-sprite-scene-pushed',
+    );
     final engine = FakeRulesEngine.playing(
       initial: matchOf(snapshot, hash: 'production-sprite-scene-match'),
-      legalMoves: const [normalMove, pushMove],
+      next: matchOf(
+        pushedSnapshot,
+        hash: 'production-sprite-scene-pushed-match',
+      ),
+      legalMoves: const [pushMove],
+      resolution: pushResolution,
     );
 
     await tester.pumpWidget(
@@ -71,6 +122,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final spritesReady = find.byKey(
+      const Key('round-board-production-sprites'),
+    );
+    for (
+      var frame = 0;
+      frame < 50 && spritesReady.evaluate().isEmpty;
+      frame++
+    ) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(spritesReady, findsOneWidget);
+
     final boardFinder = find.byType(RoundBoard);
     expect(boardFinder, findsOneWidget);
     final boardRect = tester.getRect(
@@ -85,21 +148,65 @@ void main() {
 
     final exercisedBoard = tester.widget<RoundBoard>(boardFinder);
     expect(exercisedBoard.selectedPieceId, azurePieceId);
-    expect(exercisedBoard.legalMoves, containsAll([normalMove, pushMove]));
+    expect(exercisedBoard.legalMoves, [pushMove]);
 
     if (defaultTargetPlatform == TargetPlatform.android) {
       await binding.convertFlutterSurfaceToImage();
     }
     await tester.pumpAndSettle();
-    final screenshotName = switch (defaultTargetPlatform) {
-      TargetPlatform.iOS => 'ios-production-sprite-scene',
-      TargetPlatform.android => 'android-production-sprite-scene',
+    final screenshotPrefix = switch (defaultTargetPlatform) {
+      TargetPlatform.iOS => 'ios-production-sprite',
+      TargetPlatform.android => 'android-production-sprite',
       _ => throw UnsupportedError(
         'production sprite screenshots require iOS or Android',
       ),
     };
-    final pngBytes = await binding.takeScreenshot(screenshotName);
-    expect(pngBytes, isNotEmpty);
+    final selectionBytes = await binding.takeScreenshot(
+      '$screenshotPrefix-selection',
+    );
+    expect(selectionBytes, isNotEmpty);
+
+    final pushDestination = find.semantics.byLabel(RegExp(' Push '));
+    expect(pushDestination, findsOneWidget);
+    tester.semantics.performAction(pushDestination, SemanticsAction.tap);
+    await tester.pump();
+    expect(engine.appliedMoves, [pushMove]);
+    expect(tester.widget<RoundBoard>(boardFinder).playback, isNotNull);
+
+    var contactPlayback = tester.widget<RoundBoard>(boardFinder).playback;
+    for (var frame = 0; frame < 40; frame++) {
+      if ((contactPlayback?.progress ?? 1) >= 0.36) {
+        break;
+      }
+      await tester.pump(const Duration(milliseconds: 8));
+      contactPlayback = tester.widget<RoundBoard>(boardFinder).playback;
+    }
+    await tester.pump();
+    contactPlayback = tester.widget<RoundBoard>(boardFinder).playback;
+    expect(contactPlayback, isNotNull);
+    expect(contactPlayback!.resolution.actionKind, MoveActionKind.push);
+    expect(contactPlayback.progress, inInclusiveRange(0.36, 0.78));
+    final contactBytes = await binding.takeScreenshot(
+      '$screenshotPrefix-push-contact',
+    );
+    expect(contactBytes, isNotEmpty);
+
+    await tester.pump(const Duration(milliseconds: 360));
+    await tester.pump();
+    final settledBoard = tester.widget<RoundBoard>(boardFinder);
+    expect(settledBoard.playback, isNull);
+    expect(settledBoard.snapshot, pushedSnapshot);
+    var settledBytes = await binding.takeScreenshot(
+      '$screenshotPrefix-push-settled',
+    );
+    if (listEquals(contactBytes, settledBytes)) {
+      await tester.pump(const Duration(milliseconds: 16));
+      settledBytes = await binding.takeScreenshot(
+        '$screenshotPrefix-push-settled',
+      );
+    }
+    expect(settledBytes, isNotEmpty);
+    expect(listEquals(contactBytes, settledBytes), isFalse);
   });
 }
 
