@@ -94,6 +94,7 @@ class _GamePageState extends State<GamePage>
     _replayGeneration++;
     _replayController.stop();
     _replayResolution = null;
+    _announcement = null;
     _controller = _createMatchController();
   }
 

@@ -17,6 +17,7 @@ Keep Rust, the bridge, and child board rendering unchanged.
 - Compare `BoardDefinition` instances by identity.
 - Preserve the current match when the identical instance is rebuilt.
 - Reset match state, opponent selection, bot work, and replay work when the instance changes.
+- Clear the previous match announcement.
 - Ignore an opponent-sheet result opened for the previous controller.
 - Preserve the retained page State, coach state, coach store, and feedback resource.
 - Do not change Rust, generated bridge files, `BoardDefinition`, `RulesEngine`, `MatchController`, `RoundBoard`, dependencies, assets, or localization.
@@ -112,6 +113,7 @@ void didUpdateWidget(covariant GamePage oldWidget) {
   _replayGeneration++;
   _replayController.stop();
   _replayResolution = null;
+  _announcement = null;
   _controller = _createMatchController();
 }
 ```

@@ -225,13 +225,18 @@ void main() {
     (tester) async {
       const snapshotA = GameSnapshot(
         currentPlayer: GamePlayer.second,
-        tiles: [],
-        pieces: [],
+        tiles: [
+          GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+          GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+        ],
+        pieces: [
+          GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0),
+        ],
         snapshotHash: 'runtime-board-a',
       );
       const botMove = GameMove(
         pieceId: 1,
-        direction: GameDirection.left,
+        direction: GameDirection.down,
       );
       final engine = FakeRulesEngine(
         initial: [matchOf(snapshotA), matchOf(_runtimeSnapshotB)],
@@ -252,6 +257,10 @@ void main() {
 
       await tester.pumpWidget(host(_runtimeDefinitionA));
       expect(engine.initialDefinitions, [_runtimeDefinitionA.rules]);
+
+      await tester.tapAt(_cellCenterOf(tester)(0, 0));
+      await tester.pump();
+      expect(find.byKey(const Key('match-announcement')), findsOneWidget);
 
       await _selectOpponent(tester, 'random');
       final oldTimerStartedAt = tester.binding.clock.now();
@@ -275,6 +284,7 @@ void main() {
         _runtimeDefinitionB.backgroundAssetPath,
       );
       expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
+      expect(find.byKey(const Key('match-announcement')), findsNothing);
 
       await tester.tap(find.byKey(const Key('opponent-control')));
       await tester.pump();

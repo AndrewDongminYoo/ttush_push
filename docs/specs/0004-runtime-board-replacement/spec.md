@@ -27,7 +27,7 @@ Render the background and match snapshot from the same definition after the tran
 2. Keep the current match when the parent rebuilds with the identical `BoardDefinition` instance. [L3]
 3. Create and initialize a fresh `MatchController` with the current `RulesEngine` and the new `BoardDefinition.rules`. [L3] [L4]
 4. Render `BoardDefinition.backgroundAssetPath` from the same new definition that initialized the fresh controller. [L1]
-5. Discard the previous active match, score, selected piece, opponent selection, error, retry action, and pending move. The fresh controller starts with its existing defaults. Ignore a pending opponent-sheet result that was opened for the previous controller. [L3]
+5. Discard the previous active match, score, selected piece, opponent selection, error, retry action, pending move, and match announcement. The fresh controller starts with its existing defaults. Ignore a pending opponent-sheet result that was opened for the previous controller. [L3]
 6. Cancel the previous bot timer and clear its page-owned reference before the new match can schedule bot work. The canceled callback must not call the engine. [L3] [L4]
 7. Stop the previous replay, invalidate its completion callback, and clear its visible resolution. A prepared result from the previous match must never commit after replacement. [L3] [L4]
 8. Preserve the coach state, coach store, and feedback resource because they belong to the retained page rather than one match. [L3]
@@ -43,13 +43,13 @@ This rule avoids a partial value comparison across generated list-backed bridge 
 
 `GamePage` changes `_controller` from a `late final` field to a replaceable `late` field.
 One private helper constructs and initializes the controller for both `initState` and board replacement.
-`didUpdateWidget` cancels the bot timer, invalidates replay completion, stops replay playback, clears the visible replay resolution, and installs the fresh controller.
+`didUpdateWidget` cancels the bot timer, invalidates replay completion, stops replay playback, clears the visible replay resolution and match announcement, and installs the fresh controller.
 
 The replacement is synchronous because `RulesEngine.initialMatch` is synchronous and `MatchController.initialize` already converts failures into `MatchStatus.initializationError`.
 
 ## Testing Strategy
 
-1. Add a widget regression that rebuilds a keyed `GamePage` from definition A to definition B. Assert that the State object is identical, the engine receives A then B, the visible snapshot and background belong to B, the opponent returns to Human, and a pending A bot timer never calls the engine. [L1] [L3] [L5]
+1. Add a widget regression that rebuilds a keyed `GamePage` from definition A to definition B. Assert that the State object is identical, the engine receives A then B, the visible snapshot and background belong to B, the opponent returns to Human, the A announcement is gone, and a pending A bot timer never calls the engine. [L1] [L3] [L5]
 2. Rebuild once with the identical A instance before the A-to-B transition. Assert that the engine initializes only once for that no-op rebuild. [L3]
 3. Add a widget regression that starts an A replay, replaces A with B before completion, and advances beyond the replay duration. Assert that playback clears immediately and the B snapshot remains visible. [L3] [L4]
 4. Add a widget regression that opens the opponent sheet on A, replaces A with B, and returns a choice from the old sheet. Assert that B keeps its default Human opponent. [L3] [L4]
