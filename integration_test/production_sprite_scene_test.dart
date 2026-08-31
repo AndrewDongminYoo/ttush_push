@@ -37,8 +37,7 @@ void main() {
         pieceId: 1,
         fromX: 2,
         fromY: 1,
-        toX: 2,
-        toY: 0,
+        exitDirection: GameDirection.up,
       ),
       tileTransition: TileTransition(
         x: 2,
@@ -57,7 +56,7 @@ void main() {
               y: y,
               kind: switch ((x, y)) {
                 (1, 3) || (4, 1) => GameTileKind.damaged,
-                (0, 1) || (3, 3) => GameTileKind.hole,
+                (0, 1) || (2, 0) || (3, 3) => GameTileKind.hole,
                 _ => GameTileKind.normal,
               },
             ),
@@ -83,7 +82,7 @@ void main() {
               y: y,
               kind: switch ((x, y)) {
                 (2, 2) || (1, 3) || (4, 1) => GameTileKind.damaged,
-                (0, 1) || (3, 3) => GameTileKind.hole,
+                (0, 1) || (2, 0) || (3, 3) => GameTileKind.hole,
                 _ => GameTileKind.normal,
               },
             ),
@@ -95,7 +94,6 @@ void main() {
           x: 2,
           y: 1,
         ),
-        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 0),
       ],
       snapshotHash: 'production-sprite-scene-pushed',
     );
