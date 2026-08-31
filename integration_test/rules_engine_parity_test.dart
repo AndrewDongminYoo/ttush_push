@@ -23,4 +23,11 @@ void main() {
 
     expectIrregularBoardDefinition(const FrbRulesEngine());
   });
+
+  testWidgets('RulesEngine rejects an invalid board definition', (_) async {
+    await RustLib.init();
+    addTearDown(RustLib.dispose);
+
+    expectInvalidBoardDefinitionIsRejected(const FrbRulesEngine());
+  });
 }

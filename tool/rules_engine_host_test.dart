@@ -28,6 +28,15 @@ void main() {
       expectIrregularBoardDefinition(const FrbRulesEngine());
     },
   );
+
+  test('rejects an invalid board definition through the host bridge', () async {
+    await RustLib.init(
+      externalLibrary: ExternalLibrary.open(_hostLibraryPath),
+    );
+    addTearDown(RustLib.dispose);
+
+    expectInvalidBoardDefinitionIsRejected(const FrbRulesEngine());
+  });
 }
 
 String get _hostLibraryPath {
