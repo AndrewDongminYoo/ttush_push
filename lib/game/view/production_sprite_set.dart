@@ -9,41 +9,56 @@ typedef ProductionSpriteLoader =
     );
 
 const productionSpriteAssetPaths = [
-  'assets/images/sprites/azure_explorer_top_down.png',
-  'assets/images/sprites/ember_explorer_top_down.png',
+  'assets/images/sprites/azure_explorer_up.png',
+  'assets/images/sprites/azure_explorer_down.png',
+  'assets/images/sprites/azure_explorer_left.png',
+  'assets/images/sprites/azure_explorer_right.png',
+  'assets/images/sprites/ember_explorer_up.png',
+  'assets/images/sprites/ember_explorer_down.png',
+  'assets/images/sprites/ember_explorer_left.png',
+  'assets/images/sprites/ember_explorer_right.png',
   'assets/images/sprites/foothold_intact.png',
   'assets/images/sprites/foothold_damaged.png',
   'assets/images/sprites/foothold_hole.png',
 ];
 
+enum ExplorerFacing { up, down, left, right }
+
+ExplorerFacing initialExplorerFacing(rust.GamePlayer player) =>
+    switch (player) {
+      rust.GamePlayer.first => ExplorerFacing.up,
+      rust.GamePlayer.second => ExplorerFacing.down,
+    };
+
 final class ProductionSpriteSet {
   ProductionSpriteSet({
-    required this.azureExplorer,
-    required this.emberExplorer,
+    required this.azureExplorers,
+    required this.emberExplorers,
     required this.intactFoothold,
     required this.damagedFoothold,
     required this.holeFoothold,
   });
 
-  final ui.Image azureExplorer;
-  final ui.Image emberExplorer;
+  final Map<ExplorerFacing, ui.Image> azureExplorers;
+  final Map<ExplorerFacing, ui.Image> emberExplorers;
   final ui.Image intactFoothold;
   final ui.Image damagedFoothold;
   final ui.Image holeFoothold;
   bool _disposed = false;
 
   List<ui.Image> get images => [
-    azureExplorer,
-    emberExplorer,
+    ...azureExplorers.values,
+    ...emberExplorers.values,
     intactFoothold,
     damagedFoothold,
     holeFoothold,
   ];
 
-  ui.Image explorerFor(rust.GamePlayer player) => switch (player) {
-    rust.GamePlayer.first => azureExplorer,
-    rust.GamePlayer.second => emberExplorer,
-  };
+  ui.Image explorerFor(rust.GamePlayer player, ExplorerFacing facing) =>
+      switch (player) {
+        rust.GamePlayer.first => azureExplorers[facing]!,
+        rust.GamePlayer.second => emberExplorers[facing]!,
+      };
 
   ui.Image footholdFor(rust.GameTileKind kind) => switch (kind) {
     rust.GameTileKind.normal => intactFoothold,
@@ -56,7 +71,7 @@ final class ProductionSpriteSet {
       return;
     }
     _disposed = true;
-    for (final image in images) {
+    for (final image in images.toSet()) {
       image.dispose();
     }
   }
@@ -69,11 +84,21 @@ Future<ProductionSpriteSet> loadProductionSpriteSet(AssetBundle bundle) async {
       decodedImages.add(await _decodeImage(bundle, assetPath));
     }
     return ProductionSpriteSet(
-      azureExplorer: decodedImages[0],
-      emberExplorer: decodedImages[1],
-      intactFoothold: decodedImages[2],
-      damagedFoothold: decodedImages[3],
-      holeFoothold: decodedImages[4],
+      azureExplorers: {
+        ExplorerFacing.up: decodedImages[0],
+        ExplorerFacing.down: decodedImages[1],
+        ExplorerFacing.left: decodedImages[2],
+        ExplorerFacing.right: decodedImages[3],
+      },
+      emberExplorers: {
+        ExplorerFacing.up: decodedImages[4],
+        ExplorerFacing.down: decodedImages[5],
+        ExplorerFacing.left: decodedImages[6],
+        ExplorerFacing.right: decodedImages[7],
+      },
+      intactFoothold: decodedImages[8],
+      damagedFoothold: decodedImages[9],
+      holeFoothold: decodedImages[10],
     );
   } on Object {
     for (final image in decodedImages) {

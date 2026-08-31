@@ -2,15 +2,18 @@
 
 <!-- cspell:words desaturated imagegen landable Lanczos orthographic recenter srgba -->
 
-## Active top-down set
+## Active directional set
 
-The active `ProductionSpriteSet` uses `azure_explorer_top_down.png`, `ember_explorer_top_down.png`, `foothold_intact.png`, `foothold_damaged.png`, and `foothold_hole.png`.
-OpenAI's built-in `imagegen` tool generated the original selected sources on 2026-08-31 and the replacement damaged source on 2026-09-01.
+The active `ProductionSpriteSet` uses `azure_explorer_{up,down,left,right}.png`, `ember_explorer_{up,down,left,right}.png`, `foothold_intact.png`, `foothold_damaged.png`, and `foothold_hole.png`.
+OpenAI's built-in `imagegen` tool generated the original selected sources on 2026-08-31, the replacement damaged source on 2026-09-01, and the directional explorer sources on 2026-09-01.
 No third-party asset pack was used.
 
 The selected intact, damaged, and collapsed foothold sources are `exec-14150cc0-00a8-45db-8714-b31a538b5bad.png`, `exec-af903cfa-fe60-42ca-8043-682ca3da8b65.png`, and `exec-6d71f6db-7669-4426-8e63-6cf4dad791f1.png`.
 The selected Azure source is `exec-1d826f3e-fde1-4459-8271-37efde206fd9.png`, which extracted genuine alpha from the high-angle base `exec-b77439d4-550b-4910-86ee-e591a3cb2c21.png`.
 The selected Ember source is `exec-476cce73-e2c3-4217-8a89-14e07b8439e4.png`, which extracted genuine alpha from the high-angle base `exec-d0b49152-757c-4238-80ce-51eb6f60d59d.png`.
+The directional Azure sources are `exec-b758191b-01db-4dc9-9773-c66e605a3485.png`, `exec-91e2f909-3fd2-4547-813c-2b149834f581.png`, `exec-ee71f87b-9ae1-4b5d-8edc-114880b85ea8.png`, and `exec-02fd056e-9f56-4bc4-986e-329f9612eba3.png` in up, down, left, and right order.
+The directional Ember sources are `exec-4fc21ba1-535e-4c4e-8e1d-86571b34d5d9.png`, `exec-d02bebdf-1bbd-441a-9479-70b313635146.png`, `exec-525097ee-6463-4a4f-b300-b1b83ae82991.png`, and `exec-ac9838ea-126c-450a-a5e4-49b9092358fc.png` in up, down, left, and right order.
+The approved turnaround reference is `assets/images/reference/directional-explorer-sprites-v1/azure_turnaround_reference.png`.
 
 The footholds use one orthographic square camera and no visible outer side wall.
 The explorers use one elevated game-board camera so the hood and shoulders read before the foreshortened body.
@@ -20,14 +23,38 @@ The first generated five-sprite set remains under `assets/images/reference/match
 
 ImageMagick derived each foothold crop from alpha values at or above 50 percent, resized the crop to a 420 by 420-pixel square, centered it on a transparent 512 by 512 canvas, and stripped nonessential metadata.
 For the replacement damaged source, ImageMagick cropped the 1,044-pixel source square at offset 106,103, resized it to 420 by 420 pixels, centered it on the 512-pixel canvas, copied the preceding damaged sprite's alpha mask, and stripped nonessential metadata.
-ImageMagick resized each explorer to fit a 320 by 340-pixel content box and centered it on the same transparent canvas.
+ImageMagick removes explorer-source alpha below 5 percent, trims the remaining bounds, resizes every directional explorer to a 340-pixel content height, centers it horizontally, and places its lowest visible pixel at y-coordinate 425 on the transparent 512-pixel canvas.
 Each active asset is a 512 by 512 PNG with sRGBA channels.
 The collapsed foothold's alpha mask was filtered with 8-connected components to remove detached components smaller than 1,024 pixels.
 The collapsed foothold has a transparent canvas-center pixel.
-The asset tests verify the active paths, dimensions, transparency, matched square foothold footprints, connected collapsed rim, damaged fracture contrast, and the solid damaged center region after a 64-pixel decode.
+The asset tests verify the active paths, dimensions, transparency, explorer height and foot anchors, matched square foothold footprints, connected collapsed rim, damaged fracture contrast, and the solid damaged center region after a 64-pixel decode.
 An ImageMagick pixel check verifies the transparent center.
 
-## Active generation prompts
+### Directional explorer integrity
+
+| Team  | Direction | Source SHA-256                                                     | Active SHA-256                                                     |
+| ----- | --------- | ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Azure | up        | `1c3b8a0f3fd9d2409cee11d874a0557e70f216da7de819fc4a64a54966a909bf` | `8af170300153881f75e1f3cc3624ae1c73f22a1ee76e2b86ab60b65d0250cbf4` |
+| Azure | down      | `9d988937e7195bb2f5c5fa6e02bfd305ee9896460fdbf05a251bf0f5a57f7924` | `942ff51d8d6fd3aaba2a4271dacc2b10c8d9312f8d847c9ab9cadac7a83bc87f` |
+| Azure | left      | `0d67b167b3b6507f010de5cd27241b26edbe8a0782b5c3b9d8c3a9fb9e5a3fa8` | `75a7a82fa6272ac5da3819d05b2bfecf6b2fffd27a94feb24681b6afd19ed97b` |
+| Azure | right     | `ddacb50ad7d32fef22d1b89ff2d7442b71b420ff6b7ce7a66f8b8c6c224c8fe2` | `944c1ba8ff631c3c491ac5fee2c2ab1de8a0d89dca9398bc9655100c9eb4cbff` |
+| Ember | up        | `802a07c316a43ce28f1cb9dfed10108452d5e2c6b0381161e26df301872027f7` | `a638796973ca27d96302f72e1daac92c1af6eb3db6d227d993b15db4cb1a4615` |
+| Ember | down      | `de5ef2004069bec24520210d72749b9efc795c73a9f2c088f02dedc5bed59073` | `64e65febe1a1fde715743fbd659129940bb2c88ec7bb1eae1037d4417bc8c92a` |
+| Ember | left      | `5d6da5adfbc6768d1f96209b164430056dcdaeb2633cc46c8f8db30ca9ae823c` | `a8ac8444048b8e28bf42c061bf49e7407ffee5898be95efa4bb86130775679c3` |
+| Ember | right     | `191b157b452bf7ce127788f4254e70b42d63311a97eaa2958a1b84b93403c76f` | `07bd9d432dd73175c9b070147b33c4de592565d9b10545b816f68447b6a647cc` |
+
+## Directional explorer generation prompt
+
+The following template was run once for each team and each visual direction.
+The direction clause named up, down, left, or right and described the matching canvas edge.
+The Azure run used the approved turnaround and the active Azure top-down sprite as references.
+The Ember run used the approved turnaround for camera and directional anatomy and the active Ember top-down sprite for team identity.
+
+```plaintext
+Create one production 2D board-game character sprite for the [TEAM] explorer facing VISUAL [DIRECTION], meaning the character looks toward the matching edge of the square canvas. Use the supplied 3-by-3 Azure turnaround only as the directional anatomy and fixed high-angle camera reference. Use the supplied active [TEAM] sprite as the exact team identity, palette, material, painterly finish, silhouette family, apparent height, and scale reference. Preserve the team's compact super-deformed body, hood and cloak or robe silhouette, trim, leather boots, cool blue-violet ambient light, and restrained warm peach rim light. Keep Ember's silhouette clearly angular and distinct from Azure. Output one isolated full-body character only on a genuine transparent background. Use a square canvas with the character centered horizontally, the lowest boot pixels aligned near 82 percent of canvas height, and generous even transparent padding. The camera, apparent character height, and ground anchor must match the active sprite so this can join one fixed four-direction set. No floor, cast shadow, scenery, cell marker, background color, border, grid, text, logo, watermark, weapon, prop, extra character, extra pose, sprite sheet, glow, or checkerboard.
+```
+
+## Foothold and previous neutral explorer prompts
 
 ### Azure top-down explorer
 

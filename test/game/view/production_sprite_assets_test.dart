@@ -4,13 +4,25 @@ import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const _productionSpritePaths = [
-  'assets/images/sprites/azure_explorer_top_down.png',
-  'assets/images/sprites/ember_explorer_top_down.png',
+const List<String> _productionSpritePaths = [
+  ..._explorerSpritePaths,
   'assets/images/sprites/foothold_intact.png',
   'assets/images/sprites/foothold_damaged.png',
   'assets/images/sprites/foothold_hole.png',
 ];
+const _explorerSpritePaths = [
+  'assets/images/sprites/azure_explorer_up.png',
+  'assets/images/sprites/azure_explorer_down.png',
+  'assets/images/sprites/azure_explorer_left.png',
+  'assets/images/sprites/azure_explorer_right.png',
+  'assets/images/sprites/ember_explorer_up.png',
+  'assets/images/sprites/ember_explorer_down.png',
+  'assets/images/sprites/ember_explorer_left.png',
+  'assets/images/sprites/ember_explorer_right.png',
+];
+const _turnaroundReferencePath =
+    'assets/images/reference/directional-explorer-sprites-v1/'
+    'azure_turnaround_reference.png';
 const _holeSpritePath = 'assets/images/sprites/foothold_hole.png';
 const _intactSpritePath = 'assets/images/sprites/foothold_intact.png';
 const _damagedSpritePath = 'assets/images/sprites/foothold_damaged.png';
@@ -23,7 +35,7 @@ const _minimumReadableAlphaComponentArea = 1024;
 const _nativeScale = 64;
 
 void main() {
-  testWidgets('bundles five transparent 512 pixel production sprites', (
+  testWidgets('bundles eleven transparent 512 pixel production sprites', (
     tester,
   ) async {
     await tester.runAsync(() async {
@@ -51,6 +63,52 @@ void main() {
           [for (var index = 3; index < rgba.length; index += 4) rgba[index]],
           contains(lessThan(255)),
           reason: '$assetPath must contain transparent pixels',
+        );
+      }
+    });
+  });
+
+  testWidgets('keeps the approved turnaround outside the asset bundle', (
+    tester,
+  ) async {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+
+    expect(manifest.listAssets(), isNot(contains(_turnaroundReferencePath)));
+  });
+
+  testWidgets('explorer directions share one scale and foot anchor', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      for (final assetPath in _explorerSpritePaths) {
+        final data = await _loadAsset(assetPath);
+        final codec = await ui.instantiateImageCodec(
+          data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        );
+        final frame = await codec.getNextFrame();
+        final image = frame.image;
+        addTearDown(() {
+          image.dispose();
+          codec.dispose();
+        });
+        final pixels = await image.toByteData();
+        expect(pixels, isNotNull, reason: assetPath);
+        final rgba = pixels!.buffer.asUint8List(
+          pixels.offsetInBytes,
+          pixels.lengthInBytes,
+        );
+        final bounds = _alphaBounds(
+          rgba,
+          width: image.width,
+          height: image.height,
+        );
+
+        expect(bounds.height, 340, reason: assetPath);
+        expect(bounds.maxY, 425, reason: assetPath);
+        expect(
+          (bounds.minX + bounds.maxX + 1) / 2,
+          closeTo(256, 1),
+          reason: assetPath,
         );
       }
     });
@@ -176,7 +234,7 @@ void main() {
   });
 }
 
-({int width, int height}) _alphaBounds(
+({int width, int height, int minX, int minY, int maxX, int maxY}) _alphaBounds(
   Uint8List rgba, {
   required int width,
   required int height,
@@ -201,7 +259,14 @@ void main() {
   if (maxX < 0) {
     throw StateError('sprite contains no nontransparent pixels');
   }
-  return (width: maxX - minX + 1, height: maxY - minY + 1);
+  return (
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+    minX: minX,
+    minY: minY,
+    maxX: maxX,
+    maxY: maxY,
+  );
 }
 
 List<int> _alphaComponentAreas(

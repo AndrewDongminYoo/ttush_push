@@ -24,6 +24,8 @@ const _selectionColor = Color(0xFFFFD54F);
 const _destinationColor = Color(0xFF53D769);
 const _pushImpactColor = Color(0xFFF3DB9A);
 const _productionAzureColor = Color(0xFF1261A0);
+const _productionAzureLeftColor = Color(0xFF3F8CFF);
+const _productionAzureRightColor = Color(0xFF76C7FF);
 const _productionEmberColor = Color(0xFF9C2C22);
 const _productionIntactColor = Color(0xFF7289A8);
 const _productionDamagedColor = Color(0xFFB4793C);
@@ -313,6 +315,53 @@ void main() {
 
     await tester.pump();
     expect(reports, hasLength(1));
+  });
+
+  testWidgets('paints the requested directional explorer sprite', (
+    tester,
+  ) async {
+    final azure = await _solidImage(_productionAzureColor);
+    final azureLeft = await _solidImage(_productionAzureLeftColor);
+    final azureRight = await _solidImage(_productionAzureRightColor);
+    final ember = await _solidImage(_productionEmberColor);
+    final spriteSet = ProductionSpriteSet(
+      azureExplorers: {
+        ExplorerFacing.up: azure,
+        ExplorerFacing.down: azure,
+        ExplorerFacing.left: azureLeft,
+        ExplorerFacing.right: azureRight,
+      },
+      emberExplorers: {
+        for (final facing in ExplorerFacing.values) facing: ember,
+      },
+      intactFoothold: await _solidImage(_productionIntactColor),
+      damagedFoothold: await _solidImage(_productionDamagedColor),
+      holeFoothold: await _cornerImage(_productionHoleColor),
+    );
+    addTearDown(spriteSet.dispose);
+    Future<ProductionSpriteSet> loader(AssetBundle _) async => spriteSet;
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [GameTile(x: 2, y: 2, kind: GameTileKind.normal)],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2)],
+      snapshotHash: 'directional-sprite',
+    );
+
+    var sample = await _paintAndSample(
+      tester,
+      snapshot: snapshot,
+      pieceFacings: const {0: ExplorerFacing.left},
+      spriteLoader: loader,
+    );
+    expect(sample(_cellCenter(2, 2)), _productionAzureLeftColor);
+
+    sample = await _paintAndSample(
+      tester,
+      snapshot: snapshot,
+      pieceFacings: const {0: ExplorerFacing.right},
+      spriteLoader: loader,
+    );
+    expect(sample(_cellCenter(2, 2)), _productionAzureRightColor);
   });
 
   testWidgets('disposes a stale complete set without updating the board', (
@@ -1196,6 +1245,7 @@ Future<Color Function(Offset)> _paintAndSample(
   required GameSnapshot snapshot,
   List<GameMove> legalMoves = const [],
   int? selectedPieceId,
+  Map<int, ExplorerFacing> pieceFacings = const {},
   BoardPlayback? playback,
   Color backgroundColor = _voidColor,
   ProductionSpriteLoader spriteLoader = _unresolvedSpriteLoader,
@@ -1205,6 +1255,7 @@ Future<Color Function(Offset)> _paintAndSample(
       snapshot: snapshot,
       legalMoves: legalMoves,
       selectedPieceId: selectedPieceId,
+      pieceFacings: pieceFacings,
       playback: playback,
       capturePixels: true,
       backgroundColor: backgroundColor,
@@ -1245,6 +1296,7 @@ Widget _boardHarness({
   required GameSnapshot snapshot,
   required List<GameMove> legalMoves,
   required int? selectedPieceId,
+  Map<int, ExplorerFacing> pieceFacings = const {},
   BoardPlayback? playback,
   void Function(int x, int y)? onCellTap,
   bool capturePixels = false,
@@ -1256,6 +1308,7 @@ Widget _boardHarness({
     snapshot: renderedSnapshot,
     legalMoves: legalMoves,
     selectedPieceId: selectedPieceId,
+    pieceFacings: pieceFacings,
     playback: playback,
     onCellTap: onCellTap ?? (_, _) {},
     spriteLoader: spriteLoader,
@@ -1284,9 +1337,11 @@ Future<ProductionSpriteSet> _unresolvedSpriteLoader(AssetBundle _) {
 }
 
 Future<ProductionSpriteSet> _testSpriteSet() async {
+  final azure = await _solidImage(_productionAzureColor);
+  final ember = await _solidImage(_productionEmberColor);
   return ProductionSpriteSet(
-    azureExplorer: await _solidImage(_productionAzureColor),
-    emberExplorer: await _solidImage(_productionEmberColor),
+    azureExplorers: {for (final facing in ExplorerFacing.values) facing: azure},
+    emberExplorers: {for (final facing in ExplorerFacing.values) facing: ember},
     intactFoothold: await _solidImage(_productionIntactColor),
     damagedFoothold: await _solidImage(_productionDamagedColor),
     holeFoothold: await _cornerImage(_productionHoleColor),

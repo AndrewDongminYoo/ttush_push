@@ -28,6 +28,10 @@ lint:
     - linters: [osv-scanner]
       paths:
         - ios/Podfile.lock
+    # Preserve the operator-supplied reference PNG byte for byte.
+    - linters: [oxipng]
+      paths:
+        - assets/images/reference/directional-explorer-sprites-v1/azure_turnaround_reference.png
     # flutter_rust_bridge generates Cargokit glue that is not source-owned here.
     - linters: [ALL]
       paths:

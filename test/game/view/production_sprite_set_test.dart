@@ -15,15 +15,19 @@ void main() {
     final spriteSet = await loadProductionSpriteSet(rootBundle);
     addTearDown(spriteSet.dispose);
 
-    expect(spriteSet.images, hasLength(5));
-    expect(
-      spriteSet.explorerFor(GamePlayer.first),
-      same(spriteSet.azureExplorer),
-    );
-    expect(
-      spriteSet.explorerFor(GamePlayer.second),
-      same(spriteSet.emberExplorer),
-    );
+    expect(spriteSet.images, hasLength(11));
+    expect(initialExplorerFacing(GamePlayer.first), ExplorerFacing.up);
+    expect(initialExplorerFacing(GamePlayer.second), ExplorerFacing.down);
+    for (final facing in ExplorerFacing.values) {
+      expect(
+        spriteSet.explorerFor(GamePlayer.first, facing),
+        same(spriteSet.azureExplorers[facing]),
+      );
+      expect(
+        spriteSet.explorerFor(GamePlayer.second, facing),
+        same(spriteSet.emberExplorers[facing]),
+      );
+    }
     expect(
       spriteSet.footholdFor(GameTileKind.normal),
       same(spriteSet.intactFoothold),
@@ -65,8 +69,8 @@ void main() {
       await expectLater(loadProductionSpriteSet(bundle), throwsA(anything));
 
       expect(bundle.loadedPaths, [
-        'assets/images/sprites/azure_explorer_top_down.png',
-        'assets/images/sprites/ember_explorer_top_down.png',
+        'assets/images/sprites/azure_explorer_up.png',
+        'assets/images/sprites/azure_explorer_down.png',
       ]);
       expect(createdImages, hasLength(1));
       expect(createdImages.single.debugDisposed, isTrue);

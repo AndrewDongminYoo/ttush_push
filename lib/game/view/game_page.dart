@@ -7,6 +7,7 @@ import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
+import 'package:ttush_push/game/view/production_sprite_set.dart';
 import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/l10n/l10n.dart';
 import 'package:ttush_push/src/rust/api.dart' as rust;
@@ -43,6 +44,7 @@ class _GamePageState extends State<GamePage>
   Timer? _botTimer;
   late final AnimationController _replayController;
   rust.MoveResolution? _replayResolution;
+  Map<int, ExplorerFacing> _pieceFacings = const {};
   bool _reducedMotion = false;
   int _replayGeneration = 0;
   FirstPlayCoachStore? _coachStore;
@@ -94,6 +96,7 @@ class _GamePageState extends State<GamePage>
     _replayGeneration++;
     _replayController.stop();
     _replayResolution = null;
+    _pieceFacings = const {};
     _announcement = null;
     _controller = _createMatchController();
   }
@@ -234,6 +237,7 @@ class _GamePageState extends State<GamePage>
                           snapshot: round,
                           legalMoves: _controller.legalMoves,
                           selectedPieceId: _controller.selectedPieceId,
+                          pieceFacings: _pieceFacings,
                           playback: replaying
                               ? BoardPlayback(
                                   resolution: _replayResolution!,
@@ -281,7 +285,7 @@ class _GamePageState extends State<GamePage>
   }
 
   void _advanceRound() {
-    setState(_controller.advanceRound);
+    setState(() => _mutateAndResetFacing(_controller.advanceRound));
   }
 
   Future<void> _loadCoach() async {
@@ -433,6 +437,7 @@ class _GamePageState extends State<GamePage>
     final generation = ++_replayGeneration;
     final reducedMotion = MediaQuery.disableAnimationsOf(context);
     setState(() {
+      _updateFacingFor(resolution);
       _replayResolution = resolution;
       _reducedMotion = reducedMotion;
       _replayController
@@ -456,6 +461,7 @@ class _GamePageState extends State<GamePage>
 
       setState(() {
         _controller.commitPendingMove();
+        _prunePieceFacings();
         _replayResolution = null;
         final l10n = _localizationsOf(context);
         if (_controller.isMatchOver) {
@@ -514,19 +520,96 @@ class _GamePageState extends State<GamePage>
   }
 
   void _restart() {
-    setState(_controller.restart);
+    setState(() => _mutateAndResetFacing(_controller.restart));
   }
 
   void _retry() {
     setState(() {
-      _controller.retry();
+      _mutateAndResetFacing(_controller.retry);
       if (_controller.error != null) {
         _errorAnnouncementGeneration++;
       }
     });
     _playPendingMove();
   }
+
+  void _updateFacingFor(rust.MoveResolution resolution) {
+    final next = Map<int, ExplorerFacing>.of(_pieceFacings);
+    final mover = resolution.mover;
+    final moverFacing = _visualFacingForTravel(
+      fromX: mover.fromX,
+      fromY: mover.fromY,
+      toX: mover.toX,
+      toY: mover.toY,
+    );
+    if (moverFacing != null) {
+      next[mover.pieceId] = moverFacing;
+    }
+
+    final displaced = resolution.displaced;
+    if (displaced != null) {
+      final displacedFacing = switch ((displaced.toX, displaced.toY)) {
+        (final int toX, final int toY) => _visualFacingForTravel(
+          fromX: displaced.fromX,
+          fromY: displaced.fromY,
+          toX: toX,
+          toY: toY,
+        ),
+        _ => _visualFacingByRustDirection[displaced.exitDirection],
+      };
+      if (displacedFacing != null) {
+        next[displaced.pieceId] = displacedFacing;
+      }
+    }
+    _pieceFacings = next;
+  }
+
+  void _prunePieceFacings() {
+    final pieceIds = _controller.snapshot!.round.pieces
+        .map((piece) => piece.id)
+        .toSet();
+    _pieceFacings = {
+      for (final entry in _pieceFacings.entries)
+        if (pieceIds.contains(entry.key)) entry.key: entry.value,
+    };
+  }
+
+  void _mutateAndResetFacing(void Function() mutation) {
+    final previousHash = _controller.snapshot?.snapshotHash;
+    mutation();
+    if (_controller.snapshot?.snapshotHash != previousHash) {
+      _pieceFacings = const {};
+    }
+  }
 }
+
+ExplorerFacing? _visualFacingForTravel({
+  required int fromX,
+  required int fromY,
+  required int toX,
+  required int toY,
+}) {
+  if (toX > fromX) {
+    return ExplorerFacing.right;
+  }
+  if (toX < fromX) {
+    return ExplorerFacing.left;
+  }
+  if (toY > fromY) {
+    return ExplorerFacing.up;
+  }
+  if (toY < fromY) {
+    return ExplorerFacing.down;
+  }
+  return null;
+}
+
+const _visualFacingByRustDirection = <rust.GameDirection, ExplorerFacing>{
+  rust.GameDirection.up: ExplorerFacing.down,
+  rust.GameDirection.down: ExplorerFacing.up,
+  rust.GameDirection.left: ExplorerFacing.left,
+  rust.GameDirection.right: ExplorerFacing.right,
+};
 
 AppLocalizations _localizationsOf(BuildContext context) {
   return Localizations.of<AppLocalizations>(context, AppLocalizations) ??

@@ -8,6 +8,7 @@ import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/view/game_page.dart';
+import 'package:ttush_push/game/view/production_sprite_set.dart';
 import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
@@ -31,6 +32,23 @@ const _pushResolution = MoveResolution(
   tileTransition: TileTransition(
     x: 0,
     y: 0,
+    from: GameTileKind.normal,
+    to: GameTileKind.damaged,
+  ),
+);
+
+const _fallPushResolution = MoveResolution(
+  actionKind: MoveActionKind.push,
+  mover: PieceTravel(pieceId: 0, fromX: 2, fromY: 2, toX: 2, toY: 1),
+  displaced: PieceDisplacement(
+    pieceId: 1,
+    fromX: 2,
+    fromY: 1,
+    exitDirection: GameDirection.up,
+  ),
+  tileTransition: TileTransition(
+    x: 2,
+    y: 2,
     from: GameTileKind.normal,
     to: GameTileKind.damaged,
   ),
@@ -385,12 +403,17 @@ void main() {
     await tester.tapAt(cellCenter(0, 1));
     await tester.pump();
     expect(tester.hasRunningAnimations, isTrue);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
+      {0: ExplorerFacing.up},
+    );
 
     await tester.pumpWidget(host(_runtimeDefinitionB));
 
     final board = tester.widget<RoundBoard>(find.byType(RoundBoard));
     expect(board.playback, isNull);
     expect(board.snapshot, _runtimeSnapshotB);
+    expect(board.pieceFacings, isEmpty);
     final settlePumps = await tester.pumpAndSettle();
     // Six 100 ms pumps would let the old 540 ms replay finish normally.
     expect(settlePumps, lessThan(6));
@@ -459,28 +482,65 @@ void main() {
   testWidgets('blocks terminal board input and restarts the round', (
     tester,
   ) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'restart-start',
+    );
     const terminalSnapshot = GameSnapshot(
       currentPlayer: GamePlayer.second,
-      tiles: [],
-      pieces: [],
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
       winner: GamePlayer.first,
       winReason: GameWinReason.knockout,
       snapshotHash: 'terminal',
     );
-    const restartedSnapshot = GameSnapshot(
+    final restartedSnapshot = GameSnapshot(
       currentPlayer: GamePlayer.first,
-      tiles: [],
-      pieces: [],
+      tiles: startSnapshot.tiles,
+      pieces: startSnapshot.pieces,
       snapshotHash: 'restarted',
     );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
     final engine = FakeRulesEngine(
       initial: [
-        matchOverMatch(terminalSnapshot, winner: GamePlayer.first),
+        matchOf(startSnapshot, hash: 'restart-match-start'),
         matchOf(restartedSnapshot),
       ],
+      moveResults: [
+        moveResultOf(
+          next: matchOverMatch(
+            terminalSnapshot,
+            winner: GamePlayer.first,
+          ),
+          resolution: _fallPushResolution,
+        ),
+      ],
+      legalMovesFor: (snapshot) =>
+          snapshot.snapshotHash == 'restart-match-start'
+          ? const [move]
+          : const [],
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
 
     expect(_inOverlay('Azure Expedition'), findsOneWidget);
     expect(find.text('wins the match'), findsOneWidget);
@@ -490,12 +550,20 @@ void main() {
     );
     await tester.tapAt(boardRect.center);
 
-    expect(engine.appliedMoves, isEmpty);
+    expect(engine.appliedMoves, [move]);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
+      isNotEmpty,
+    );
 
     await tester.tap(find.text('New Match'));
     await tester.pump();
 
     _expectActiveTurn(tester, GamePlayer.first);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
+      isEmpty,
+    );
   });
 
   testWidgets('applies only the selected legal destination without shifting '
@@ -592,6 +660,10 @@ void main() {
       tester.widget<RoundBoard>(find.byType(RoundBoard)).playback,
       isNotNull,
     );
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
+      {0: ExplorerFacing.up},
+    );
 
     await tester.pump(const Duration(milliseconds: 539));
     _expectActiveTurn(tester, GamePlayer.first);
@@ -599,6 +671,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 60));
     await tester.pump();
     _expectActiveTurn(tester, GamePlayer.second);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
+      {0: ExplorerFacing.up},
+    );
   });
 
   testWidgets('uses the same commit path with reduced motion', (tester) async {
@@ -826,6 +902,7 @@ void main() {
       initial: matchOf(initialSnapshot),
       next: matchOf(nextSnapshot, hash: 'next'),
       legalMoves: const [move],
+      resolution: _pushResolution,
     );
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
@@ -837,10 +914,86 @@ void main() {
     // rather than fall through to selecting their piece.
     await tester.tapAt(cellCenter(2, 1));
     await tester.pump();
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
+      {0: ExplorerFacing.up, 1: ExplorerFacing.up},
+    );
     await _finishReplay(tester);
 
     expect(engine.appliedMoves, [move]);
     _expectActiveTurn(tester, GamePlayer.second);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
+      {0: ExplorerFacing.up, 1: ExplorerFacing.up},
+    );
+  });
+
+  testWidgets('resets presentation facing after round advance', (tester) async {
+    const start = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'facing-round-start',
+    );
+    const wonRound = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'facing-round-won',
+    );
+    const nextRound = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'facing-round-next',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(start, hash: 'facing-match-start')],
+      moveResults: [
+        moveResultOf(
+          next: roundOverMatch(
+            wonRound,
+            winner: GamePlayer.first,
+            hash: 'facing-match-won',
+          ),
+          resolution: _fallPushResolution,
+        ),
+      ],
+      advanceResults: [
+        matchOf(nextRound, firstWins: 1, hash: 'facing-match-next'),
+      ],
+      legalMovesFor: (snapshot) => snapshot.snapshotHash == 'facing-match-start'
+          ? const [move]
+          : const [],
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
+      isNotEmpty,
+    );
+    await tester.tap(find.text('Next Round'));
+    await tester.pump();
+
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
+      isEmpty,
+    );
   });
 
   testWidgets('shows an immobilization result over the final board', (
