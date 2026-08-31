@@ -708,9 +708,7 @@ final class _RoundBoardPainter extends CustomPainter {
         final displacedIndex = snapshot.pieces.indexWhere(
           (piece) => piece.id == displaced.pieceId,
         );
-        if (displacedIndex != -1 &&
-            (displaced.exitDirection == null ||
-                playback.progress <= _pushDisplacementEnd)) {
+        if (displacedIndex != -1) {
           _paintPieceAt(
             canvas,
             snapshot.pieces[displacedIndex],

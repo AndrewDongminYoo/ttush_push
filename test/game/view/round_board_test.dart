@@ -878,33 +878,25 @@ void main() {
         (GameDirection.up, Offset(0, _cellSize)),
       ]) {
         for (final reducedMotion in [false, true]) {
-          final atEndpoint = await _paintAndSample(
-            tester,
-            snapshot: fallSnapshot,
-            playback: fallPlayback(
-              direction,
-              0.8,
-              reducedMotion: reducedMotion,
-            ),
-          );
-          final afterEndpoint = await _paintAndSample(
-            tester,
-            snapshot: fallSnapshot,
-            playback: fallPlayback(
-              direction,
-              0.81,
-              reducedMotion: reducedMotion,
-            ),
-          );
-          final endpointBounds = _colorBounds(
-            atEndpoint,
-            _secondPlayerColor,
-          )!;
-          final actualOffset = endpointBounds.center - beforeBounds.center;
+          for (final progress in [0.8, 0.81]) {
+            final endpointFrame = await _paintAndSample(
+              tester,
+              snapshot: fallSnapshot,
+              playback: fallPlayback(
+                direction,
+                progress,
+                reducedMotion: reducedMotion,
+              ),
+            );
+            final endpointBounds = _colorBounds(
+              endpointFrame,
+              _secondPlayerColor,
+            )!;
+            final actualOffset = endpointBounds.center - beforeBounds.center;
 
-          expect(actualOffset.dx, closeTo(expectedOffset.dx, 1));
-          expect(actualOffset.dy, closeTo(expectedOffset.dy, 1));
-          expect(_colorBounds(afterEndpoint, _secondPlayerColor), isNull);
+            expect(actualOffset.dx, closeTo(expectedOffset.dx, 1));
+            expect(actualOffset.dy, closeTo(expectedOffset.dy, 1));
+          }
         }
       }
     },

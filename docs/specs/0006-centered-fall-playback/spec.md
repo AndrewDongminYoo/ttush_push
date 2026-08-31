@@ -11,22 +11,22 @@ The explorer therefore appears to pass the opening before the final Rust snapsho
 
 ## Goal
 
-End fall playback at the adjacent hole's visual center and remove the falling explorer from later playback frames without changing authoritative game state.
+End fall playback at the adjacent hole's visual center and hold it there until the authoritative final snapshot removes the explorer.
 
 ## Requirements
 
 1. Change only Flutter playback path, visibility, tests, and the native visual fixture.
 2. Preserve the Rust-authored move resolution, final snapshot, event order, board geometry, hit regions, and semantics.
 3. Move a falling explorer exactly one cell from its source in the Rust-authored exit direction.
-4. Keep the explorer visible at the displacement endpoint and hide it after that boundary.
-5. Use the same endpoint and visibility boundary when reduced motion is enabled.
+4. Keep the explorer at the displacement endpoint through the remaining playback frames, then let the final Rust snapshot remove it.
+5. Use the same endpoint and hold behavior when reduced motion is enabled.
 6. Cover one horizontal and one vertical fall direction with regression checks for standard and reduced-motion playback.
 7. Exercise a real fall in the existing production sprite scene and capture Push-contact and settled scenes on an iOS Simulator and an Android Emulator.
 
 ## Acceptance Criteria
 
-1. The last endpoint frame centers the displaced explorer over the adjacent hole instead of beyond it.
-2. A later playback frame contains no pixels from the displaced explorer.
+1. Every visible frame at or after the displacement endpoint centers the displaced explorer over the adjacent hole instead of beyond it.
+2. A frame after the displacement boundary still shows the explorer at the endpoint, so animation tick cadence cannot skip the centered state.
 3. Horizontal and vertical checks pass with reduced motion enabled and disabled.
 4. The production scene's settled Rust snapshot omits the fallen explorer.
 5. iOS and Android Push-contact and settled captures show the same fall outcome.

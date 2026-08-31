@@ -2,13 +2,13 @@
 
 ## Goal
 
-Center a displaced explorer over its adjacent hole for the final visible fall frame, then stop painting it without changing authoritative game state or board interaction geometry.
+Center a displaced explorer over its adjacent hole, hold it there until the final snapshot commits, and preserve authoritative game state and board interaction geometry.
 
 ## Scope
 
 - Add the approved Spec and decision ledger.
 - Extend the existing `RoundBoard` paint regression with endpoint and visibility checks.
-- Change the fall distance and post-end visibility in the existing playback painter.
+- Change the fall distance while preserving the existing snapshot-driven visibility lifecycle.
 - Reuse the existing production sprite scene with a fall resolution and final snapshot.
 
 ## Tasks
@@ -16,13 +16,13 @@ Center a displaced explorer over its adjacent hole for the final visible fall fr
 ### 1. Establish a failing playback regression
 
 Measure the fallback explorer's painted color bounds at the start and endpoint of a fall.
-Check one horizontal and one vertical direction with reduced motion enabled and disabled, then confirm that the explorer is absent after the displacement boundary.
+Check one horizontal and one vertical direction with reduced motion enabled and disabled, then confirm that a later playback frame still holds the explorer at the endpoint.
 Run the focused board test against the current 1.3-cell path and retain its expected failure.
 
-### 2. Center and hide the falling explorer
+### 2. Center and hold the falling explorer
 
 Change the fall distance to one cell in `_fallCenter`.
-Skip painting a displaced explorer with an exit direction after the existing Push displacement endpoint.
+Keep painting the displaced explorer at that clamped endpoint until the final Rust snapshot commits and removes it.
 Do not alter timing constants, resolution data, snapshots, geometry, hit regions, or semantics.
 
 ### 3. Exercise the fall in the native fixture
