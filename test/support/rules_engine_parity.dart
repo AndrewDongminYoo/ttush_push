@@ -98,3 +98,35 @@ void expectIrregularBoardDefinition(RulesEngine rulesEngine) {
     ],
   );
 }
+
+const duplicateCellBoardRules = GameBoardDefinition(
+  playableCells: [
+    GameBoardCell(x: 1, y: 1),
+    GameBoardCell(x: 1, y: 1),
+  ],
+  startingPieces: [],
+);
+
+/// Proves an unplayable definition comes back as a Dart error on this runtime.
+///
+/// The Rust tests already prove the rejection happens; what nothing else sees
+/// is the seam between. `initial_match` returns `Result<_, String>`, so the
+/// generated glue has to turn that into something Dart can catch, carrying the
+/// reason with it. `MatchController.initializationError` is that error and
+/// nothing else, so a bridge that swallowed it would leave the player a failed
+/// match with no cause and a Retry that fails the same way.
+void expectInvalidBoardDefinitionIsRejected(RulesEngine rulesEngine) {
+  Object? rejected;
+  try {
+    rulesEngine.initialMatch(duplicateCellBoardRules);
+  } on Object catch (error) {
+    rejected = error;
+  }
+
+  expect(
+    rejected,
+    isNotNull,
+    reason: 'an unplayable definition must not produce a match',
+  );
+  expect('$rejected', contains('duplicate playable cell'));
+}
