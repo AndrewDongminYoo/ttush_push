@@ -59,7 +59,25 @@ lint:
     - trufflehog@3.96.0
     - yamllint@1.38.0
 actions:
+  definitions:
+    # The dart linter is disabled above, so trunk formats every language in
+    # this repository except the one most of it is written in, and a commit
+    # can carry Dart that CI's `dart format --set-exit-if-changed` rejects.
+    # Fail here instead, and leave the rewrite to `merry run format` so the
+    # hook never restages a file the author did not stage.
+    #
+    # The script reads each staged blob rather than the working tree, because
+    # the tree is not what the commit carries: a partially staged file, or one
+    # formatted after it was staged, makes a tree-wide check answer about
+    # something else. `merry run format check` stays the tree-wide gate.
+    - id: dart-format-pre-commit
+      display_name: dart format
+      description: Fails a commit whose staged Dart is not formatted
+      run: tool/format_check_staged.sh
+      triggers:
+        - git_hooks: [pre-commit]
   enabled:
+    - dart-format-pre-commit
     - trunk-announce
     - trunk-check-pre-push
     - trunk-fmt-pre-commit
