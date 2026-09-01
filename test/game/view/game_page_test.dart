@@ -1613,6 +1613,53 @@ void main() {
     }
   });
 
+  testWidgets(
+    'keeps opponent sheet labels legible against its dark background',
+    (tester) async {
+      const board = GameSnapshot(
+        currentPlayer: GamePlayer.first,
+        tiles: [],
+        pieces: [],
+        snapshotHash: 'opponent-sheet-contrast',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: GamePage(
+            rulesEngine: FakeRulesEngine.playing(initial: matchOf(board)),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('opponent-control')));
+      await tester.pumpAndSettle();
+
+      final background = tester
+          .widget<BottomSheet>(find.byType(BottomSheet))
+          .backgroundColor;
+      expect(background, isNotNull);
+
+      for (final label in const [
+        'Opponent',
+        'Human',
+        'Random',
+        'Greedy',
+        'Minimax',
+      ]) {
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.text(label),
+        );
+        final foreground = paragraph.text.style?.color;
+        expect(foreground, isNotNull, reason: '$label has a resolved color');
+        expect(
+          _contrastRatio(foreground!, background!),
+          greaterThanOrEqualTo(4.5),
+          reason: '$label must remain legible against the sheet background',
+        );
+      }
+    },
+  );
+
   testWidgets('keeps opponent choices locked after the first move', (
     tester,
   ) async {
@@ -2134,6 +2181,19 @@ Future<void> _selectOpponent(
   if (settle) {
     await tester.pumpAndSettle();
   }
+}
+
+double _contrastRatio(Color foreground, Color background) {
+  final renderedForeground = Color.alphaBlend(foreground, background);
+  final foregroundLuminance = renderedForeground.computeLuminance();
+  final backgroundLuminance = background.computeLuminance();
+  final lighter = foregroundLuminance > backgroundLuminance
+      ? foregroundLuminance
+      : backgroundLuminance;
+  final darker = foregroundLuminance > backgroundLuminance
+      ? backgroundLuminance
+      : foregroundLuminance;
+  return (lighter + 0.05) / (darker + 0.05);
 }
 
 Future<void> _finishReplay(WidgetTester tester) async {
