@@ -107,16 +107,17 @@ class _GamePageState extends State<GamePage>
     _controller = _createMatchController();
   }
 
-  MatchController _createMatchController() =>
-      MatchController(
-          widget._rulesEngine,
-          boardDefinition: widget._boardDefinition.rules,
-        )
-        // The seat comes before initialize, because selecting one drops any
-        // standing error, and an initialization failure must survive to the
-        // banner.
-        ..selectOpponent(widget._opponent)
-        ..initialize();
+  MatchController _createMatchController() {
+    final controller = MatchController(
+      widget._rulesEngine,
+      boardDefinition: widget._boardDefinition.rules,
+    );
+    // The seat comes before initialize, because selecting one drops any
+    // standing error, and an initialization failure must survive to the banner.
+    controller.selectOpponent(widget._opponent);
+    controller.initialize();
+    return controller;
+  }
 
   @override
   void dispose() {
