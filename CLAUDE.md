@@ -94,7 +94,11 @@ Keep CSpell additions scoped to `.cspell/custom-dictionary.txt`, and keep reposi
 ## Scope boundaries
 
 The MVP is a local best-of-three match on Android and iOS, hot-seat or with a policy holding the second seat.
-Flutter Web is deliberately excluded because the stable `flutter_rust_bridge` Web toolchain boundary was never validated: `flutter_rust_bridge.yaml` sets `web: false`, and adopting a prerelease or patching generated glue to include Web is not an acceptable workaround.
+Flutter Web builds, but it is not a shipping target: `flutter_rust_bridge.yaml` sets `web: true`, `lib/src/rust/frb_generated.web.dart` is tracked, and the `web` CI job runs `tool/build_web.sh` against the nightly Rust `wasm32-unknown-unknown` toolchain and `wasm-pack` 0.15.0.
+That gate exists so a regenerated bridge cannot silently break the Web glue, not to license Web-specific UI work, and the MVP still ships Android and iOS only.
+`merry run build web` runs that same script locally, and it is deliberately not one of `merry run check`'s steps.
+The script installs nothing: it expects `flutter_rust_bridge_codegen` 2.13.0 already on PATH and exits before building when the version differs, and `build-web` then needs the nightly Rust `wasm32-unknown-unknown` toolchain and `wasm-pack`.
+Only the CI job installs those, so on a fresh machine install them first or the local command fails at its version check.
 Flame, Bloc, online PvP, matchmaking, accounts, rankings, and complex animations beyond the existing Rust-authored move replay were removed or deferred on purpose, so do not reintroduce them without an explicit request.
 The current haptic and synthesized sound feedback is intentional; do not expand it into a broader audio or animation system without an explicit request.
 
