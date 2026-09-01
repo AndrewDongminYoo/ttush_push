@@ -10,28 +10,13 @@
   ],
   "groups": [
     {
-      "blur-material": 0.5,
       "layers": [
         {
-          "fill-specializations": [
-            {
-              "appearance": "dark",
-              "value": {
-                "solid": "extended-gray:1.00000,1.00000"
-              }
-            },
-            {
-              "appearance": "tinted",
-              "value": {
-                "solid": "extended-gray:1.00000,1.00000"
-              }
-            }
-          ],
           "glass": false,
-          "image-name": "Logo.svg",
-          "name": "Logo",
+          "image-name": "Artwork.png",
+          "name": "Artwork",
           "position": {
-            "scale": 1.8,
+            "scale": 1,
             "translation-in-points": [0, 0]
           }
         }
@@ -39,13 +24,9 @@
       "lighting": "individual",
       "shadow": {
         "kind": "neutral",
-        "opacity": 0.5
+        "opacity": 0.35
       },
-      "specular": true,
-      "translucency": {
-        "enabled": true,
-        "value": 0.5
-      }
+      "specular": true
     }
   ],
   "supported-platforms": {

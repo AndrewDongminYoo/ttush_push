@@ -41,18 +41,34 @@
         align-items: center;
         justify-content: center;
         height: 100vh;
+        margin: 0;
+        background: #0b1024;
+        color: #ffffff;
+      }
+
+      #startup {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+      }
+
+      #launch-mark {
+        width: 192px;
+        height: 192px;
       }
     </style>
   </head>
   <body>
-    <div>
+    <div id="startup">
+      <img id="launch-mark" src="icons/LaunchMark-192.png" alt="" />
       <div
         id="progress-bar"
-        style="border: 1px solid blue; width: 250px; height: 50px"
+        style="border: 1px solid #6479ff; width: 250px; height: 12px"
       >
         <div
           id="progress-indicator"
-          style="background-color: blue; height: 100%; width: 0%"
+          style="background-color: #2a48df; height: 100%; width: 0%"
         ></div>
       </div>
       <div
