@@ -66,6 +66,30 @@ jobs:
       - name: Test the generated bridge
         run: flutter test tool/rules_engine_host_test.dart
 
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2.23.0
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Install the Rust Web toolchain
+        run: rustup toolchain install nightly --profile minimal --component rust-src --target wasm32-unknown-unknown
+
+      - name: Install Web build tools
+        run: |
+          cargo install flutter_rust_bridge_codegen --version 2.13.0 --locked
+          cargo install wasm-pack --version 0.15.0 --locked
+
+      - name: Build the production Web app
+        run: tool/build_web.sh
+
   spell-check:
     uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
     with:
