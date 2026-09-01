@@ -1158,10 +1158,13 @@ void main() {
     final resultRect = tester.getRect(
       find.byKey(const Key('result-overlay')),
     );
-    final actionRect = tester.getRect(
-      find.widgetWithText(FilledButton, 'New Match'),
+    final scopeRect = tester.getRect(
+      find.byKey(const Key('result-scope-match')),
     );
-    for (final rect in [resultRect, actionRect]) {
+    final actionRect = tester.getRect(
+      find.widgetWithText(FilledButton, 'Start New Match'),
+    );
+    for (final rect in [resultRect, scopeRect, actionRect]) {
       expect(
         rect.left >= 0 &&
             rect.top >= 0 &&
@@ -1175,6 +1178,7 @@ void main() {
     expect(actionRect.height, greaterThanOrEqualTo(kMinInteractiveDimension));
     expect(find.byKey(const Key('first-play-coach')), findsNothing);
     expect(find.byKey(const Key('coach-help')), findsNothing);
+    expect(find.text('MATCH COMPLETE'), findsOneWidget);
     expect(find.text('Azure Expedition'), findsWidgets);
     expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
@@ -1386,7 +1390,7 @@ void main() {
     );
     await tester.pump();
 
-    final nextRound = find.widgetWithText(FilledButton, 'Next Round');
+    final nextRound = find.widgetWithText(FilledButton, 'Start Next Round');
     await tester.tap(nextRound);
     await tester.pump();
 
