@@ -893,7 +893,12 @@ class _OpponentSelectionSheet extends StatelessWidget {
           shrinkWrap: true,
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            Text(l10n.opponent, style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              l10n.opponent,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(color: Colors.white),
+            ),
             const SizedBox(height: 8),
             for (final opponent in Opponent.values)
               Semantics(
@@ -901,7 +906,10 @@ class _OpponentSelectionSheet extends StatelessWidget {
                 child: RadioListTile<Opponent>(
                   key: Key('opponent-choice-${opponent.name}'),
                   value: opponent,
-                  title: Text(_opponentLabel(l10n, opponent)),
+                  title: Text(
+                    _opponentLabel(l10n, opponent),
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
           ],
