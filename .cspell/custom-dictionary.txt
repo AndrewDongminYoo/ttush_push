@@ -65,3 +65,5 @@ keytool
 libengine
 printcert
 screencap
+bundletool
+apks
