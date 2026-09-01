@@ -11,9 +11,11 @@
 
 set -euo pipefail
 
-# Assigned first rather than piped into the loop, so a failing git diff is an
-# error instead of an empty list that would read as "nothing staged".
-staged="$(git diff --cached --name-only --diff-filter=ACM -- '*.dart')"
+# R is in the filter because git classifies a staged rename as R, not M, and a
+# rename that also carries an edit would otherwise list nothing at all. Assigned
+# first rather than piped into the loop, so a failing git diff is an error
+# instead of an empty list that would read as "nothing staged".
+staged="$(git diff --cached --name-only --diff-filter=ACMR -- '*.dart')"
 readonly staged
 
 if [[ -z ${staged} ]]; then
