@@ -10,7 +10,8 @@ Every command string lives in `merry.yaml`. Run `merry ls` for the current list 
 Note that the CLI separates nested names with a space, while the config file references them as `$rust:test`.
 
 `merry run check` is the full local gate before committing, and it adds `trunk check`, which CI does not run.
-A commit also runs `merry run format check` through a trunk pre-commit action, because trunk's own `dart` linter is disabled here and would otherwise let unformatted Dart reach CI; the action fails rather than rewriting, so reformat with `merry run format` and commit again.
+A commit also runs `tool/format_check_staged.sh` through a trunk pre-commit action, because trunk's own `dart` linter is disabled here and would otherwise let unformatted Dart reach CI.
+It reads the staged blobs rather than the working tree, so it answers about the commit rather than about whatever the tree happens to hold, and it fails rather than rewriting: reformat with `merry run format`, stage that, and commit again.
 It does not stand in for the whole of CI. The `spell-check` job reads every `**/*.md` through `cspell.json`, and no local linter does: `trunk check` looks only at modified files and has no cspell among its enabled linters. Run `npx cspell lint --config cspell.json --gitignore-root . '**/*.md'` after touching any markdown, including from a linked checkout whose parent is ignored. The `semantic-pull-request` job reads the PR title and has no local form at all.
 
 The aggregate gate builds the release Rust host library and runs `tool/rules_engine_host_test.dart` on macOS or Linux. That test calls `RustLib.init` through the generated bridge and reuses the device integration test's snapshot and bot-policy parity fixture, so a codegen/runtime/version mismatch fails before app startup. It does not validate Android or iOS packaging.
