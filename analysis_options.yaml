@@ -20,3 +20,6 @@ analyzer:
 linter:
   rules:
     public_member_api_docs: false
+    # A cascade saves a receiver name and costs a reader the sequence, which is
+    # the part that matters where order is load-bearing. Write the statements.
+    cascade_invocations: false

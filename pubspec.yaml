@@ -16,7 +16,6 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_rust_bridge: 2.13.0
-  google_fonts: ^8.2.1
   intl: ^0.20.3
   shared_preferences: ^2.5.5
 
@@ -36,5 +35,16 @@ flutter:
     - assets/images/sprites/
     - assets/licenses/poppins/
     - assets/sfx/
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Poppins-Bold.ttf
+          weight: 700
 
 scripts: merry.yaml

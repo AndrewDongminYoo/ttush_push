@@ -454,6 +454,23 @@ void main() {
     expect(background.alignment, Alignment.centerLeft);
   });
 
+  testWidgets('offers a way out of an initial bridge failure', (tester) async {
+    // The error screen has no HUD, and on iOS PopScope's disabled back-swipe
+    // is not an exit, so this state needs its own control or it is a trap.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine(
+            initial: [StateError('bridge unavailable')],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Unable to start round'), findsOneWidget);
+    expect(find.byKey(const Key('leave-match')), findsOneWidget);
+  });
+
   testWidgets('retries an initial bridge failure', (tester) async {
     const readySnapshot = GameSnapshot(
       currentPlayer: GamePlayer.first,
@@ -1642,7 +1659,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Opponent'), findsWidgets);
-    expect(find.text('Minimax'), findsOneWidget);
+    expect(find.text('Hard'), findsOneWidget);
     for (final choice in const ['human', 'random', 'greedy', 'minimax']) {
       expect(
         tester.getRect(find.byKey(Key('opponent-choice-$choice'))).bottom,
@@ -1681,9 +1698,9 @@ void main() {
       for (final label in const [
         'Opponent',
         'Human',
-        'Random',
-        'Greedy',
-        'Minimax',
+        'Easy',
+        'Normal',
+        'Hard',
       ]) {
         final paragraph = tester.renderObject<RenderParagraph>(
           find.text(label),
@@ -1738,7 +1755,7 @@ void main() {
     await tester.tap(find.byKey(const Key('opponent-control')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Minimax'), findsNothing);
+    expect(find.text('Hard'), findsNothing);
   });
 
   testWidgets('selects an opponent from the explicit bottom sheet', (
@@ -1769,9 +1786,9 @@ void main() {
           of: find.byKey(const Key('opponent-control')),
           matching: find.text(
             'Opponent: ${switch (choice) {
-              'random' => 'Random',
-              'greedy' => 'Greedy',
-              'minimax' => 'Minimax',
+              'random' => 'Easy',
+              'greedy' => 'Normal',
+              'minimax' => 'Hard',
               _ => 'Human',
             }}',
           ),
@@ -2131,11 +2148,11 @@ void main() {
       ),
     );
 
-    await _selectOpponent(tester, 'minimax');
+    await _selectOpponent(tester, 'greedy');
 
     final opponentValue = find.descendant(
       of: find.byKey(const Key('opponent-control')),
-      matching: find.text('Opponent: Minimax'),
+      matching: find.text('Opponent: Normal'),
     );
     expect(opponentValue, findsOneWidget);
     expect(tester.takeException(), isNull);

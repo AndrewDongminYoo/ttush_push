@@ -7,6 +7,7 @@ import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
+import 'package:ttush_push/game/view/opponent_label.dart';
 import 'package:ttush_push/game/view/production_sprite_set.dart';
 import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/l10n/l10n.dart';
@@ -24,13 +25,19 @@ class GamePage extends StatefulWidget {
     super.key,
     RulesEngine? rulesEngine,
     BoardDefinition? boardDefinition,
+    Opponent? opponent,
     this._coachStore,
     this._feedback,
   }) : _rulesEngine = rulesEngine ?? const FrbRulesEngine(),
-       _boardDefinition = boardDefinition ?? baselineBoardDefinition;
+       _boardDefinition = boardDefinition ?? baselineBoardDefinition,
+       _opponent = opponent ?? Opponent.human;
 
   final RulesEngine _rulesEngine;
   final BoardDefinition _boardDefinition;
+
+  /// The seat the match opens with. Selection stays unlocked until the first
+  /// committed move, so the in-match control can still override it.
+  final Opponent _opponent;
   final FirstPlayCoachStore? _coachStore;
   final RoundFeedback? _feedback;
 
@@ -101,10 +108,17 @@ class _GamePageState extends State<GamePage>
     _controller = _createMatchController();
   }
 
-  MatchController _createMatchController() => MatchController(
-    widget._rulesEngine,
-    boardDefinition: widget._boardDefinition.rules,
-  )..initialize();
+  MatchController _createMatchController() {
+    final controller = MatchController(
+      widget._rulesEngine,
+      boardDefinition: widget._boardDefinition.rules,
+    );
+    // The seat comes before initialize, because selecting one drops any
+    // standing error, and an initialization failure must survive to the banner.
+    controller.selectOpponent(widget._opponent);
+    controller.initialize();
+    return controller;
+  }
 
   @override
   void dispose() {
@@ -149,6 +163,61 @@ class _GamePageState extends State<GamePage>
 
   @override
   Widget build(BuildContext context) {
+    // The match is not saved anywhere, so leaving discards it. Confirm before
+    // the route goes, rather than letting a stray back gesture end a round.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) {
+          return;
+        }
+        final navigator = Navigator.of(context);
+        if (await _confirmLeave()) {
+          navigator.pop();
+        }
+      },
+      child: _buildMatch(context),
+    );
+  }
+
+  /// Leaves the match through the same confirmation the back gesture uses.
+  ///
+  /// iOS needs this: `PopScope.canPop` false makes `popGestureEnabled` false,
+  /// which disables the interactive back-swipe before Flutter would ever call
+  /// `onPopInvokedWithResult`, so the gesture cannot be the only way out.
+  Future<void> _leaveMatch() async {
+    final navigator = Navigator.of(context);
+    if (await _confirmLeave()) {
+      navigator.pop();
+    }
+  }
+
+  Future<bool> _confirmLeave() async {
+    final l10n = localizationsOf(context);
+    final leaving = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const Key('leave-match-dialog'),
+        title: Text(l10n.leaveMatchTitle),
+        content: Text(l10n.leaveMatchMessage),
+        actions: [
+          TextButton(
+            key: const Key('leave-match-cancel'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            key: const Key('leave-match-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.leaveMatch),
+          ),
+        ],
+      ),
+    );
+    return leaving ?? false;
+  }
+
+  Widget _buildMatch(BuildContext context) {
     _scheduleBotMove();
     final snapshot = _controller.snapshot;
     if (snapshot == null) {
@@ -170,6 +239,12 @@ class _GamePageState extends State<GamePage>
                       onRetry: _retry,
                     )
                   : const CircularProgressIndicator(),
+            ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: _LeaveMatch(onPressed: _leaveMatch),
+              ),
             ),
           ],
         ),
@@ -206,6 +281,7 @@ class _GamePageState extends State<GamePage>
                   wins: snapshot.secondPlayerWins,
                   isActive:
                       playing && round.currentPlayer == rust.GamePlayer.second,
+                  leadingAction: _LeaveMatch(onPressed: _leaveMatch),
                   action: _OpponentControl(
                     opponent: _controller.opponent,
                     enabled: _controller.canChangeOpponent,
@@ -402,7 +478,7 @@ class _GamePageState extends State<GamePage>
 
     final piece = snapshot.pieces[pieceIndex];
     final previousSelection = _controller.selectedPieceId;
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     var announcedSelection = false;
     setState(() {
       _controller.selectPiece(piece.id);
@@ -463,7 +539,7 @@ class _GamePageState extends State<GamePage>
         _controller.commitPendingMove();
         _prunePieceFacings();
         _replayResolution = null;
-        final l10n = _localizationsOf(context);
+        final l10n = localizationsOf(context);
         if (_controller.isMatchOver) {
           final snapshot = _controller.snapshot!;
           _announce(
@@ -611,11 +687,6 @@ const _visualFacingByRustDirection = <rust.GameDirection, ExplorerFacing>{
   rust.GameDirection.right: ExplorerFacing.right,
 };
 
-AppLocalizations _localizationsOf(BuildContext context) {
-  return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
-      lookupAppLocalizations(const Locale('en'));
-}
-
 String _playerLabel(AppLocalizations l10n, rust.GamePlayer player) {
   return switch (player) {
     rust.GamePlayer.first => l10n.azureExpedition,
@@ -633,15 +704,6 @@ String _winReasonLabel(
   };
 }
 
-String _opponentLabel(AppLocalizations l10n, Opponent opponent) {
-  return switch (opponent) {
-    Opponent.human => l10n.opponentHuman,
-    Opponent.random => l10n.opponentRandom,
-    Opponent.greedy => l10n.opponentGreedy,
-    Opponent.minimax => l10n.opponentMinimax,
-  };
-}
-
 class _FirstPlayCoach extends StatelessWidget {
   const _FirstPlayCoach({
     required this.step,
@@ -655,7 +717,7 @@ class _FirstPlayCoach extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     final message = switch (step) {
       0 => l10n.coachSelectAzure,
       1 => l10n.coachMovesAndPushes,
@@ -712,6 +774,24 @@ class _FirstPlayCoach extends StatelessWidget {
   }
 }
 
+class _LeaveMatch extends StatelessWidget {
+  const _LeaveMatch({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = localizationsOf(context);
+    return IconButton(
+      key: const Key('leave-match'),
+      tooltip: l10n.leaveMatch,
+      color: Colors.white,
+      onPressed: onPressed,
+      icon: const Icon(Icons.close),
+    );
+  }
+}
+
 class _CoachHelp extends StatelessWidget {
   const _CoachHelp({required this.onPressed});
 
@@ -719,7 +799,7 @@ class _CoachHelp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return IconButton(
       key: const Key('coach-help'),
       tooltip: l10n.howToPlay,
@@ -781,6 +861,7 @@ class _PlayerPanel extends StatelessWidget {
     required this.player,
     required this.wins,
     required this.isActive,
+    this.leadingAction,
     this.action,
     this.helpAction,
   });
@@ -789,13 +870,14 @@ class _PlayerPanel extends StatelessWidget {
   final int wins;
   final bool isActive;
 
+  final Widget? leadingAction;
   final Widget? action;
   final Widget? helpAction;
 
   @override
   Widget build(BuildContext context) {
     final color = _playerColor(player);
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     const sharedBorder = BorderSide(color: _panelBorderColor);
     final boardFacingBorder = BorderSide(
       color: isActive ? color : _panelBorderColor,
@@ -823,6 +905,10 @@ class _PlayerPanel extends StatelessWidget {
         children: [
           Row(
             children: [
+              if (leadingAction case final Widget leadingAction) ...[
+                leadingAction,
+                const SizedBox(width: 4),
+              ],
               _PlayerMark(player: player, isActive: isActive),
               const SizedBox(width: 12),
               Expanded(
@@ -866,12 +952,12 @@ class _OpponentControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return OutlinedButton.icon(
       key: const Key('opponent-control'),
       onPressed: enabled ? onPressed : null,
       icon: const Icon(Icons.groups_outlined, size: 18),
-      label: Text(l10n.opponentWithValue(_opponentLabel(l10n, opponent))),
+      label: Text(l10n.opponentWithValue(opponentLabel(l10n, opponent))),
     );
   }
 }
@@ -883,7 +969,7 @@ class _OpponentSelectionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return SafeArea(
       top: false,
       child: RadioGroup<Opponent>(
@@ -907,7 +993,7 @@ class _OpponentSelectionSheet extends StatelessWidget {
                   key: Key('opponent-choice-${opponent.name}'),
                   value: opponent,
                   title: Text(
-                    _opponentLabel(l10n, opponent),
+                    opponentLabel(l10n, opponent),
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -1007,7 +1093,7 @@ class _ResultOverlay extends StatelessWidget {
     final winner = snapshot.roundWinner!;
     final matchWinner = snapshot.matchWinner;
     final isMatchComplete = matchWinner != null;
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return ColoredBox(
       color: _surfaceColor.withValues(alpha: 0.78),
       child: Center(
@@ -1141,7 +1227,7 @@ class _InitialError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return Semantics(
       key: const Key('initial-error'),
       label: l10n.unableToStartRound,
@@ -1173,7 +1259,7 @@ class _ActionError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     final message = l10n.unableToUpdateRound(error.toString());
     return Semantics(
       key: const Key('action-error'),
