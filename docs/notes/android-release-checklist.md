@@ -72,6 +72,8 @@ Four checks, in this order. Each one has failed silently in some project, so run
 
 ## What this checklist does not cover
 
-It stops at a signed local artifact.
-Uploading to a Play internal-testing track, the store listing, the privacy policy, and the content rating questionnaire are all separate, and none of them has been done yet.
-iOS packaging is not covered here at all; no archive has been produced.
+It stops at a signed local artifact. Uploading it is a separate manual step in Play Console.
+
+That upload has happened once already, outside this checklist: version 1 (1.0.0), version code 1, was published to the internal testing track on 2026-09-01 and is available to the 34-member beta tester list. The next upload therefore needs a build number of 2 or higher, which is the rule above and not a detail.
+
+What remains uncovered is everything a production release needs. The app is still a draft in Play Console, so the store listing, the privacy policy, the data safety form, and the content rating questionnaire are all outstanding. iOS packaging is not covered here at all; no archive has been produced.
