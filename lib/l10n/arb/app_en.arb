@@ -93,8 +93,10 @@
       }
     }
   },
-  "nextRound": "Next Round",
-  "newMatch": "New Match",
+  "roundComplete": "ROUND COMPLETE",
+  "matchComplete": "MATCH COMPLETE",
+  "nextRound": "Start Next Round",
+  "newMatch": "Start New Match",
   "unableToStartRound": "Unable to start round",
   "unableToUpdateRound": "Unable to update round: {error}",
   "@unableToUpdateRound": {

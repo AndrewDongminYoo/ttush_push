@@ -1006,6 +1006,7 @@ class _ResultOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final winner = snapshot.roundWinner!;
     final matchWinner = snapshot.matchWinner;
+    final isMatchComplete = matchWinner != null;
     final l10n = _localizationsOf(context);
     return ColoredBox(
       color: _surfaceColor.withValues(alpha: 0.78),
@@ -1024,6 +1025,38 @@ class _ResultOverlay extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      Container(
+                        key: Key(
+                          isMatchComplete
+                              ? 'result-scope-match'
+                              : 'result-scope-round',
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isMatchComplete
+                              ? _playerColor(winner)
+                              : _panelColor,
+                          borderRadius: BorderRadius.circular(999),
+                          border: isMatchComplete
+                              ? null
+                              : Border.all(color: _panelBorderColor),
+                        ),
+                        child: Text(
+                          isMatchComplete
+                              ? l10n.matchComplete
+                              : l10n.roundComplete,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
                       // Who won and what they won are separate lines. On one
                       // line the sentence runs past a phone's width and
                       // ellipsis eats exactly the half that says what happened.
@@ -1047,7 +1080,7 @@ class _ResultOverlay extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        matchWinner == null ? l10n.takesRound : l10n.winsMatch,
+                        isMatchComplete ? l10n.winsMatch : l10n.takesRound,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           fontSize: 22,
@@ -1090,7 +1123,7 @@ class _ResultOverlay extends StatelessWidget {
                 ),
                 onPressed: onContinue,
                 child: Text(
-                  matchWinner == null ? l10n.nextRound : l10n.newMatch,
+                  isMatchComplete ? l10n.newMatch : l10n.nextRound,
                 ),
               ),
             ],

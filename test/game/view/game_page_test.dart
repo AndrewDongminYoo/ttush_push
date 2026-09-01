@@ -542,6 +542,15 @@ void main() {
     await tester.pump();
     await _finishReplay(tester);
 
+    expect(find.text('MATCH COMPLETE'), findsOneWidget);
+    expect(find.text('ROUND COMPLETE'), findsNothing);
+    final matchScope = tester.widget<Container>(
+      find.byKey(const Key('result-scope-match')),
+    );
+    expect(
+      (matchScope.decoration! as BoxDecoration).color,
+      _firstPlayerColor,
+    );
     expect(_inOverlay('Azure Expedition'), findsOneWidget);
     expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
@@ -556,7 +565,7 @@ void main() {
       isNotEmpty,
     );
 
-    await tester.tap(find.text('New Match'));
+    await tester.tap(find.text('Start New Match'));
     await tester.pump();
 
     _expectActiveTurn(tester, GamePlayer.first);
@@ -987,7 +996,7 @@ void main() {
       tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
       isNotEmpty,
     );
-    await tester.tap(find.text('Next Round'));
+    await tester.tap(find.text('Start Next Round'));
     await tester.pump();
 
     expect(
@@ -1097,7 +1106,11 @@ void main() {
         ),
       );
 
-      expect(find.text('New Match'), findsOneWidget, reason: 'at $size');
+      expect(
+        find.text('Start New Match'),
+        findsOneWidget,
+        reason: 'at $size',
+      );
       expect(tester.takeException(), isNull, reason: 'terminal at $size');
     }
   });
@@ -1492,6 +1505,15 @@ void main() {
 
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
 
+    expect(find.text('ROUND COMPLETE'), findsOneWidget);
+    expect(find.text('MATCH COMPLETE'), findsNothing);
+    final roundScope = tester.widget<Container>(
+      find.byKey(const Key('result-scope-round')),
+    );
+    expect(
+      (roundScope.decoration! as BoxDecoration).color,
+      _sharedPanelColor,
+    );
     expect(_inOverlay('Azure Expedition'), findsOneWidget);
     expect(find.text('takes the round'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
@@ -1500,12 +1522,12 @@ void main() {
     expect(find.byType(RoundBoard), findsOneWidget);
     // Neither player is on turn while the result is up.
 
-    await tester.tap(find.text('Next Round'));
+    await tester.tap(find.text('Start Next Round'));
     await tester.pump();
 
     expect(engine.advanceCount, 1);
     _expectActiveTurn(tester, GamePlayer.second);
-    expect(find.text('Next Round'), findsNothing);
+    expect(find.text('Start Next Round'), findsNothing);
   });
 
   testWidgets('shows each player their round wins', (tester) async {
@@ -1563,12 +1585,29 @@ void main() {
         ),
       );
 
+      for (final finder in [
+        find.byKey(const Key('result-scope-round')),
+        find.widgetWithText(FilledButton, 'Start Next Round'),
+      ]) {
+        final rect = tester.getRect(finder);
+        expect(
+          rect.left >= 0 &&
+              rect.top >= 0 &&
+              rect.right <= size.width &&
+              rect.bottom <= size.height,
+          isTrue,
+          reason: 'result rect at $size: $rect',
+        );
+      }
+
       // Ellipsis is silent: it raises no exception and passes every layout
       // assertion while removing the half that says what happened.
       for (final text in const [
+        'ROUND COMPLETE',
         'Ember Expedition',
         'takes the round',
         'by immobilization',
+        'Start Next Round',
       ]) {
         final paragraph = tester.renderObject<RenderParagraph>(
           _inOverlay(text),
