@@ -25,7 +25,15 @@ staged_list="$(mktemp)"
 readonly staged_list
 trap 'rm -f "${staged_list}"' EXIT
 
-git diff --cached --name-only -z --diff-filter=ACMR -- '*.dart' >"${staged_list}"
+# These are merry.yaml's `format` roots, and they have to stay that list: the
+# hook's failure tells the author to run `merry run format`, so anything it
+# blocks on that the command does not rewrite is a commit nobody can make. A
+# repository-wide '*.dart' would do exactly that to the vendored Cargokit tree
+# under rust_builder, which trunk already excludes from every linter, and to
+# tool/. The set is also a superset of what CI checks, which is `lib test`.
+git diff --cached --name-only -z --diff-filter=ACMR \
+	-- 'lib/*.dart' 'test/*.dart' 'integration_test/*.dart' 'test_driver/*.dart' \
+	>"${staged_list}"
 
 unformatted=''
 
