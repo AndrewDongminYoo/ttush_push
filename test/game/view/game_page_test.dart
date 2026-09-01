@@ -454,6 +454,23 @@ void main() {
     expect(background.alignment, Alignment.centerLeft);
   });
 
+  testWidgets('offers a way out of an initial bridge failure', (tester) async {
+    // The error screen has no HUD, and on iOS PopScope's disabled back-swipe
+    // is not an exit, so this state needs its own control or it is a trap.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          rulesEngine: FakeRulesEngine(
+            initial: [StateError('bridge unavailable')],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Unable to start round'), findsOneWidget);
+    expect(find.byKey(const Key('leave-match')), findsOneWidget);
+  });
+
   testWidgets('retries an initial bridge failure', (tester) async {
     const readySnapshot = GameSnapshot(
       currentPlayer: GamePlayer.first,

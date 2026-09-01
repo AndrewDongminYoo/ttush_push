@@ -180,6 +180,18 @@ class _GamePageState extends State<GamePage>
     );
   }
 
+  /// Leaves the match through the same confirmation the back gesture uses.
+  ///
+  /// iOS needs this: `PopScope.canPop` false makes `popGestureEnabled` false,
+  /// which disables the interactive back-swipe before Flutter would ever call
+  /// `onPopInvokedWithResult`, so the gesture cannot be the only way out.
+  Future<void> _leaveMatch() async {
+    final navigator = Navigator.of(context);
+    if (await _confirmLeave()) {
+      navigator.pop();
+    }
+  }
+
   Future<bool> _confirmLeave() async {
     final l10n = localizationsOf(context);
     final leaving = await showDialog<bool>(
@@ -228,6 +240,12 @@ class _GamePageState extends State<GamePage>
                     )
                   : const CircularProgressIndicator(),
             ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: _LeaveMatch(onPressed: _leaveMatch),
+              ),
+            ),
           ],
         ),
       );
@@ -263,6 +281,7 @@ class _GamePageState extends State<GamePage>
                   wins: snapshot.secondPlayerWins,
                   isActive:
                       playing && round.currentPlayer == rust.GamePlayer.second,
+                  leadingAction: _LeaveMatch(onPressed: _leaveMatch),
                   action: _OpponentControl(
                     opponent: _controller.opponent,
                     enabled: _controller.canChangeOpponent,
@@ -755,6 +774,24 @@ class _FirstPlayCoach extends StatelessWidget {
   }
 }
 
+class _LeaveMatch extends StatelessWidget {
+  const _LeaveMatch({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = localizationsOf(context);
+    return IconButton(
+      key: const Key('leave-match'),
+      tooltip: l10n.leaveMatch,
+      color: Colors.white,
+      onPressed: onPressed,
+      icon: const Icon(Icons.close),
+    );
+  }
+}
+
 class _CoachHelp extends StatelessWidget {
   const _CoachHelp({required this.onPressed});
 
@@ -824,6 +861,7 @@ class _PlayerPanel extends StatelessWidget {
     required this.player,
     required this.wins,
     required this.isActive,
+    this.leadingAction,
     this.action,
     this.helpAction,
   });
@@ -832,6 +870,7 @@ class _PlayerPanel extends StatelessWidget {
   final int wins;
   final bool isActive;
 
+  final Widget? leadingAction;
   final Widget? action;
   final Widget? helpAction;
 
@@ -866,6 +905,10 @@ class _PlayerPanel extends StatelessWidget {
         children: [
           Row(
             children: [
+              if (leadingAction case final Widget leadingAction) ...[
+                leadingAction,
+                const SizedBox(width: 4),
+              ],
               _PlayerMark(player: player, isActive: isActive),
               const SizedBox(width: 12),
               Expanded(

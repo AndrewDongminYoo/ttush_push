@@ -85,6 +85,34 @@ void main() {
     }
   });
 
+  testWidgets('leaves the match from a control, not only a gesture', (
+    tester,
+  ) async {
+    // iOS disables the interactive back-swipe while PopScope refuses the pop,
+    // so a tappable control is the only exit that exists on both platforms.
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('start-match')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('leave-match')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('leave-match-dialog')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('leave-match-cancel')));
+    await tester.pumpAndSettle();
+    expect(find.byType(GamePage), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('leave-match')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('leave-match-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(GamePage), findsNothing);
+    expect(find.byKey(const Key('start-match')), findsOneWidget);
+  });
+
   testWidgets('confirms before a back gesture discards the match', (
     tester,
   ) async {
