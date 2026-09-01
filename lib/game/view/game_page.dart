@@ -7,6 +7,7 @@ import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
+import 'package:ttush_push/game/view/opponent_label.dart';
 import 'package:ttush_push/game/view/production_sprite_set.dart';
 import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/l10n/l10n.dart';
@@ -180,7 +181,7 @@ class _GamePageState extends State<GamePage>
   }
 
   Future<bool> _confirmLeave() async {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     final leaving = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -458,7 +459,7 @@ class _GamePageState extends State<GamePage>
 
     final piece = snapshot.pieces[pieceIndex];
     final previousSelection = _controller.selectedPieceId;
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     var announcedSelection = false;
     setState(() {
       _controller.selectPiece(piece.id);
@@ -519,7 +520,7 @@ class _GamePageState extends State<GamePage>
         _controller.commitPendingMove();
         _prunePieceFacings();
         _replayResolution = null;
-        final l10n = _localizationsOf(context);
+        final l10n = localizationsOf(context);
         if (_controller.isMatchOver) {
           final snapshot = _controller.snapshot!;
           _announce(
@@ -667,11 +668,6 @@ const _visualFacingByRustDirection = <rust.GameDirection, ExplorerFacing>{
   rust.GameDirection.right: ExplorerFacing.right,
 };
 
-AppLocalizations _localizationsOf(BuildContext context) {
-  return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
-      lookupAppLocalizations(const Locale('en'));
-}
-
 String _playerLabel(AppLocalizations l10n, rust.GamePlayer player) {
   return switch (player) {
     rust.GamePlayer.first => l10n.azureExpedition,
@@ -689,15 +685,6 @@ String _winReasonLabel(
   };
 }
 
-String _opponentLabel(AppLocalizations l10n, Opponent opponent) {
-  return switch (opponent) {
-    Opponent.human => l10n.opponentHuman,
-    Opponent.random => l10n.opponentRandom,
-    Opponent.greedy => l10n.opponentGreedy,
-    Opponent.minimax => l10n.opponentMinimax,
-  };
-}
-
 class _FirstPlayCoach extends StatelessWidget {
   const _FirstPlayCoach({
     required this.step,
@@ -711,7 +698,7 @@ class _FirstPlayCoach extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     final message = switch (step) {
       0 => l10n.coachSelectAzure,
       1 => l10n.coachMovesAndPushes,
@@ -775,7 +762,7 @@ class _CoachHelp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return IconButton(
       key: const Key('coach-help'),
       tooltip: l10n.howToPlay,
@@ -851,7 +838,7 @@ class _PlayerPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = _playerColor(player);
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     const sharedBorder = BorderSide(color: _panelBorderColor);
     final boardFacingBorder = BorderSide(
       color: isActive ? color : _panelBorderColor,
@@ -922,12 +909,12 @@ class _OpponentControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return OutlinedButton.icon(
       key: const Key('opponent-control'),
       onPressed: enabled ? onPressed : null,
       icon: const Icon(Icons.groups_outlined, size: 18),
-      label: Text(l10n.opponentWithValue(_opponentLabel(l10n, opponent))),
+      label: Text(l10n.opponentWithValue(opponentLabel(l10n, opponent))),
     );
   }
 }
@@ -939,7 +926,7 @@ class _OpponentSelectionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return SafeArea(
       top: false,
       child: RadioGroup<Opponent>(
@@ -963,7 +950,7 @@ class _OpponentSelectionSheet extends StatelessWidget {
                   key: Key('opponent-choice-${opponent.name}'),
                   value: opponent,
                   title: Text(
-                    _opponentLabel(l10n, opponent),
+                    opponentLabel(l10n, opponent),
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
@@ -1063,7 +1050,7 @@ class _ResultOverlay extends StatelessWidget {
     final winner = snapshot.roundWinner!;
     final matchWinner = snapshot.matchWinner;
     final isMatchComplete = matchWinner != null;
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return ColoredBox(
       color: _surfaceColor.withValues(alpha: 0.78),
       child: Center(
@@ -1197,7 +1184,7 @@ class _InitialError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     return Semantics(
       key: const Key('initial-error'),
       label: l10n.unableToStartRound,
@@ -1229,7 +1216,7 @@ class _ActionError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
     final message = l10n.unableToUpdateRound(error.toString());
     return Semantics(
       key: const Key('action-error'),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/game_page.dart';
+import 'package:ttush_push/game/view/opponent_label.dart';
 import 'package:ttush_push/l10n/l10n.dart';
 
 const _surfaceColor = Color(0xFF0B0D12);
@@ -45,7 +46,7 @@ class _StartPageState extends State<StartPage> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = _localizationsOf(context);
+    final l10n = localizationsOf(context);
 
     return Scaffold(
       backgroundColor: _surfaceColor,
@@ -131,7 +132,7 @@ class _StartPageState extends State<StartPage> {
                                     ),
                                     value: difficulty,
                                     title: Text(
-                                      _difficultyLabel(l10n, difficulty),
+                                      opponentLabel(l10n, difficulty),
                                       style: const TextStyle(
                                         color: Colors.white,
                                       ),
@@ -169,20 +170,6 @@ const List<Opponent> _difficulties = [
   Opponent.greedy,
   Opponent.minimax,
 ];
-
-AppLocalizations _localizationsOf(BuildContext context) {
-  return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
-      lookupAppLocalizations(const Locale('en'));
-}
-
-String _difficultyLabel(AppLocalizations l10n, Opponent opponent) {
-  return switch (opponent) {
-    Opponent.random => l10n.opponentRandom,
-    Opponent.greedy => l10n.opponentGreedy,
-    Opponent.minimax => l10n.opponentMinimax,
-    Opponent.human => l10n.opponentHuman,
-  };
-}
 
 class _Panel extends StatelessWidget {
   const _Panel({required this.child});
