@@ -56,3 +56,14 @@ Wmissing
 Wnullable
 Woverlength
 xcfilelist
+androideabi
+appbundle
+debugsymbols
+Dongmin
+jarfile
+keytool
+libengine
+printcert
+screencap
+bundletool
+apks
