@@ -12,25 +12,30 @@
 set -euo pipefail
 
 # R is in the filter because git classifies a staged rename as R, not M, and a
-# rename that also carries an edit would otherwise list nothing at all. Assigned
-# first rather than piped into the loop, so a failing git diff is an error
-# instead of an empty list that would read as "nothing staged".
-staged="$(git diff --cached --name-only --diff-filter=ACMR -- '*.dart')"
-readonly staged
+# rename that also carries an edit would otherwise list nothing at all.
+#
+# The paths arrive NUL-delimited through a file, because both simpler shapes
+# lose them. Under git's default core.quotePath a non-ASCII path comes back
+# C-quoted, that spelling makes git show fail, and pipefail then reports the
+# file as unformatted and blocks the commit for good. Command substitution
+# cannot carry the NUL delimiters that avoid it, since it strips NUL bytes.
+# Writing to a file also keeps a failing git diff an error rather than an empty
+# list that would read as "nothing staged".
+staged_list="$(mktemp)"
+readonly staged_list
+trap 'rm -f "${staged_list}"' EXIT
 
-if [[ -z ${staged} ]]; then
-	exit 0
-fi
+git diff --cached --name-only -z --diff-filter=ACMR -- '*.dart' >"${staged_list}"
 
 unformatted=''
 
-while IFS= read -r file; do
+while IFS= read -r -d '' file; do
 	if ! git show ":${file}" |
 		dart format --output=none --set-exit-if-changed --stdin-name "${file}" \
 			>/dev/null 2>&1; then
 		unformatted="${unformatted}  ${file}"$'\n'
 	fi
-done <<<"${staged}"
+done <"${staged_list}"
 
 if [[ -z ${unformatted} ]]; then
 	exit 0
