@@ -98,7 +98,7 @@ coverage/
 packages/**/pubspec.lock
 
 # Web related
-lib/generated_plugin_registrant.dart
+/web/pkg/
 
 # Symbolication related
 app.*.symbols

@@ -5,6 +5,12 @@ dev:
   (description): Runs the development flavor on the connected device.
   (scripts): flutter run --flavor development --target lib/main_development.dart
 
+# --- Builds -----------------------------------------------------------------
+build:
+  web:
+    (description): Builds the production Web app with its Rust Wasm payload.
+    (scripts): tool/build_web.sh
+
 # --- Dart gates -------------------------------------------------------------
 format:
   (description): Formats the hand-written Dart sources.
