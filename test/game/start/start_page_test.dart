@@ -85,6 +85,38 @@ void main() {
     }
   });
 
+  testWidgets('keeps both radio states visible on the dark panel', (
+    tester,
+  ) async {
+    // The app's ThemeData is light, so a radio left to resolve its own fill
+    // lands on black: measured 1.20:1 against the panel, which is no outline
+    // at all until the tile is selected.
+    await pumpApp(tester);
+
+    final tile = find.byKey(const Key('start-mode-versus-ai'));
+    final panel = tester.widget<Material>(
+      find.ancestor(of: tile, matching: find.byType(Material)).first,
+    );
+    final background = panel.color;
+    expect(background, isNotNull);
+
+    final fill = Theme.of(tester.element(tile)).radioTheme.fillColor;
+    expect(fill, isNotNull, reason: 'the radio fill is named, not inherited');
+
+    for (final states in const [
+      <WidgetState>{},
+      {WidgetState.selected},
+    ]) {
+      final resolved = fill!.resolve(states);
+      expect(resolved, isNotNull, reason: '$states');
+      expect(
+        _contrastRatio(resolved!, background!),
+        greaterThanOrEqualTo(3),
+        reason: '$states against the panel',
+      );
+    }
+  });
+
   testWidgets('leaves the match from a control, not only a gesture', (
     tester,
   ) async {
@@ -139,4 +171,18 @@ void main() {
     expect(find.byType(GamePage), findsNothing);
     expect(find.byKey(const Key('start-match')), findsOneWidget);
   });
+}
+
+/// WCAG relative contrast, matching the helper the match-screen tests use.
+double _contrastRatio(Color foreground, Color background) {
+  final renderedForeground = Color.alphaBlend(foreground, background);
+  final foregroundLuminance = renderedForeground.computeLuminance();
+  final backgroundLuminance = background.computeLuminance();
+  final lighter = foregroundLuminance > backgroundLuminance
+      ? foregroundLuminance
+      : backgroundLuminance;
+  final darker = foregroundLuminance > backgroundLuminance
+      ? backgroundLuminance
+      : foregroundLuminance;
+  return (lighter + 0.05) / (darker + 0.05);
 }

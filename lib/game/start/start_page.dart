@@ -10,6 +10,12 @@ const _panelColor = Color(0xFF161A22);
 const _panelBorderColor = Color(0xFF303846);
 const _mutedTextColor = Color(0xFF8A93A6);
 
+/// The panel is dark, and the app's ThemeData is light, so a radio left to
+/// resolve its own fill lands on black and disappears. Both states are named
+/// here, and `start_page_test.dart` asserts each against the panel it sits on.
+const Color _unselectedControlColor = _mutedTextColor;
+const _selectedControlColor = Color(0xFF6C8CFF);
+
 /// The screen a launch opens on, so the seats are chosen before the board.
 ///
 /// It decides nothing about the match itself: the choice is an [Opponent],
@@ -48,113 +54,124 @@ class _StartPageState extends State<StartPage> {
   Widget build(BuildContext context) {
     final l10n = localizationsOf(context);
 
-    return Scaffold(
-      backgroundColor: _surfaceColor,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    l10n.newMatchTitle,
-                    key: const Key('start-title'),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _Panel(
-                    child: RadioGroup<bool>(
-                      groupValue: _versusAi,
-                      onChanged: (versusAi) {
-                        if (versusAi == null) {
-                          return;
-                        }
-                        setState(() => _versusAi = versusAi);
-                      },
-                      child: Column(
-                        children: [
-                          RadioListTile<bool>(
-                            key: const Key('start-mode-two-players'),
-                            value: false,
-                            title: Text(
-                              l10n.modeTwoPlayers,
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                          RadioListTile<bool>(
-                            key: const Key('start-mode-versus-ai'),
-                            value: true,
-                            title: Text(
-                              l10n.modeVersusAi,
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
+    return Theme(
+      data: Theme.of(context).copyWith(
+        radioTheme: RadioThemeData(
+          fillColor: WidgetStateProperty.resolveWith(
+            (states) => states.contains(WidgetState.selected)
+                ? _selectedControlColor
+                : _unselectedControlColor,
+          ),
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: _surfaceColor,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      l10n.newMatchTitle,
+                      key: const Key('start-title'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ),
-                  if (_versusAi) ...[
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     _Panel(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                            child: Text(
-                              l10n.difficulty,
-                              style: const TextStyle(color: _mutedTextColor),
+                      child: RadioGroup<bool>(
+                        groupValue: _versusAi,
+                        onChanged: (versusAi) {
+                          if (versusAi == null) {
+                            return;
+                          }
+                          setState(() => _versusAi = versusAi);
+                        },
+                        child: Column(
+                          children: [
+                            RadioListTile<bool>(
+                              key: const Key('start-mode-two-players'),
+                              value: false,
+                              title: Text(
+                                l10n.modeTwoPlayers,
+                                style: const TextStyle(color: Colors.white),
+                              ),
                             ),
-                          ),
-                          RadioGroup<Opponent>(
-                            groupValue: _difficulty,
-                            onChanged: (difficulty) {
-                              if (difficulty == null) {
-                                return;
-                              }
-                              setState(() => _difficulty = difficulty);
-                            },
-                            child: Column(
-                              children: [
-                                for (final difficulty in _difficulties)
-                                  RadioListTile<Opponent>(
-                                    key: Key(
-                                      'start-difficulty-${difficulty.name}',
-                                    ),
-                                    value: difficulty,
-                                    title: Text(
-                                      opponentLabel(l10n, difficulty),
-                                      style: const TextStyle(
-                                        color: Colors.white,
+                            RadioListTile<bool>(
+                              key: const Key('start-mode-versus-ai'),
+                              value: true,
+                              title: Text(
+                                l10n.modeVersusAi,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (_versusAi) ...[
+                      const SizedBox(height: 16),
+                      _Panel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                              child: Text(
+                                l10n.difficulty,
+                                style: const TextStyle(color: _mutedTextColor),
+                              ),
+                            ),
+                            RadioGroup<Opponent>(
+                              groupValue: _difficulty,
+                              onChanged: (difficulty) {
+                                if (difficulty == null) {
+                                  return;
+                                }
+                                setState(() => _difficulty = difficulty);
+                              },
+                              child: Column(
+                                children: [
+                                  for (final difficulty in _difficulties)
+                                    RadioListTile<Opponent>(
+                                      key: Key(
+                                        'start-difficulty-${difficulty.name}',
+                                      ),
+                                      value: difficulty,
+                                      title: Text(
+                                        opponentLabel(l10n, difficulty),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      key: const Key('start-match'),
+                      onPressed: _startMatch,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Text(l10n.startMatch),
                       ),
                     ),
                   ],
-                  const SizedBox(height: 24),
-                  ElevatedButton(
-                    key: const Key('start-match'),
-                    onPressed: _startMatch,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(l10n.startMatch),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
