@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
-import 'package:ttush_push/game/view/game_page.dart';
+import 'package:ttush_push/game/start/start_page.dart';
 import 'package:ttush_push/l10n/l10n.dart';
 
 class App extends StatelessWidget {
@@ -43,7 +43,7 @@ class AppView extends StatelessWidget {
       ),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: GamePage(rulesEngine: _rulesEngine),
+      home: StartPage(rulesEngine: _rulesEngine),
     );
   }
 }

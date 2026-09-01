@@ -1642,7 +1642,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Opponent'), findsWidgets);
-    expect(find.text('Minimax'), findsOneWidget);
+    expect(find.text('Hard'), findsOneWidget);
     for (final choice in const ['human', 'random', 'greedy', 'minimax']) {
       expect(
         tester.getRect(find.byKey(Key('opponent-choice-$choice'))).bottom,
@@ -1681,9 +1681,9 @@ void main() {
       for (final label in const [
         'Opponent',
         'Human',
-        'Random',
-        'Greedy',
-        'Minimax',
+        'Easy',
+        'Normal',
+        'Hard',
       ]) {
         final paragraph = tester.renderObject<RenderParagraph>(
           find.text(label),
@@ -1738,7 +1738,7 @@ void main() {
     await tester.tap(find.byKey(const Key('opponent-control')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Minimax'), findsNothing);
+    expect(find.text('Hard'), findsNothing);
   });
 
   testWidgets('selects an opponent from the explicit bottom sheet', (
@@ -1769,9 +1769,9 @@ void main() {
           of: find.byKey(const Key('opponent-control')),
           matching: find.text(
             'Opponent: ${switch (choice) {
-              'random' => 'Random',
-              'greedy' => 'Greedy',
-              'minimax' => 'Minimax',
+              'random' => 'Easy',
+              'greedy' => 'Normal',
+              'minimax' => 'Hard',
               _ => 'Human',
             }}',
           ),
@@ -2131,11 +2131,11 @@ void main() {
       ),
     );
 
-    await _selectOpponent(tester, 'minimax');
+    await _selectOpponent(tester, 'greedy');
 
     final opponentValue = find.descendant(
       of: find.byKey(const Key('opponent-control')),
-      matching: find.text('Opponent: Minimax'),
+      matching: find.text('Opponent: Normal'),
     );
     expect(opponentValue, findsOneWidget);
     expect(tester.takeException(), isNull);

@@ -24,13 +24,19 @@ class GamePage extends StatefulWidget {
     super.key,
     RulesEngine? rulesEngine,
     BoardDefinition? boardDefinition,
+    Opponent? opponent,
     this._coachStore,
     this._feedback,
   }) : _rulesEngine = rulesEngine ?? const FrbRulesEngine(),
-       _boardDefinition = boardDefinition ?? baselineBoardDefinition;
+       _boardDefinition = boardDefinition ?? baselineBoardDefinition,
+       _opponent = opponent ?? Opponent.human;
 
   final RulesEngine _rulesEngine;
   final BoardDefinition _boardDefinition;
+
+  /// The seat the match opens with. Selection stays unlocked until the first
+  /// committed move, so the in-match control can still override it.
+  final Opponent _opponent;
   final FirstPlayCoachStore? _coachStore;
   final RoundFeedback? _feedback;
 
@@ -101,10 +107,16 @@ class _GamePageState extends State<GamePage>
     _controller = _createMatchController();
   }
 
-  MatchController _createMatchController() => MatchController(
-    widget._rulesEngine,
-    boardDefinition: widget._boardDefinition.rules,
-  )..initialize();
+  MatchController _createMatchController() =>
+      MatchController(
+          widget._rulesEngine,
+          boardDefinition: widget._boardDefinition.rules,
+        )
+        // The seat comes before initialize, because selecting one drops any
+        // standing error, and an initialization failure must survive to the
+        // banner.
+        ..selectOpponent(widget._opponent)
+        ..initialize();
 
   @override
   void dispose() {
@@ -149,6 +161,49 @@ class _GamePageState extends State<GamePage>
 
   @override
   Widget build(BuildContext context) {
+    // The match is not saved anywhere, so leaving discards it. Confirm before
+    // the route goes, rather than letting a stray back gesture end a round.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) {
+          return;
+        }
+        final navigator = Navigator.of(context);
+        if (await _confirmLeave()) {
+          navigator.pop();
+        }
+      },
+      child: _buildMatch(context),
+    );
+  }
+
+  Future<bool> _confirmLeave() async {
+    final l10n = _localizationsOf(context);
+    final leaving = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const Key('leave-match-dialog'),
+        title: Text(l10n.leaveMatchTitle),
+        content: Text(l10n.leaveMatchMessage),
+        actions: [
+          TextButton(
+            key: const Key('leave-match-cancel'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            key: const Key('leave-match-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.leaveMatch),
+          ),
+        ],
+      ),
+    );
+    return leaving ?? false;
+  }
+
+  Widget _buildMatch(BuildContext context) {
     _scheduleBotMove();
     final snapshot = _controller.snapshot;
     if (snapshot == null) {
