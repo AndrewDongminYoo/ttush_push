@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/game_page.dart';
 import 'package:ttush_push/l10n/l10n.dart';
@@ -40,7 +39,7 @@ class AppView extends StatelessWidget {
             foregroundColor: WidgetStateProperty.all(Colors.white),
           ),
         ),
-        textTheme: GoogleFonts.poppinsTextTheme(),
+        fontFamily: 'Poppins',
       ),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
