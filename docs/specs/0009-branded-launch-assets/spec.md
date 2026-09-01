@@ -68,7 +68,7 @@ Do not add `flutter_launcher_icons`, `flutter_native_splash`, or another depende
 
 ## Out of Scope
 
-- New character art, a standalone wordmark, animated splash content, or store marketing screenshots.
+- New character art, a standalone text logo, animated splash content, or store marketing screenshots.
 - Changes to app names, bundle identifiers, package identifiers, versioning, or release metadata.
 - A new asset-generation dependency or CI image-generation job.
 - A custom macOS startup window when the current application has no launch-image consumer.

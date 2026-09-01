@@ -51,7 +51,7 @@ Answer: More than forty density and flavor outputs consume the same artwork.
 
 Decision: Keep one small ImageMagick and OxiPNG generator in `tool/`, commit its outputs, preserve the current DEV and STG indicators within each platform's icon constraints, and add no package dependency.
 
-Source: Current platform directory structure and installed `/opt/homebrew/bin/magick` on 2026-09-01.
+Source: Current platform directory structure and the installed ImageMagick executable on 2026-09-01.
 
 ### L5
 
