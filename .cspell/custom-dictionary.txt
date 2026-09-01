@@ -64,3 +64,4 @@ jarfile
 keytool
 libengine
 printcert
+screencap

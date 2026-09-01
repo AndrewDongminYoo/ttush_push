@@ -24,7 +24,7 @@ A warm-cache run took 106 seconds and produced a 55.7 MB bundle.
 
 ## Verify the artifact
 
-Three checks, in this order. Each one has failed silently in some project, so run all three rather than trusting the exit code.
+Four checks, in this order. Each one has failed silently in some project, so run all four rather than trusting the exit code.
 
 1. **The Rust engine is packaged for every ABI.** Cargokit builds `libengine.so` per target, and a packaging regression drops it without failing the Gradle task; the app then dies at `RustLib.init` on a real device.
 
@@ -43,7 +43,18 @@ Three checks, in this order. Each one has failed silently in some project, so ru
 
    Expect `O=Donminzzi Lab, CN=Dongmin Yu`, valid until 2051. Any other signer means neither key source was picked up, and Play accepts an upload only from the key registered for this application id.
 
-3. **The bundle size is what you think it is.** The 55.7 MB figure is not the download size: 25.7 MB of it is `BUNDLE-METADATA/com.android.tools.build.debugsymbols`, which Play strips after using it for crash symbolication. The arm64 split delivered to a device is about 12.9 MB. Do not open a size-reduction task off the raw bundle number.
+3. **The release build actually starts and reaches Rust.** Minification runs only in the release build, so a debug run proves nothing about it, and `android/app/proguard-rules.pro` is listed in `proguardFiles` but does not exist, which leaves R8 running on the default rules alone. Install the release APK on any arm64 runtime and look at the first screen.
+
+   ```sh
+   flutter build apk --release --flavor production --target lib/main_production.dart
+   adb install -r build/app/outputs/flutter-apk/app-production-release.apk
+   adb shell monkey -p kr.donminzzi.ttush_push -c android.intent.category.LAUNCHER 1
+   adb exec-out screencap -p > /tmp/launch.png
+   ```
+
+   A rendered board is the evidence, because the board comes from the snapshot `initial_match` returns; if the bridge had failed there would be nothing to draw. Tapping an explorer and then a marker exercises `match_legal_moves` and `match_apply_move` as well. Verified on 2026-09-01 against `64e5e39` on an arm64-v8a emulator: the board drew, three legal-move markers appeared, the move applied, the vacated tile cracked, and the turn passed. `adb logcat -d` held no `FATAL` and no `UnsatisfiedLinkError`.
+
+4. **The bundle size is what you think it is.** The 55.7 MB figure is not the download size: 25.7 MB of it is `BUNDLE-METADATA/com.android.tools.build.debugsymbols`, which Play strips after using it for crash symbolication. The arm64 split delivered to a device is about 12.9 MB. Do not open a size-reduction task off the raw bundle number.
 
 ## Version and build number
 
