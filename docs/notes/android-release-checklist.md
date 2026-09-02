@@ -66,7 +66,7 @@ Four checks, in this order. Each one has failed silently in some project, so run
 
 ## Version and build number
 
-`pubspec.yaml` carries `version: <name>+<code>`, currently `1.0.0+1`.
+`pubspec.yaml` carries `version: <name>+<code>`. Read the current value there rather than from a copy here.
 
 - The build number after `+` increments by one for every artifact uploaded to any track, and is never reused. Play rejects a duplicate `versionCode` outright, and the number is shared across all tracks of one application id.
 - The version name before `+` follows semver against user-visible behaviour, not internal refactors. A build that only changes the artifact bumps the build number alone.
