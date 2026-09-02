@@ -94,4 +94,6 @@ It stops at a signed local artifact. Uploading it is a separate manual step in P
 
 That upload has happened once already, outside this checklist: version 1 (1.0.0), version code 1, was published to the internal testing track on 2026-09-01 and is available to the 34-member beta tester list. The next upload therefore needs a build number of 2 or higher, which is the rule above and not a detail.
 
-What remains uncovered is everything a production release needs. The app is still a draft in Play Console, so the store listing, the data safety form and the content rating questionnaire are all outstanding. The privacy policy is written, in the landing repository, but its URL is not live until that site is deployed, and Play wants the URL rather than the text. iOS packaging is not covered here at all; no archive has been produced.
+What remains uncovered is everything a production release needs. The app is still a draft in Play Console, so the store listing, the data safety form and the content rating questionnaire are all outstanding. iOS packaging is not covered here at all; no archive has been produced.
+
+The privacy policy is no longer among them. The landing site is deployed and `https://ttush-push-landing.vercel.app/ko/privacy` answers, which is the URL Play asks for. Expect it to move: the site is bound for `ttush-push.donminzzi.kr`, which has no DNS record yet, so whatever URL is given to Play now has to be updated when the domain is attached.
