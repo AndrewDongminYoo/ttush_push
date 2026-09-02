@@ -96,8 +96,10 @@ Keep CSpell additions scoped to `.cspell/custom-dictionary.txt`, and keep reposi
 ## Scope boundaries
 
 The MVP is a local best-of-three match on Android and iOS, hot-seat or with a policy holding the second seat.
-Flutter Web builds, but it is not a shipping target: `flutter_rust_bridge.yaml` sets `web: true`, `lib/src/rust/frb_generated.web.dart` is tracked, and the `web` CI job runs `tool/build_web.sh` against the nightly Rust `wasm32-unknown-unknown` toolchain and `wasm-pack` 0.15.0.
-That gate exists so a regenerated bridge cannot silently break the Web glue, not to license Web-specific UI work, and the MVP still ships Android and iOS only.
+Flutter Web builds: `flutter_rust_bridge.yaml` sets `web: true`, `lib/src/rust/frb_generated.web.dart` is tracked, and the `web` CI job runs `tool/build_web.sh` against the nightly Rust `wasm32-unknown-unknown` toolchain and `wasm-pack` 0.15.0.
+Whether Web ships is open rather than settled.
+This section used to rule it out, on the grounds that the stable `flutter_rust_bridge` Web toolchain boundary had never been validated; the 2.13.0 bridge and that CI job are the validation, so the reason is gone and the exclusion went with it.
+Read the gate as keeping a regenerated bridge from silently breaking the Web glue, which it does either way, rather than as a decision in either direction.
 `merry run build web` runs that same script locally, and it is deliberately not one of `merry run check`'s steps.
 The script installs nothing: it expects `flutter_rust_bridge_codegen` 2.13.0 already on PATH and exits before building when the version differs, and `build-web` then needs the nightly Rust `wasm32-unknown-unknown` toolchain and `wasm-pack`.
 Only the CI job installs those, so on a fresh machine install them first or the local command fails at its version check.
