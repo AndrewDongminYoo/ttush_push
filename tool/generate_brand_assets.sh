@@ -16,12 +16,12 @@ if [[ -z ${oxipng_bin} ]]; then
 	exit 1
 fi
 
-background_source="${repo_root}/assets/images/air_ruins_twilight.png"
+app_icon_artwork_source="${repo_root}/assets/images/branding/app_icon_artwork.png"
 azure_source="${repo_root}/assets/images/sprites/azure_explorer_top_down.png"
 ember_source="${repo_root}/assets/images/sprites/ember_explorer_top_down.png"
 foothold_source="${repo_root}/assets/images/sprites/foothold_intact.png"
 
-for source_file in "${background_source}" "${azure_source}" "${ember_source}" "${foothold_source}"; do
+for source_file in "${app_icon_artwork_source}" "${azure_source}" "${ember_source}" "${foothold_source}"; do
 	if [[ ! -f ${source_file} ]]; then
 		echo "Missing brand source: ${source_file}" >&2
 		exit 1
@@ -36,26 +36,8 @@ mkdir -p "${branding_dir}"
 app_icon="${branding_dir}/app_icon.png"
 launch_mark="${branding_dir}/launch_mark.png"
 
-"${magick_bin}" "${background_source}" \
-	-gravity center \
-	-crop 941x941+0+0 \
-	+repage \
+"${magick_bin}" "${app_icon_artwork_source}" \
 	-resize 1024x1024! \
-	-modulate 72,112,100 \
-	-strip \
-	"PNG24:${temporary_dir}/icon-background.png"
-
-"${magick_bin}" "${temporary_dir}/icon-background.png" \
-	\( "${foothold_source}" -resize 720x720 \) \
-	-gravity center \
-	-geometry +0+155 \
-	-composite \
-	\( "${azure_source}" -resize 400x400 \) \
-	-geometry -200+25 \
-	-composite \
-	\( "${ember_source}" -resize 400x400 \) \
-	-geometry +200+25 \
-	-composite \
 	-alpha off \
 	-strip \
 	"PNG24:${app_icon}"
@@ -114,6 +96,26 @@ generate_android_flavor() {
 	local source_root="${repo_root}/android/app/src/${source_set}"
 
 	mkdir -p "${source_root}/res/drawable-xxxhdpi"
+	if [[ -n ${badge_dir} ]]; then
+		"${magick_bin}" "${app_icon}" \
+			-resize 432x432! \
+			\( "${badge_dir}/Flag.png" -resize 72x72 \) \
+			-gravity north \
+			-geometry +0+96 \
+			-composite \
+			\( "${badge_dir}/Environment.png" -resize 72x72 \) \
+			-geometry +0+96 \
+			-composite \
+			-alpha off \
+			-strip \
+			"PNG24:${source_root}/res/drawable-xxxhdpi/ic_launcher_background_art.png"
+	else
+		"${magick_bin}" "${app_icon}" \
+			-resize 432x432! \
+			-alpha off \
+			-strip \
+			"PNG24:${source_root}/res/drawable-xxxhdpi/ic_launcher_background_art.png"
+	fi
 	"${magick_bin}" "${icon_source}" \
 		"${temporary_dir}/rounded-mask.png" \
 		-alpha off \
@@ -128,34 +130,6 @@ generate_android_flavor() {
 		-composite \
 		-strip \
 		"PNG32:${temporary_dir}/${source_set}-round.png"
-	"${magick_bin}" "${launch_mark}" \
-		-trim \
-		+repage \
-		-resize 236x236 \
-		-gravity center \
-		-background none \
-		-extent 432x432 \
-		-strip \
-		"PNG32:${temporary_dir}/${source_set}-foreground.png"
-
-	if [[ -n ${badge_dir} ]]; then
-		"${magick_bin}" "${temporary_dir}/${source_set}-foreground.png" \
-			\( "${badge_dir}/Flag.png" -resize 96x96 \) \
-			-gravity northeast \
-			-geometry +84+84 \
-			-composite \
-			\( "${badge_dir}/Environment.png" -resize 96x96 \) \
-			-geometry +84+84 \
-			-composite \
-			-strip \
-			"PNG32:${temporary_dir}/${source_set}-foreground-badged.png"
-		cp "${temporary_dir}/${source_set}-foreground-badged.png" \
-			"${source_root}/res/drawable-xxxhdpi/ic_launcher_foreground.png"
-	else
-		cp "${temporary_dir}/${source_set}-foreground.png" \
-			"${source_root}/res/drawable-xxxhdpi/ic_launcher_foreground.png"
-	fi
-
 	"${magick_bin}" "${icon_source}" -resize 512x512 -strip \
 		"PNG24:${source_root}/ic_launcher-playstore.png"
 
