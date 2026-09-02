@@ -2,6 +2,13 @@
 
 <!-- cspell:words Cargokit -->
 
+> **Superseded in part, 2026-09-02.** The Web deferral below no longer holds:
+> `flutter_rust_bridge` 2.13.0 generates the Web glue, the `web` CI job builds
+> the production Web app, and `CLAUDE.md` no longer rules Web out. The rest of
+> this note stands, including the prerelease clause — the project is still on
+> stable 2.13.0. What follows is the record of what was decided on 2026-08-22,
+> not a description of today.
+
 ## Decision
 
 The first MVP targets Android and iOS only.
