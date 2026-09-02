@@ -66,7 +66,7 @@ Four checks, in this order. Each one has failed silently in some project, so run
 
 ## Version and build number
 
-`pubspec.yaml` carries `version: <name>+<code>`, currently `1.0.0+1`.
+`pubspec.yaml` carries `version: <name>+<code>`. Read the current value there rather than from a copy here.
 
 - The build number after `+` increments by one for every artifact uploaded to any track, and is never reused. Play rejects a duplicate `versionCode` outright, and the number is shared across all tracks of one application id.
 - The version name before `+` follows semver against user-visible behaviour, not internal refactors. A build that only changes the artifact bumps the build number alone.
@@ -78,10 +78,20 @@ Four checks, in this order. Each one has failed silently in some project, so run
 - `This version only understands SDK XML versions up to 3 but ... version 4 was encountered`. This comes from a command-line tools and Android Studio version skew and does not affect the artifact.
 - `1 package has newer versions incompatible with dependency constraints` (`http_parser`). This is a transitive pin, not something this build controls.
 
+## The landing page is part of the release
+
+`AndrewDongminYoo/ttush-push-landing` serves what the stores need from a domain rather than from the app: the privacy policy today, and the App Links and Apple App Site Association files when those are set up. It also describes the game to anyone who has not played it.
+
+That makes it the thing most likely to go quietly out of date, because nothing in this repository fails when it does. So treat it as a step rather than a follow-up:
+
+- When a release changes what a player sees, update the landing page's rules and status copy in the same release, not afterwards. `lib/dictionaries.ts` holds both locales side by side.
+- When a version reaches a store track, check that the page does not still describe the previous one.
+- If a release adds anything that collects, transmits or stores data, the privacy policy is wrong until it is rewritten. Its central claim is that the released bundle declares no `android.permission.INTERNET`, and that is checkable: read `base/manifest/AndroidManifest.xml` out of the AAB.
+
 ## What this checklist does not cover
 
 It stops at a signed local artifact. Uploading it is a separate manual step in Play Console.
 
 That upload has happened once already, outside this checklist: version 1 (1.0.0), version code 1, was published to the internal testing track on 2026-09-01 and is available to the 34-member beta tester list. The next upload therefore needs a build number of 2 or higher, which is the rule above and not a detail.
 
-What remains uncovered is everything a production release needs. The app is still a draft in Play Console, so the store listing, the privacy policy, the data safety form, and the content rating questionnaire are all outstanding. iOS packaging is not covered here at all; no archive has been produced.
+What remains uncovered is everything a production release needs. The app is still a draft in Play Console, so the store listing, the data safety form and the content rating questionnaire are all outstanding. The privacy policy is written, in the landing repository, but its URL is not live until that site is deployed, and Play wants the URL rather than the text. iOS packaging is not covered here at all; no archive has been produced.
