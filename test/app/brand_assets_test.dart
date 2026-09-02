@@ -8,10 +8,14 @@ const _androidSmallIconPath =
     'android/app/src/main/res/mipmap-mdpi/ic_launcher.png';
 const _appleLaunchPath =
     'ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png';
-const _androidAdaptiveArtworkPaths = [
+const _androidAdaptiveBackgroundPaths = [
   'android/app/src/main/res/drawable-xxxhdpi/ic_launcher_background_art.png',
   'android/app/src/development/res/drawable-xxxhdpi/ic_launcher_background_art.png',
   'android/app/src/staging/res/drawable-xxxhdpi/ic_launcher_background_art.png',
+];
+const _androidAdaptiveBadgePaths = [
+  'android/app/src/development/res/drawable-xxxhdpi/ic_launcher_foreground.png',
+  'android/app/src/staging/res/drawable-xxxhdpi/ic_launcher_foreground.png',
 ];
 const _appIconPath = 'assets/images/branding/app_icon.png';
 const _launchMarkPath = 'assets/images/branding/launch_mark.png';
@@ -80,7 +84,7 @@ void main() {
     tester,
   ) async {
     await tester.runAsync(() async {
-      for (final path in _androidAdaptiveArtworkPaths) {
+      for (final path in _androidAdaptiveBackgroundPaths) {
         expect(File(path).existsSync(), isTrue, reason: path);
         if (!File(path).existsSync()) {
           continue;
@@ -92,52 +96,55 @@ void main() {
   });
 
   testWidgets(
-    'keeps every Android flavor distinct inside the adaptive safe circle',
+    'keeps Android adaptive backgrounds flavor-neutral',
     (
       tester,
     ) async {
       await tester.runAsync(() async {
-        final artworkPixels = <Uint8List>[];
-        for (final path in _androidAdaptiveArtworkPaths) {
+        final backgroundPixels = <Uint8List>[];
+        for (final path in _androidAdaptiveBackgroundPaths) {
           if (!File(path).existsSync()) {
             fail('$path does not exist');
           }
-          artworkPixels.add(await _loadRgba(path, size: 64));
+          backgroundPixels.add(await _loadRgba(path, size: 64));
         }
 
-        expect(
-          _differentPixelFractionInsideCircle(
-            artworkPixels[0],
-            artworkPixels[1],
-            width: 64,
-            radius: 64 * 33 / 108,
-          ),
-          greaterThan(0.02),
-          reason: 'development must remain distinct under the safe mask',
-        );
-        expect(
-          _differentPixelFractionInsideCircle(
-            artworkPixels[0],
-            artworkPixels[2],
-            width: 64,
-            radius: 64 * 33 / 108,
-          ),
-          greaterThan(0.02),
-          reason: 'staging must remain distinct under the safe mask',
-        );
-        expect(
-          _differentPixelFractionInsideCircle(
-            artworkPixels[1],
-            artworkPixels[2],
-            width: 64,
-            radius: 64 * 33 / 108,
-          ),
-          greaterThan(0),
-          reason: 'development and staging must remain distinguishable',
-        );
+        expect(backgroundPixels[1], equals(backgroundPixels[0]));
+        expect(backgroundPixels[2], equals(backgroundPixels[0]));
       });
     },
   );
+
+  testWidgets('keeps Android flavor badges in the upper-right safe zone', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      for (final path in _androidAdaptiveBadgePaths) {
+        if (!File(path).existsSync()) {
+          fail('$path does not exist');
+        }
+        final pixels = await _loadRgba(path, size: 432);
+        final bounds = _alphaBounds(pixels, width: 432, height: 432);
+
+        expect(bounds.minX, greaterThanOrEqualTo(216), reason: path);
+        expect(bounds.minY, greaterThanOrEqualTo(84), reason: path);
+        expect(bounds.maxX, lessThan(348), reason: path);
+        expect(bounds.maxY, lessThan(216), reason: path);
+        expect(
+          _cyanPixelFraction(
+            pixels,
+            width: 432,
+            minX: bounds.minX,
+            maxX: bounds.maxX + 1,
+            minY: bounds.minY,
+            maxY: bounds.maxY + 1,
+          ),
+          greaterThan(0.3),
+          reason: path,
+        );
+      }
+    });
+  });
 
   testWidgets('keeps canonical and platform image dimensions stable', (
     tester,
@@ -146,7 +153,8 @@ void main() {
       final expectedDimensions = <String, (int, int)>{
         _appIconPath: (1024, 1024),
         _launchMarkPath: (600, 600),
-        for (final path in _androidAdaptiveArtworkPaths) path: (432, 432),
+        for (final path in _androidAdaptiveBackgroundPaths) path: (432, 432),
+        for (final path in _androidAdaptiveBadgePaths) path: (432, 432),
         'android/app/src/main/ic_launcher-playstore.png': (512, 512),
         'android/app/src/development/ic_launcher-playstore.png': (512, 512),
         'android/app/src/staging/ic_launcher-playstore.png': (512, 512),
@@ -224,7 +232,11 @@ void main() {
         );
         expect(
           adaptiveIcon,
-          contains('@android:color/transparent'),
+          contains(
+            sourceSet == 'main'
+                ? '@android:color/transparent'
+                : '@drawable/ic_launcher_foreground',
+          ),
           reason: path,
         );
       }
@@ -472,37 +484,41 @@ double _matchingPixelFraction(
   return matchingPixels / visiblePixels;
 }
 
-double _differentPixelFractionInsideCircle(
-  Uint8List first,
-  Uint8List second, {
-  required int width,
-  required double radius,
-}) {
-  final center = (width - 1) / 2;
-  var circlePixels = 0;
-  var differentPixels = 0;
-  for (var pixelIndex = 0; pixelIndex < first.length ~/ 4; pixelIndex++) {
-    final x = pixelIndex % width;
-    final y = pixelIndex ~/ width;
-    final deltaX = x - center;
-    final deltaY = y - center;
-    if (deltaX * deltaX + deltaY * deltaY > radius * radius) {
-      continue;
-    }
-    circlePixels += 1;
-    final byteIndex = pixelIndex * 4;
-    if (first[byteIndex] != second[byteIndex] ||
-        first[byteIndex + 1] != second[byteIndex + 1] ||
-        first[byteIndex + 2] != second[byteIndex + 2] ||
-        first[byteIndex + 3] != second[byteIndex + 3]) {
-      differentPixels += 1;
-    }
-  }
-  return differentPixels / circlePixels;
-}
-
 Iterable<int> _alphaValues(Uint8List rgba) sync* {
   for (var index = 3; index < rgba.length; index += 4) {
     yield rgba[index];
   }
+}
+
+({int width, int height, int minX, int minY, int maxX, int maxY}) _alphaBounds(
+  Uint8List rgba, {
+  required int width,
+  required int height,
+}) {
+  var minX = width;
+  var minY = height;
+  var maxX = -1;
+  var maxY = -1;
+  for (var pixelIndex = 0; pixelIndex < width * height; pixelIndex++) {
+    if (rgba[pixelIndex * 4 + 3] == 0) {
+      continue;
+    }
+    final x = pixelIndex % width;
+    final y = pixelIndex ~/ width;
+    minX = minX < x ? minX : x;
+    minY = minY < y ? minY : y;
+    maxX = maxX > x ? maxX : x;
+    maxY = maxY > y ? maxY : y;
+  }
+  if (maxX < 0) {
+    throw StateError('asset contains no nontransparent pixels');
+  }
+  return (
+    width: maxX - minX + 1,
+    height: maxY - minY + 1,
+    minX: minX,
+    minY: minY,
+    maxX: maxX,
+    maxY: maxY,
+  );
 }

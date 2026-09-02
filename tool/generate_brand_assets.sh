@@ -96,25 +96,22 @@ generate_android_flavor() {
 	local source_root="${repo_root}/android/app/src/${source_set}"
 
 	mkdir -p "${source_root}/res/drawable-xxxhdpi"
+	"${magick_bin}" "${app_icon}" \
+		-resize 432x432! \
+		-alpha off \
+		-strip \
+		"PNG24:${source_root}/res/drawable-xxxhdpi/ic_launcher_background_art.png"
 	if [[ -n ${badge_dir} ]]; then
-		"${magick_bin}" "${app_icon}" \
-			-resize 432x432! \
-			\( "${badge_dir}/Flag.png" -resize 72x72 \) \
-			-gravity north \
-			-geometry +0+96 \
+		"${magick_bin}" -size 432x432 canvas:none \
+			\( "${badge_dir}/Flag.png" -resize 96x96 \) \
+			-gravity northeast \
+			-geometry +84+84 \
 			-composite \
-			\( "${badge_dir}/Environment.png" -resize 72x72 \) \
-			-geometry +0+96 \
+			\( "${badge_dir}/Environment.png" -resize 96x96 \) \
+			-geometry +84+84 \
 			-composite \
-			-alpha off \
 			-strip \
-			"PNG24:${source_root}/res/drawable-xxxhdpi/ic_launcher_background_art.png"
-	else
-		"${magick_bin}" "${app_icon}" \
-			-resize 432x432! \
-			-alpha off \
-			-strip \
-			"PNG24:${source_root}/res/drawable-xxxhdpi/ic_launcher_background_art.png"
+			"PNG32:${source_root}/res/drawable-xxxhdpi/ic_launcher_foreground.png"
 	fi
 	"${magick_bin}" "${icon_source}" \
 		"${temporary_dir}/rounded-mask.png" \
