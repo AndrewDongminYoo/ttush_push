@@ -49,7 +49,7 @@ Four checks, in this order. Each one has failed silently in some project, so run
 
    A different fingerprint means neither key source supplied the expected keystore. Treat the owner line as a label, never as the check.
 
-3. **The release build actually starts and reaches Rust.** Minification runs only in the release build, so a debug run proves nothing about it, and `android/app/proguard-rules.pro` is listed in `proguardFiles` but does not exist, which leaves R8 running on the default rules alone. Install the release APK on any arm64 runtime and look at the first screen.
+3. **The release build actually starts and reaches Rust.** Minification runs only in the release build, so a debug run proves nothing about it, and `android/app/proguard-rules.pro` deliberately carries no rules, which leaves R8 running on the defaults plus what each dependency contributes. Install the release APK on any arm64 runtime and look at the first screen.
 
    ```sh
    flutter build apk --release --flavor production --target lib/main_production.dart
