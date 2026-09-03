@@ -37,7 +37,10 @@ void main() {
 
     expect(find.text('Select an Azure explorer.'), findsOneWidget);
     expect(
-      find.text('A filled glowing marker is a move. A ring is a Push.'),
+      find.text(
+        'A filled dot marks a move. '
+        'A ring around another explorer marks a Push.',
+      ),
       findsNothing,
     );
     expect(store.readVersions, [firstPlayCoachVersion]);
@@ -70,7 +73,10 @@ void main() {
     await tester.tap(find.text('Next'));
     await tester.pump();
     expect(
-      find.text('A filled glowing marker is a move. A ring is a Push.'),
+      find.text(
+        'A filled dot marks a move. '
+        'A ring around another explorer marks a Push.',
+      ),
       findsOneWidget,
     );
 
@@ -186,6 +192,37 @@ void main() {
     expect(IconTheme.of(tester.element(helpIcon)).color, Colors.white);
   });
 
+  testWidgets('opens help with guidance for the current human player', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          coachStore: _FakeFirstPlayCoachStore(
+            completedVersions: {firstPlayCoachVersion},
+          ),
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(
+              const GameSnapshot(
+                currentPlayer: GamePlayer.second,
+                tiles: [],
+                pieces: [],
+                snapshotHash: 'ember-coach-help',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('coach-help')));
+    await tester.pump();
+
+    expect(find.text('Select an Ember explorer.'), findsOneWidget);
+    expect(find.text('Select an Azure explorer.'), findsNothing);
+  });
+
   testWidgets(
     'announces coach steps as live regions when opened and advanced',
     (
@@ -231,7 +268,9 @@ void main() {
       expect(
         tester.getSemantics(find.byKey(const Key('coach-message'))),
         matchesSemantics(
-          label: 'A filled glowing marker is a move. A ring is a Push.',
+          label:
+              'A filled dot marks a move. '
+              'A ring around another explorer marks a Push.',
           isLiveRegion: true,
         ),
       );

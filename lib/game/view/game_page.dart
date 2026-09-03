@@ -301,6 +301,9 @@ class _GamePageState extends State<GamePage>
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                     child: _FirstPlayCoach(
                       step: _coachStep,
+                      selectionPlayer: _controller.isBotTurn
+                          ? rust.GamePlayer.first
+                          : round.currentPlayer,
                       onNext: _advanceCoach,
                       onDismiss: _completeCoach,
                     ),
@@ -707,11 +710,13 @@ String _winReasonLabel(
 class _FirstPlayCoach extends StatelessWidget {
   const _FirstPlayCoach({
     required this.step,
+    required this.selectionPlayer,
     required this.onNext,
     required this.onDismiss,
   });
 
   final int step;
+  final rust.GamePlayer selectionPlayer;
   final VoidCallback onNext;
   final VoidCallback onDismiss;
 
@@ -719,7 +724,10 @@ class _FirstPlayCoach extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = localizationsOf(context);
     final message = switch (step) {
-      0 => l10n.coachSelectAzure,
+      0 => switch (selectionPlayer) {
+        rust.GamePlayer.first => l10n.coachSelectAzure,
+        rust.GamePlayer.second => l10n.coachSelectEmber,
+      },
       1 => l10n.coachMovesAndPushes,
       _ => l10n.coachCrackedFoothold,
     };
