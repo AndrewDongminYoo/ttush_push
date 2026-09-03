@@ -1,6 +1,9 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
-const firstPlayCoachVersion = 1;
+/// Raising this re-shows the coach to everyone, because completion is stored
+/// per version. It moved to 2 so players who finished the coach in 1.0.0 meet
+/// it again for the closed playtest.
+const firstPlayCoachVersion = 2;
 
 abstract interface class FirstPlayCoachStore {
   Future<bool> isComplete({required int version});

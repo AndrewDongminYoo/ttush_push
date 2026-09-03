@@ -269,6 +269,33 @@ void main() {
     expect(store.readVersions, [firstPlayCoachVersion]);
   });
 
+  testWidgets('shows the coach to a player who completed the 1.0.0 version', (
+    tester,
+  ) async {
+    final store = _FakeFirstPlayCoachStore(completedVersions: {1});
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          coachStore: store,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(
+              const GameSnapshot(
+                currentPlayer: GamePlayer.first,
+                tiles: [],
+                pieces: [],
+                snapshotHash: 'returning-player',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Select an Azure explorer.'), findsOneWidget);
+  });
+
   testWidgets('shows the coach when completion cannot be read', (
     tester,
   ) async {
