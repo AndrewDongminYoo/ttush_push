@@ -9,13 +9,13 @@ Everything outside a block is a note for whoever runs the playtest, not for a te
 
 ## What each block feeds
 
-| Block             | Definition of Done item it closes                                                         |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| Release notes     | The upload itself, which is item 1                                                        |
-| Invitation        | Items 2 and 5: a Play-delivered install, and coverage of every mode and difficulty        |
-| Per-match record  | Items 4, 5 and 6: the match count, the coverage, and the five fields per match            |
-| Closing questions | Items 7 and 8: whether the coach alone carried the rules, and the three recurring reports |
-| Blocker report    | Item 9: zero P0/P1 crashes and zero progress-blocking defects                             |
+| Block             | Definition of Done item it closes                                                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Release notes     | The upload itself, which is item 1                                                                                                                                  |
+| Invitation        | Items 2 and 5, plus the precondition item 7 needs: a Play-delivered install, coverage of every mode and difficulty, and a coach that has not already been dismissed |
+| Per-match record  | Items 4, 5 and 6: the match count, the coverage, and the five fields per match                                                                                      |
+| Closing questions | Items 7 and 8: whether the coach alone carried the rules, and the three recurring reports                                                                           |
+| Blocker report    | Item 9: zero P0/P1 crashes and zero progress-blocking defects                                                                                                       |
 
 ## Release notes for the internal testing track
 
@@ -61,6 +61,11 @@ Item 7 asks whether the game is playable from the coach alone, and a tester who 
 먼저 Play 스토어에서 앱을 최신 버전으로 업데이트해 주세요.
 파일을 직접 설치하지 마시고 Play가 전달하는 업데이트로 받아 주셔야, 실제 배포 경로가 함께 검증됩니다.
 
+1.0.0을 이미 해 보셨다면, 업데이트한 뒤에 앱 데이터를 한 번 지우고 실행해 주세요.
+첫 안내를 이미 봤다는 기록이 남아 있으면 그 안내가 다시 뜨지 않는데, 이번 테스트에서 확인하려는 것이 바로 그 안내입니다.
+Android 설정에서 앱 목록의 Ttush Push를 찾아 저장공간으로 들어가면 데이터 삭제가 있습니다.
+앱이 저장하는 값은 안내를 봤는지 여부 하나뿐이라, 지워도 잃는 기록은 없습니다.
+
 부탁드리는 것은 세 가지입니다.
 
 첫째, 규칙 설명을 따로 찾지 마시고 화면에 나오는 안내만 보고 플레이해 주세요.
@@ -70,6 +75,11 @@ Item 7 asks whether the game is playable from the coach alone, and a tester who 
 
 셋째, 매치를 한 판 끝낼 때마다 아래 형식으로 한 줄씩 적어서 보내 주세요.
 ```
+
+The data wipe is not optional housekeeping.
+`lib/game/coach/first_play_coach_store.dart` keys completion on `ttush_push.first_play_coach.v1.complete`, and 1.1.0 still passes `firstPlayCoachVersion = 1`, so an update carries the flag forward and `_loadCoach` never makes the coach visible again.
+The 34 testers already on the track are all in that state, and without the wipe their answers cannot close item 7.
+A tester who will not wipe can reopen the coach from the `?` control on the board, which resets it to its first step; note which testers took that path, because a coach they chose to open is weaker evidence than one that appeared on its own.
 
 ## Per-match record
 
@@ -113,7 +123,8 @@ Recurring is the operative word: a single tester's answer is an anecdote, and th
 ## Blocker report
 
 ```plaintext
-앱이 튕기거나 화면이 멈춰서 더 진행할 수 없었던 경우에는, 판이 끝나기를 기다리지 마시고 그때 바로 알려 주세요.
+앱이 튕기거나, 화면이 멈추거나, 그 밖의 어떤 이유로든 더 진행할 수 없게 된 경우에는, 판이 끝나기를 기다리지 마시고 그때 바로 알려 주세요.
+눌러도 아무 반응이 없거나 매치를 끝낼 수 없는 상황도 여기에 들어갑니다.
 어떤 화면에서 무엇을 누른 직후였는지 한 줄이면 충분합니다.
 ```
 
