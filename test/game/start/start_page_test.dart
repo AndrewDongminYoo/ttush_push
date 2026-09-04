@@ -71,16 +71,29 @@ void main() {
     expect(opponentValue('Easy'), findsOneWidget);
   });
 
+  testWidgets('hands the second seat to Expert', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(const Key('start-mode-versus-ai')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('start-difficulty-strategic')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('start-match')));
+    await tester.pumpAndSettle();
+
+    expect(opponentValue('Expert'), findsOneWidget);
+  });
+
   testWidgets('never shows a policy name to a player', (tester) async {
     await pumpApp(tester);
 
     await tester.tap(find.byKey(const Key('start-mode-versus-ai')));
     await tester.pumpAndSettle();
 
-    for (final policy in const ['Random', 'Greedy', 'Minimax']) {
+    for (final policy in const ['Random', 'Greedy', 'Minimax', 'Strategic']) {
       expect(find.text(policy), findsNothing, reason: policy);
     }
-    for (final difficulty in const ['Easy', 'Normal', 'Hard']) {
+    for (final difficulty in const ['Easy', 'Normal', 'Hard', 'Expert']) {
       expect(find.text(difficulty), findsOneWidget, reason: difficulty);
     }
   });

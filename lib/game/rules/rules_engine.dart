@@ -25,7 +25,10 @@ abstract interface class RulesEngine {
 
   /// The move the given policy would play, or null when the round offers
   /// none. Which move is the engine's answer; Dart never picks one.
-  rust.GameMove? chooseBotMove(rust.MatchSnapshot state, rust.BotPolicy policy);
+  Future<rust.GameMove?> chooseBotMove(
+    rust.MatchSnapshot state,
+    rust.BotPolicy policy,
+  );
 }
 
 final class FrbRulesEngine implements RulesEngine {
@@ -48,7 +51,7 @@ final class FrbRulesEngine implements RulesEngine {
       rust.advanceRound(snapshot: state);
 
   @override
-  rust.GameMove? chooseBotMove(
+  Future<rust.GameMove?> chooseBotMove(
     rust.MatchSnapshot state,
     rust.BotPolicy policy,
   ) => rust.chooseBotMove(snapshot: state, policy: policy);

@@ -82,7 +82,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 abstract class RustLibApi extends BaseApi {
   MatchSnapshot crateApiAdvanceRound({required MatchSnapshot snapshot});
 
-  GameMove? crateApiChooseBotMove({
+  Future<GameMove?> crateApiChooseBotMove({
     required MatchSnapshot snapshot,
     required BotPolicy policy,
   });
@@ -133,17 +133,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  GameMove? crateApiChooseBotMove({
+  Future<GameMove?> crateApiChooseBotMove({
     required MatchSnapshot snapshot,
     required BotPolicy policy,
   }) {
-    return handler.executeSync(
-      SyncTask(
-        callFfi: () {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_match_snapshot(snapshot, serializer);
           sse_encode_bot_policy(policy, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_box_autoadd_game_move,

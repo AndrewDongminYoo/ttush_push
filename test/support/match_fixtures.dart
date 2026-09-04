@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
@@ -125,7 +127,8 @@ final class FakeRulesEngine implements RulesEngine {
   final List<Object> _moveResults;
   final List<Object> _advanceResults;
   final List<GameMove> Function(MatchSnapshot state)? _legalMovesFor;
-  final GameMove? Function(MatchSnapshot state, BotPolicy policy)? _botMove;
+  final FutureOr<GameMove?> Function(MatchSnapshot state, BotPolicy policy)?
+  _botMove;
 
   final List<GameMove> appliedMoves = [];
   final List<BotPolicy> botRequests = [];
@@ -161,7 +164,10 @@ final class FakeRulesEngine implements RulesEngine {
   }
 
   @override
-  GameMove? chooseBotMove(MatchSnapshot state, BotPolicy policy) {
+  Future<GameMove?> chooseBotMove(
+    MatchSnapshot state,
+    BotPolicy policy,
+  ) async {
     botRequests.add(policy);
     return _botMove?.call(state, policy);
   }

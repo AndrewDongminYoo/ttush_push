@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use engine::bot::{GreedyBot, MinimaxBot, Policy, RandomBot};
+use engine::bot::{GreedyBot, MinimaxBot, Policy, RandomBot, StrategicBot};
 use engine::{
     BoardConfig, Direction, GameState, Move, Outcome, Piece, PieceId, Player, Position, apply_move,
     legal_moves, outcome,
@@ -50,7 +50,7 @@ fn winning_move(state: &GameState, player: Player) -> Option<Move> {
     })
 }
 
-fn policies(seed: u64) -> Vec<(&'static str, Box<dyn Policy>)> {
+fn simple_policies(seed: u64) -> Vec<(&'static str, Box<dyn Policy>)> {
     vec![
         ("random", Box::new(RandomBot::new(seed))),
         ("greedy", Box::new(GreedyBot::new(seed))),
@@ -59,11 +59,11 @@ fn policies(seed: u64) -> Vec<(&'static str, Box<dyn Policy>)> {
 }
 
 #[test]
-fn every_policy_returns_a_legal_move_or_none() {
+fn simple_policies_return_a_legal_move_or_none() {
     let state = GameState::baseline();
     let legal = legal_moves(&state);
 
-    for (name, mut policy) in policies(7) {
+    for (name, mut policy) in simple_policies(7) {
         let chosen = policy.choose(&state).unwrap_or_else(|| {
             panic!("{name} found no move on the baseline board");
         });
@@ -73,7 +73,7 @@ fn every_policy_returns_a_legal_move_or_none() {
 }
 
 #[test]
-fn every_policy_declines_a_round_with_no_moves() {
+fn simple_policies_decline_a_round_with_no_moves() {
     // Second is immobilized here, so the round is already over.
     let board = BoardConfig::new(
         [position(0, 0), position(3, 2), position(3, 3)]
@@ -87,7 +87,7 @@ fn every_policy_declines_a_round_with_no_moves() {
     .unwrap();
     let state = GameState::new(board, Player::Second).unwrap();
 
-    for (name, mut policy) in policies(7) {
+    for (name, mut policy) in simple_policies(7) {
         assert!(
             policy.choose(&state).is_none(),
             "{name} produced a move for a finished round",
@@ -96,21 +96,54 @@ fn every_policy_declines_a_round_with_no_moves() {
 }
 
 #[test]
-fn every_policy_repeats_itself_for_the_same_seed() {
+fn simple_policies_repeat_themselves_for_the_same_seed() {
     let state = GameState::baseline();
 
     for seed in [1_u64, 42, 9_999] {
-        let first = policies(seed)
+        let first = simple_policies(seed)
             .into_iter()
             .map(|(name, mut policy)| (name, policy.choose(&state)))
             .collect::<Vec<_>>();
-        let second = policies(seed)
+        let second = simple_policies(seed)
             .into_iter()
             .map(|(name, mut policy)| (name, policy.choose(&state)))
             .collect::<Vec<_>>();
 
         assert_eq!(first, second, "policies diverged at seed {seed}");
     }
+}
+
+#[test]
+fn strategic_returns_the_same_legal_move_for_the_same_state() {
+    let state = GameState::new(knockout_board(), Player::First).unwrap();
+    let legal = legal_moves(&state);
+
+    let first = StrategicBot::new(7)
+        .choose(&state)
+        .expect("strategic must find a move when a win is available");
+    let second = StrategicBot::new(7)
+        .choose(&state)
+        .expect("strategic must repeat an identical decision");
+
+    assert!(legal.contains(&first), "strategic chose an illegal move");
+    assert_eq!(first, second, "strategic changed an identical decision");
+}
+
+#[test]
+fn strategic_declines_a_round_with_no_moves() {
+    let board = BoardConfig::new(
+        [position(0, 0), position(3, 2), position(3, 3)]
+            .into_iter()
+            .collect::<BTreeSet<_>>(),
+        vec![
+            Piece::new(PieceId(1), Player::First, position(3, 3)),
+            Piece::new(PieceId(2), Player::Second, position(0, 0)),
+        ],
+    )
+    .unwrap();
+    let state = GameState::new(board, Player::Second).unwrap();
+
+    assert!(StrategicBot::new(7).choose(&state).is_none());
 }
 
 #[test]

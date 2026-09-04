@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/src/rust/api.dart';
@@ -203,6 +205,10 @@ void main() {
 
       controller.cycleOpponent();
 
+      expect(controller.opponent, Opponent.strategic);
+
+      controller.cycleOpponent();
+
       expect(controller.opponent, Opponent.human);
       expect(controller.isBotTurn, isFalse);
     });
@@ -217,6 +223,10 @@ void main() {
 
       expect(controller.opponent, Opponent.greedy);
       expect(controller.canChangeOpponent, isTrue);
+    });
+
+    test('maps the Expert opponent to the Strategic policy', () {
+      expect(Opponent.strategic.policy, BotPolicy.strategic);
     });
 
     test('locks opponent selection after the first applied move', () {
@@ -282,7 +292,7 @@ void main() {
       },
     );
 
-    test('plays the move the engine chose for the policy', () {
+    test('plays the move the engine chose for the policy', () async {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final next = matchOf(round(hash: 'after-bot'), hash: 'after-bot-match');
       final engine = FakeRulesEngine(
@@ -296,8 +306,9 @@ void main() {
       final controller = MatchController(engine)
         ..initialize()
         ..cycleOpponent()
-        ..cycleOpponent()
-        ..playBotMove();
+        ..cycleOpponent();
+
+      await controller.playBotMove();
 
       expect(engine.botRequests, [BotPolicy.greedy]);
       expect(engine.appliedMoves, [move]);
@@ -330,45 +341,49 @@ void main() {
       expect(controller.error, isNull);
     });
 
-    test("ignores a bot move outside the bot's turn", () {
+    test("ignores a bot move outside the bot's turn", () async {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final engine = FakeRulesEngine(
         initial: [matchOf(round())],
         legalMovesFor: (_) => const [move],
         botMove: (_, _) => move,
       );
-      final controller = MatchController(engine)
-        ..initialize()
-        // No policy in the seat yet.
-        ..playBotMove()
-        // A policy, but the person is to move.
-        ..cycleOpponent()
-        ..playBotMove();
+      final controller = MatchController(engine)..initialize();
+
+      // No policy in the seat yet.
+      await controller.playBotMove();
+      // A policy, but the person is to move.
+      controller.cycleOpponent();
+      await controller.playBotMove();
 
       expect(engine.botRequests, isEmpty);
       expect(engine.appliedMoves, isEmpty);
       expect(controller.error, isNull);
     });
 
-    test('treats a policy with no move on a playing round as a fault', () {
-      const move = GameMove(pieceId: 0, direction: GameDirection.down);
-      final engine = FakeRulesEngine(
-        initial: [matchOf(round(current: GamePlayer.second))],
-        legalMovesFor: (_) => const [move],
-        botMove: (_, _) => null,
-      );
-      final controller = MatchController(engine)
-        ..initialize()
-        ..cycleOpponent()
-        ..playBotMove();
+    test(
+      'treats a policy with no move on a playing round as a fault',
+      () async {
+        const move = GameMove(pieceId: 0, direction: GameDirection.down);
+        final engine = FakeRulesEngine(
+          initial: [matchOf(round(current: GamePlayer.second))],
+          legalMovesFor: (_) => const [move],
+          botMove: (_, _) => null,
+        );
+        final controller = MatchController(engine)
+          ..initialize()
+          ..cycleOpponent();
 
-      // The phase says the round is being played, so the engine offering no
-      // move is a disagreement rather than a state.
-      expect(controller.error, isA<FormatException>());
-      expect(engine.appliedMoves, isEmpty);
-    });
+        await controller.playBotMove();
 
-    test('keeps the board and retries when a bot move fails', () {
+        // The phase says the round is being played, so the engine offering no
+        // move is a disagreement rather than a state.
+        expect(controller.error, isA<FormatException>());
+        expect(engine.appliedMoves, isEmpty);
+      },
+    );
+
+    test('keeps the board and retries when a bot move fails', () async {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final initial = matchOf(round(current: GamePlayer.second));
       final next = matchOf(round(hash: 'recovered'), hash: 'recovered-match');
@@ -383,13 +398,14 @@ void main() {
       );
       final controller = MatchController(engine)
         ..initialize()
-        ..cycleOpponent()
-        ..playBotMove();
+        ..cycleOpponent();
+
+      await controller.playBotMove();
 
       expect(controller.snapshot, initial);
       expect(controller.error, isA<StateError>());
 
-      controller.retry();
+      await controller.retry();
 
       expect(controller.snapshot, next);
       expect(controller.error, isNull);
@@ -510,7 +526,7 @@ void main() {
       expect(controller.pendingResolution, isNull);
     });
 
-    test('prepares a bot move without publishing its snapshot', () {
+    test('prepares a bot move without publishing its snapshot', () async {
       const move = GameMove(pieceId: 2, direction: GameDirection.up);
       final initial = matchOf(
         round(current: GamePlayer.second),
@@ -533,7 +549,7 @@ void main() {
         ..cycleOpponent()
         ..cycleOpponent();
 
-      expect(controller.prepareBotMove(), isTrue);
+      expect(await controller.prepareBotMove(), isTrue);
       expect(controller.snapshot, initial);
       expect(controller.pendingResolution, testMoveResolution);
       expect(engine.appliedMoves, [move]);
@@ -544,7 +560,94 @@ void main() {
       expect(controller.pendingResolution, isNull);
     });
 
-    test('rejects controls while a move is pending', () {
+    test('prepares at most one asynchronous bot move for a snapshot', () async {
+      const move = GameMove(pieceId: 2, direction: GameDirection.up);
+      final initial = matchOf(
+        round(current: GamePlayer.second),
+        hash: 'async-bot-match',
+      );
+      final next = matchOf(round(hash: 'after-async-bot'));
+      final completion = Completer<GameMove?>();
+      final engine = FakeRulesEngine(
+        initial: [initial],
+        moveResults: [
+          moveResultOf(next: next, resolution: testMoveResolution),
+        ],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => completion.future,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..selectOpponent(Opponent.greedy);
+
+      final first = controller.prepareBotMove();
+      final duplicate = controller.prepareBotMove();
+
+      expect(await duplicate, isFalse);
+      expect(engine.botRequests, [BotPolicy.greedy]);
+      expect(controller.hasPendingMove, isFalse);
+
+      completion.complete(move);
+
+      expect(await first, isTrue);
+      expect(controller.snapshot, initial);
+      expect(controller.hasPendingMove, isTrue);
+      expect(engine.appliedMoves, [move]);
+    });
+
+    test('ignores an asynchronous bot result after cancellation', () async {
+      const move = GameMove(pieceId: 2, direction: GameDirection.up);
+      final initial = matchOf(
+        round(current: GamePlayer.second),
+        hash: 'cancelled-bot-match',
+      );
+      final completion = Completer<GameMove?>();
+      final engine = FakeRulesEngine(
+        initial: [initial],
+        legalMovesFor: (_) => const [move],
+        botMove: (_, _) => completion.future,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..selectOpponent(Opponent.greedy);
+
+      final preparation = controller.prepareBotMove();
+      controller.cancelBotMovePreparation();
+      completion.complete(move);
+
+      expect(await preparation, isFalse);
+      expect(controller.snapshot, initial);
+      expect(controller.hasPendingMove, isFalse);
+      expect(engine.appliedMoves, isEmpty);
+      expect(controller.error, isNull);
+    });
+
+    test('ignores an asynchronous bot failure after cancellation', () async {
+      final initial = matchOf(
+        round(current: GamePlayer.second),
+        hash: 'cancelled-bot-failure',
+      );
+      final completion = Completer<GameMove?>();
+      final engine = FakeRulesEngine(
+        initial: [initial],
+        botMove: (_, _) => completion.future,
+      );
+      final controller = MatchController(engine)
+        ..initialize()
+        ..selectOpponent(Opponent.strategic);
+
+      final preparation = controller.prepareBotMove();
+      controller.cancelBotMovePreparation();
+      completion.completeError(StateError('stale search failure'));
+
+      expect(await preparation, isFalse);
+      expect(controller.snapshot, initial);
+      expect(controller.hasPendingMove, isFalse);
+      expect(controller.error, isNull);
+      expect(await controller.retry(), isFalse);
+    });
+
+    test('rejects controls while a move is pending', () async {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final initial = matchOf(round(), hash: 'initial-match');
       final next = matchOf(
@@ -576,88 +679,94 @@ void main() {
       expect(engine.initialCount, 1);
       expect(engine.advanceCount, 0);
       expect(controller.prepareHumanMove(move), isFalse);
-      expect(controller.prepareBotMove(), isFalse);
+      expect(await controller.prepareBotMove(), isFalse);
     });
 
-    test('retries a failed preparation without changing the visible match', () {
-      const move = GameMove(pieceId: 0, direction: GameDirection.down);
-      final initial = matchOf(round(), hash: 'initial-match');
-      final next = matchOf(
-        round(current: GamePlayer.second, hash: 'next-round'),
-        hash: 'next-match',
-      );
-      final engine = FakeRulesEngine(
-        initial: [initial],
-        moveResults: [
-          StateError('bridge unavailable'),
-          moveResultOf(next: next, resolution: testMoveResolution),
-        ],
-        legalMovesFor: (state) =>
-            state.snapshotHash == 'initial-match' ? const [move] : const [],
-      );
-      final controller = MatchController(engine)
-        ..initialize()
-        ..selectPiece(move.pieceId);
+    test(
+      'retries a failed preparation without changing the visible match',
+      () async {
+        const move = GameMove(pieceId: 0, direction: GameDirection.down);
+        final initial = matchOf(round(), hash: 'initial-match');
+        final next = matchOf(
+          round(current: GamePlayer.second, hash: 'next-round'),
+          hash: 'next-match',
+        );
+        final engine = FakeRulesEngine(
+          initial: [initial],
+          moveResults: [
+            StateError('bridge unavailable'),
+            moveResultOf(next: next, resolution: testMoveResolution),
+          ],
+          legalMovesFor: (state) =>
+              state.snapshotHash == 'initial-match' ? const [move] : const [],
+        );
+        final controller = MatchController(engine)
+          ..initialize()
+          ..selectPiece(move.pieceId);
 
-      expect(controller.prepareHumanMove(move), isFalse);
-      expect(controller.snapshot, initial);
-      expect(controller.pendingResolution, isNull);
-      expect(controller.selectedPieceId, move.pieceId);
-      expect(controller.error, isA<StateError>());
+        expect(controller.prepareHumanMove(move), isFalse);
+        expect(controller.snapshot, initial);
+        expect(controller.pendingResolution, isNull);
+        expect(controller.selectedPieceId, move.pieceId);
+        expect(controller.error, isA<StateError>());
 
-      expect(controller.retry(), isTrue);
-      expect(controller.snapshot, initial);
-      expect(controller.pendingResolution, testMoveResolution);
-      expect(controller.error, isNull);
+        expect(await controller.retry(), isTrue);
+        expect(controller.snapshot, initial);
+        expect(controller.pendingResolution, testMoveResolution);
+        expect(controller.error, isNull);
 
-      controller.commitPendingMove();
+        controller.commitPendingMove();
 
-      expect(controller.snapshot, next);
-    });
+        expect(controller.snapshot, next);
+      },
+    );
 
-    test('retries a failed pending legal-move refresh before committing', () {
-      const move = GameMove(pieceId: 0, direction: GameDirection.down);
-      const nextMove = GameMove(pieceId: 0, direction: GameDirection.up);
-      var nextLegalMoveReads = 0;
-      final initial = matchOf(round(), hash: 'initial-match');
-      final next = matchOf(
-        round(current: GamePlayer.second, hash: 'next-round'),
-        hash: 'next-match',
-      );
-      final engine = FakeRulesEngine(
-        initial: [initial],
-        moveResults: [
-          moveResultOf(next: next, resolution: testMoveResolution),
-        ],
-        legalMovesFor: (state) => switch (state.snapshotHash) {
-          'initial-match' => const [move],
-          'next-match' when nextLegalMoveReads++ == 0 => throw StateError(
-            'bridge unavailable',
-          ),
-          'next-match' => const [nextMove],
-          _ => const [],
-        },
-      );
-      final controller = MatchController(engine)
-        ..initialize()
-        ..selectPiece(move.pieceId);
+    test(
+      'retries a failed pending legal-move refresh before committing',
+      () async {
+        const move = GameMove(pieceId: 0, direction: GameDirection.down);
+        const nextMove = GameMove(pieceId: 0, direction: GameDirection.up);
+        var nextLegalMoveReads = 0;
+        final initial = matchOf(round(), hash: 'initial-match');
+        final next = matchOf(
+          round(current: GamePlayer.second, hash: 'next-round'),
+          hash: 'next-match',
+        );
+        final engine = FakeRulesEngine(
+          initial: [initial],
+          moveResults: [
+            moveResultOf(next: next, resolution: testMoveResolution),
+          ],
+          legalMovesFor: (state) => switch (state.snapshotHash) {
+            'initial-match' => const [move],
+            'next-match' when nextLegalMoveReads++ == 0 => throw StateError(
+              'bridge unavailable',
+            ),
+            'next-match' => const [nextMove],
+            _ => const [],
+          },
+        );
+        final controller = MatchController(engine)
+          ..initialize()
+          ..selectPiece(move.pieceId);
 
-      expect(controller.prepareHumanMove(move), isFalse);
-      expect(controller.snapshot, initial);
-      expect(controller.legalMoves, const [move]);
-      expect(controller.pendingResolution, isNull);
-      expect(controller.error, isA<StateError>());
+        expect(controller.prepareHumanMove(move), isFalse);
+        expect(controller.snapshot, initial);
+        expect(controller.legalMoves, const [move]);
+        expect(controller.pendingResolution, isNull);
+        expect(controller.error, isA<StateError>());
 
-      expect(controller.retry(), isTrue);
-      expect(controller.snapshot, initial);
-      expect(controller.legalMoves, const [move]);
-      expect(controller.pendingResolution, testMoveResolution);
+        expect(await controller.retry(), isTrue);
+        expect(controller.snapshot, initial);
+        expect(controller.legalMoves, const [move]);
+        expect(controller.pendingResolution, testMoveResolution);
 
-      controller.commitPendingMove();
+        controller.commitPendingMove();
 
-      expect(controller.snapshot, next);
-      expect(controller.legalMoves, const [nextMove]);
-    });
+        expect(controller.snapshot, next);
+        expect(controller.legalMoves, const [nextMove]);
+      },
+    );
 
     test('restart initializes a controller without a current snapshot', () {
       final controller = MatchController(
@@ -667,7 +776,7 @@ void main() {
       expect(controller.status, MatchStatus.initializationError);
     });
 
-    test('retries initialization after a bridge failure', () {
+    test('retries initialization after a bridge failure', () async {
       final ready = matchOf(round());
       final controller = MatchController(
         FakeRulesEngine(initial: [StateError('bridge unavailable'), ready]),
@@ -675,13 +784,13 @@ void main() {
 
       expect(controller.status, MatchStatus.initializationError);
 
-      controller.retry();
+      await controller.retry();
 
       expect(controller.status, MatchStatus.ready);
       expect(controller.snapshot, ready);
     });
 
-    test('retries initialization with the same board definition', () {
+    test('retries initialization with the same board definition', () async {
       const definition = GameBoardDefinition(
         playableCells: [
           GameBoardCell(x: 4, y: 7),
@@ -696,9 +805,9 @@ void main() {
       final engine = FakeRulesEngine(
         initial: [StateError('bridge unavailable'), matchOf(round())],
       );
-      MatchController(engine, boardDefinition: definition)
-        ..initialize()
-        ..retry();
+      final controller = MatchController(engine, boardDefinition: definition)
+        ..initialize();
+      await controller.retry();
 
       expect(engine.initialDefinitions, [same(definition), same(definition)]);
     });
@@ -719,7 +828,7 @@ void main() {
       expect(controller.error, isA<StateError>());
     });
 
-    test('keeps the valid snapshot when applying a move fails', () {
+    test('keeps the valid snapshot when applying a move fails', () async {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final initial = matchOf(round());
       final next = matchOf(
@@ -745,7 +854,7 @@ void main() {
       expect(controller.error, isA<StateError>());
       expect(controller.selectedPieceId, 0);
 
-      controller.retry();
+      await controller.retry();
 
       expect(controller.snapshot, next);
       expect(controller.error, isNull);
@@ -843,7 +952,7 @@ void main() {
       expect(controller.isMatchOver, isTrue);
     });
 
-    test('keeps the finished round visible when advancing fails', () {
+    test('keeps the finished round visible when advancing fails', () async {
       final roundOver = roundOverMatch(round(), winner: GamePlayer.first);
       final nextRound = matchOf(round(hash: 'next'), hash: 'next-match');
       final engine = FakeRulesEngine(
@@ -857,7 +966,7 @@ void main() {
       expect(controller.snapshot, roundOver);
       expect(controller.error, isA<StateError>());
 
-      controller.retry();
+      await controller.retry();
 
       expect(controller.snapshot, nextRound);
       expect(controller.error, isNull);

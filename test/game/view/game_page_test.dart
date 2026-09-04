@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -314,7 +316,7 @@ void main() {
       final elapsed = tester.binding.clock.now().difference(oldTimerStartedAt);
       expect(elapsed, lessThan(botPause));
       await tester.pump(botPause - elapsed);
-      expect(engine.botRequests, isEmpty);
+      expect(engine.botRequests, [BotPolicy.random, BotPolicy.random]);
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
@@ -1660,7 +1662,14 @@ void main() {
 
     expect(find.text('Opponent'), findsWidgets);
     expect(find.text('Hard'), findsOneWidget);
-    for (final choice in const ['human', 'random', 'greedy', 'minimax']) {
+    expect(find.text('Expert'), findsOneWidget);
+    for (final choice in const [
+      'human',
+      'random',
+      'greedy',
+      'minimax',
+      'strategic',
+    ]) {
       expect(
         tester.getRect(find.byKey(Key('opponent-choice-$choice'))).bottom,
         lessThanOrEqualTo(tester.view.physicalSize.height),
@@ -1701,6 +1710,7 @@ void main() {
         'Easy',
         'Normal',
         'Hard',
+        'Expert',
       ]) {
         final paragraph = tester.renderObject<RenderParagraph>(
           find.text(label),
@@ -1778,7 +1788,13 @@ void main() {
 
     expect(_inPanel('second', 'Ember Expedition'), findsOneWidget);
 
-    for (final choice in const ['random', 'greedy', 'minimax', 'human']) {
+    for (final choice in const [
+      'random',
+      'greedy',
+      'minimax',
+      'strategic',
+      'human',
+    ]) {
       await _selectOpponent(tester, choice);
 
       expect(
@@ -1789,6 +1805,7 @@ void main() {
               'random' => 'Easy',
               'greedy' => 'Normal',
               'minimax' => 'Hard',
+              'strategic' => 'Expert',
               _ => 'Human',
             }}',
           ),
@@ -1812,6 +1829,9 @@ void main() {
       snapshotHash: 'dismiss-opponent-sheet',
     );
     const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final firstCompletion = Completer<GameMove?>();
+    final secondCompletion = Completer<GameMove?>();
+    var requestIndex = 0;
     final engine = FakeRulesEngine(
       initial: [matchOf(board)],
       moveResults: [
@@ -1821,7 +1841,9 @@ void main() {
         ),
       ],
       legalMovesFor: (_) => const [move],
-      botMove: (_, _) => move,
+      botMove: (_, _) => requestIndex++ == 0
+          ? firstCompletion.future
+          : secondCompletion.future,
     );
 
     await tester.pumpWidget(
@@ -1831,18 +1853,35 @@ void main() {
     );
     await _selectOpponent(tester, 'random');
 
+    expect(engine.botRequests, [BotPolicy.random]);
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.byKey(const Key('opponent-control')));
     await tester.pump();
     await tester.tapAt(const Offset(10, 10));
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
 
-    expect(engine.botRequests, isEmpty);
-    await tester.pump(const Duration(milliseconds: 450));
     expect(engine.botRequests, [BotPolicy.random]);
+
+    firstCompletion.complete(move);
+    await tester.pump();
+    await tester.pump();
+
+    expect(engine.botRequests, [BotPolicy.random, BotPolicy.random]);
+
+    secondCompletion.complete(move);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 449));
+    expect(engine.appliedMoves, [move]);
+    expect(tester.widget<RoundBoard>(find.byType(RoundBoard)).playback, isNull);
+
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).playback,
+      isNotNull,
+    );
   });
 
-  testWidgets('lets the bot answer after a pause, not instantly', (
+  testWidgets('starts the bot search immediately but waits for the pause', (
     tester,
   ) async {
     const botTurn = GameSnapshot(
@@ -1879,15 +1918,160 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
     await _selectOpponent(tester, 'random');
 
-    // The board must not change while the person is still reading it.
-    expect(engine.appliedMoves, isEmpty);
+    expect(engine.botRequests, [BotPolicy.random]);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).snapshot,
+      botTurn,
+    );
 
-    await tester.pump(const Duration(milliseconds: 450));
+    await tester.pump(const Duration(milliseconds: 449));
+    final waitingBoard = tester.widget<RoundBoard>(find.byType(RoundBoard));
+    expect(waitingBoard.snapshot, botTurn);
+    expect(waitingBoard.playback, isNull);
+
+    await tester.pump(const Duration(milliseconds: 1));
     await _finishReplay(tester);
 
     expect(engine.appliedMoves, [move]);
-    expect(engine.botRequests, [BotPolicy.random]);
     _expectActiveTurn(tester, GamePlayer.first);
+  });
+
+  testWidgets('applies a slow bot result without a second pacing delay', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
+      snapshotHash: 'slow-bot-turn',
+    );
+    const answered = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 1)],
+      snapshotHash: 'slow-bot-answered',
+    );
+    const move = GameMove(pieceId: 1, direction: GameDirection.down);
+    final completion = Completer<GameMove?>();
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [
+        moveResultOf(
+          next: matchOf(answered, hash: 'slow-answered-match'),
+          resolution: _secondBotDownResolution,
+        ),
+      ],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => completion.future,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await _selectOpponent(tester, 'random');
+    expect(engine.botRequests, [BotPolicy.random]);
+
+    await tester.pump(const Duration(milliseconds: 450));
+    final waitingBoard = tester.widget<RoundBoard>(find.byType(RoundBoard));
+    expect(waitingBoard.snapshot, botTurn);
+    expect(waitingBoard.playback, isNull);
+
+    completion.complete(move);
+    await tester.pump();
+    await tester.pump();
+
+    expect(engine.appliedMoves, [move]);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).playback,
+      isNotNull,
+    );
+  });
+
+  testWidgets('ignores a bot search completed after board replacement', (
+    tester,
+  ) async {
+    const oldBotTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
+      snapshotHash: 'replaced-bot-turn',
+    );
+    const move = GameMove(pieceId: 1, direction: GameDirection.down);
+    final completion = Completer<GameMove?>();
+    final engine = FakeRulesEngine(
+      initial: [matchOf(oldBotTurn), matchOf(_runtimeSnapshotB)],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => completion.future,
+    );
+    const pageKey = Key('stale-bot-board');
+    Widget host(BoardDefinition definition, Opponent opponent) => MaterialApp(
+      home: GamePage(
+        key: pageKey,
+        boardDefinition: definition,
+        opponent: opponent,
+        rulesEngine: engine,
+      ),
+    );
+
+    await tester.pumpWidget(host(_runtimeDefinitionA, Opponent.random));
+    await tester.pump();
+    expect(engine.botRequests, [BotPolicy.random]);
+
+    await tester.pumpWidget(host(_runtimeDefinitionB, Opponent.human));
+    completion.complete(move);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(engine.appliedMoves, isEmpty);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).snapshot,
+      _runtimeSnapshotB,
+    );
+    expect(find.byKey(const Key('action-error')), findsNothing);
+  });
+
+  testWidgets('starts only one bot search across rebuilds and disposal', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
+      snapshotHash: 'disposed-bot-turn',
+    );
+    const move = GameMove(pieceId: 1, direction: GameDirection.down);
+    final completion = Completer<GameMove?>();
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => completion.future,
+    );
+    final page = GamePage(
+      opponent: Opponent.random,
+      rulesEngine: engine,
+    );
+
+    await tester.pumpWidget(MaterialApp(home: page));
+    await tester.pumpWidget(MaterialApp(home: page));
+    await tester.pump();
+    expect(engine.botRequests, [BotPolicy.random]);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    completion.complete(move);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(engine.appliedMoves, isEmpty);
   });
 
   testWidgets('cancels a pending bot move when the opponent changes', (
@@ -1922,7 +2106,9 @@ void main() {
     await _selectOpponent(tester, 'human');
     await tester.pump(const Duration(milliseconds: 600));
 
-    expect(engine.appliedMoves, isEmpty);
+    final waitingBoard = tester.widget<RoundBoard>(find.byType(RoundBoard));
+    expect(waitingBoard.snapshot, botTurn);
+    expect(waitingBoard.playback, isNull);
     expect(_inPanel('second', 'Ember Expedition'), findsOneWidget);
   });
 
@@ -1971,7 +2157,9 @@ void main() {
     await tester.tapAt(cellCenter(0, 1));
     await tester.pump();
 
-    expect(engine.appliedMoves, isEmpty);
+    final waitingBoard = tester.widget<RoundBoard>(find.byType(RoundBoard));
+    expect(waitingBoard.snapshot, botTurn);
+    expect(waitingBoard.playback, isNull);
 
     // The bot still plays the move itself once the pause is up.
     await tester.pump(const Duration(milliseconds: 600));
@@ -2031,6 +2219,19 @@ void main() {
 
     expect(engine.botRequests, hasLength(2));
     expect(engine.appliedMoves, [move, move]);
+    expect(tester.widget<RoundBoard>(find.byType(RoundBoard)).playback, isNull);
+    expect(find.textContaining('Unable to update round'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 449));
+
+    expect(tester.widget<RoundBoard>(find.byType(RoundBoard)).playback, isNull);
+
+    await tester.pump(const Duration(milliseconds: 1));
+
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).playback,
+      isNotNull,
+    );
     expect(find.textContaining('Unable to update round'), findsNothing);
   });
 

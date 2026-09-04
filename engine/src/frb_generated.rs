@@ -78,15 +78,16 @@ fn wire__crate__api__advance_round_impl(
     )
 }
 fn wire__crate__api__choose_bot_move_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
     data_len_: i32,
-) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_sync::<flutter_rust_bridge::for_generated::SseCodec, _>(
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
         flutter_rust_bridge::for_generated::TaskInfo {
             debug_name: "choose_bot_move",
-            port: None,
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Sync,
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
         },
         move || {
             let message = unsafe {
@@ -101,10 +102,12 @@ fn wire__crate__api__choose_bot_move_impl(
             let api_snapshot = <crate::api::MatchSnapshot>::sse_decode(&mut deserializer);
             let api_policy = <crate::api::BotPolicy>::sse_decode(&mut deserializer);
             deserializer.end();
-            transform_result_sse::<_, String>((move || {
-                let output_ok = crate::api::choose_bot_move(api_snapshot, api_policy)?;
-                std::result::Result::Ok(output_ok)
-            })())
+            move |context| {
+                transform_result_sse::<_, String>((move || {
+                    let output_ok = crate::api::choose_bot_move(api_snapshot, api_policy)?;
+                    std::result::Result::Ok(output_ok)
+                })())
+            }
         },
     )
 }
@@ -219,6 +222,7 @@ impl SseDecode for crate::api::BotPolicy {
             0 => crate::api::BotPolicy::Random,
             1 => crate::api::BotPolicy::Greedy,
             2 => crate::api::BotPolicy::Minimax,
+            3 => crate::api::BotPolicy::Strategic,
             _ => unreachable!("Invalid variant for BotPolicy: {}", inner),
         };
     }
@@ -675,6 +679,7 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
+        2 => wire__crate__api__choose_bot_move_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -688,7 +693,6 @@ fn pde_ffi_dispatcher_sync_impl(
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
         1 => wire__crate__api__advance_round_impl(ptr, rust_vec_len, data_len),
-        2 => wire__crate__api__choose_bot_move_impl(ptr, rust_vec_len, data_len),
         3 => wire__crate__api__initial_match_impl(ptr, rust_vec_len, data_len),
         4 => wire__crate__api__match_apply_move_impl(ptr, rust_vec_len, data_len),
         5 => wire__crate__api__match_legal_moves_impl(ptr, rust_vec_len, data_len),
@@ -705,6 +709,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::BotPolicy {
             Self::Random => 0.into_dart(),
             Self::Greedy => 1.into_dart(),
             Self::Minimax => 2.into_dart(),
+            Self::Strategic => 3.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -1077,6 +1082,7 @@ impl SseEncode for crate::api::BotPolicy {
                 crate::api::BotPolicy::Random => 0,
                 crate::api::BotPolicy::Greedy => 1,
                 crate::api::BotPolicy::Minimax => 2,
+                crate::api::BotPolicy::Strategic => 3,
                 _ => {
                     unimplemented!("");
                 }

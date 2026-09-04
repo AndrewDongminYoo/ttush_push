@@ -611,7 +611,7 @@ void main() {
       ),
       findsNothing,
     );
-    expect(engine.botRequests, isEmpty);
+    expect(engine.botRequests, [BotPolicy.random]);
     semantics.dispose();
   });
 
