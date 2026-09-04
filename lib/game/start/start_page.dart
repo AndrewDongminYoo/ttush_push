@@ -186,6 +186,7 @@ const List<Opponent> _difficulties = [
   Opponent.random,
   Opponent.greedy,
   Opponent.minimax,
+  Opponent.strategic,
 ];
 
 class _Panel extends StatelessWidget {

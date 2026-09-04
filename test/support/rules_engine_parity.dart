@@ -3,7 +3,7 @@ import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
-void expectRulesEngineParity(RulesEngine rulesEngine) {
+Future<void> expectRulesEngineParity(RulesEngine rulesEngine) async {
   var match = rulesEngine.initialMatch(baselineBoardDefinition.rules);
   const fixtureMoves = [
     GameMove(pieceId: 0, direction: GameDirection.down),
@@ -61,10 +61,11 @@ void expectRulesEngineParity(RulesEngine rulesEngine) {
     BotPolicy.random: GameMove(pieceId: 1, direction: GameDirection.down),
     BotPolicy.greedy: GameMove(pieceId: 1, direction: GameDirection.down),
     BotPolicy.minimax: GameMove(pieceId: 0, direction: GameDirection.right),
+    BotPolicy.strategic: GameMove(pieceId: 0, direction: GameDirection.right),
   };
   for (final entry in expectedByPolicy.entries) {
     expect(
-      rulesEngine.chooseBotMove(match, entry.key),
+      await rulesEngine.chooseBotMove(match, entry.key),
       entry.value,
       reason: '${entry.key} chose a different move on this runtime',
     );

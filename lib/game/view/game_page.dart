@@ -48,7 +48,10 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage>
     with SingleTickerProviderStateMixin {
   late MatchController _controller;
-  Timer? _botTimer;
+  int _botWorkGeneration = 0;
+  bool _botWorkActive = false;
+  Timer? _botPauseTimer;
+  Completer<void>? _botPauseCompletion;
   late final AnimationController _replayController;
   rust.MoveResolution? _replayResolution;
   Map<int, ExplorerFacing> _pieceFacings = const {};
@@ -98,8 +101,7 @@ class _GamePageState extends State<GamePage>
       return;
     }
 
-    _botTimer?.cancel();
-    _botTimer = null;
+    _cancelBotWork();
     _replayGeneration++;
     _replayController.stop();
     _replayResolution = null;
@@ -123,7 +125,7 @@ class _GamePageState extends State<GamePage>
   @override
   void dispose() {
     _replayGeneration++;
-    _botTimer?.cancel();
+    _cancelBotWork();
     _replayController.dispose();
     unawaited(_ownedFeedback?.dispose());
     super.dispose();
@@ -143,22 +145,67 @@ class _GamePageState extends State<GamePage>
     if (!_controller.isBotTurn ||
         _controller.hasPendingMove ||
         _controller.error != null ||
-        (_botTimer?.isActive ?? false)) {
+        _botWorkActive) {
       return;
     }
 
-    _botTimer = Timer(_botPause, () {
-      if (!mounted || !_controller.isBotTurn || _controller.hasPendingMove) {
-        return;
+    final controller = _controller;
+    final generation = ++_botWorkGeneration;
+    _botWorkActive = true;
+    final preparation = controller.prepareBotMove();
+    final pause = _startBotPause();
+    unawaited(_completeBotWork(controller, generation, preparation, pause));
+  }
+
+  Future<void> _startBotPause() {
+    final completion = Completer<void>();
+    _botPauseCompletion = completion;
+    _botPauseTimer = Timer(_botPause, () {
+      if (identical(_botPauseCompletion, completion)) {
+        _botPauseTimer = null;
+        _botPauseCompletion = null;
       }
-      var prepared = false;
-      setState(() {
-        prepared = _controller.prepareBotMove();
-      });
-      if (prepared) {
-        _playPendingMove();
+      completion.complete();
+    });
+    return completion.future;
+  }
+
+  Future<void> _completeBotWork(
+    MatchController controller,
+    int generation,
+    Future<bool> preparation,
+    Future<void> pause,
+  ) async {
+    final prepared = await preparation;
+    await pause;
+    if (!mounted ||
+        generation != _botWorkGeneration ||
+        !identical(controller, _controller)) {
+      return;
+    }
+
+    _botWorkActive = false;
+    setState(() {
+      if (!prepared && controller.error != null) {
+        _errorAnnouncementGeneration++;
       }
     });
+    if (prepared) {
+      _playPendingMove();
+    }
+  }
+
+  void _cancelBotWork() {
+    _botWorkGeneration++;
+    _botWorkActive = false;
+    _botPauseTimer?.cancel();
+    _botPauseTimer = null;
+    final pauseCompletion = _botPauseCompletion;
+    _botPauseCompletion = null;
+    if (pauseCompletion != null && !pauseCompletion.isCompleted) {
+      pauseCompletion.complete();
+    }
+    _controller.cancelBotMovePreparation();
   }
 
   @override
@@ -430,7 +477,7 @@ class _GamePageState extends State<GamePage>
     if (!controller.canChangeOpponent) {
       return;
     }
-    _botTimer?.cancel();
+    _cancelBotWork();
     final opponent = await showModalBottomSheet<Opponent>(
       context: context,
       backgroundColor: _panelColor,
@@ -599,13 +646,36 @@ class _GamePageState extends State<GamePage>
   }
 
   void _restart() {
+    _cancelBotWork();
     setState(() => _mutateAndResetFacing(_controller.restart));
   }
 
-  void _retry() {
+  Future<void> _retry() async {
+    final controller = _controller;
+    if (controller.isBotTurn) {
+      if (_botWorkActive) {
+        return;
+      }
+      final generation = ++_botWorkGeneration;
+      _botWorkActive = true;
+      final preparation = controller.retry().then(
+        (retried) => retried && controller.hasPendingMove,
+      );
+      final pause = _startBotPause();
+      await _completeBotWork(controller, generation, preparation, pause);
+      return;
+    }
+
+    final previousHash = controller.snapshot?.snapshotHash;
+    await controller.retry();
+    if (!mounted || !identical(controller, _controller)) {
+      return;
+    }
     setState(() {
-      _mutateAndResetFacing(_controller.retry);
-      if (_controller.error != null) {
+      if (controller.snapshot?.snapshotHash != previousHash) {
+        _pieceFacings = const {};
+      }
+      if (controller.error != null) {
         _errorAnnouncementGeneration++;
       }
     });

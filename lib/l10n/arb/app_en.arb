@@ -7,6 +7,7 @@
   "opponentRandom": "Easy",
   "opponentGreedy": "Normal",
   "opponentMinimax": "Hard",
+  "opponentStrategic": "Expert",
   "newMatchTitle": "New Match",
   "modeTwoPlayers": "2 Players",
   "modeVersusAi": "Play vs AI",

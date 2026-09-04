@@ -33,7 +33,7 @@ MatchSnapshot advanceRound({required MatchSnapshot snapshot}) =>
 /// the same position always produces the same move: a bot that cannot be
 /// replayed cannot have its mistakes reported, and a seed held on the Dart
 /// side would put game state in the presentation layer.
-GameMove? chooseBotMove({
+Future<GameMove?> chooseBotMove({
   required MatchSnapshot snapshot,
   required BotPolicy policy,
 }) => RustLib.instance.api.crateApiChooseBotMove(
@@ -45,6 +45,7 @@ enum BotPolicy {
   random,
   greedy,
   minimax,
+  strategic,
 }
 
 class CounterPushRestriction {

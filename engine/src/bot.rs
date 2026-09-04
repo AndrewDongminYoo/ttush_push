@@ -1,5 +1,9 @@
 use super::{GameState, Move, Outcome, Player, apply_move, legal_moves, outcome};
 
+mod strategic;
+
+pub use strategic::{StrategicBot, StrategicSearchDiagnostics};
+
 /// A way of choosing a move.
 ///
 /// A policy sees one round and nothing else. It is handed the state and

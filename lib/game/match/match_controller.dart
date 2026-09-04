@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/src/rust/api.dart' as rust;
@@ -12,7 +14,8 @@ enum Opponent {
   human,
   random,
   greedy,
-  minimax;
+  minimax,
+  strategic;
 
   Opponent get next => Opponent.values[(index + 1) % Opponent.values.length];
 
@@ -22,6 +25,7 @@ enum Opponent {
     Opponent.random => rust.BotPolicy.random,
     Opponent.greedy => rust.BotPolicy.greedy,
     Opponent.minimax => rust.BotPolicy.minimax,
+    Opponent.strategic => rust.BotPolicy.strategic,
   };
 }
 
@@ -40,11 +44,16 @@ final class MatchController {
   List<GameMove> _legalMoves = const [];
   int? _selectedPieceId;
   Object? _error;
-  void Function()? _retryAction;
+  FutureOr<void> Function()? _retryAction;
   MatchStatus _status = MatchStatus.initializing;
   Opponent _opponent = Opponent.human;
   _PendingMove? _pendingMove;
+  bool _botMovePending = false;
   bool _hasAppliedMove = false;
+  int _botRequestToken = 0;
+  bool _botRequestActive = false;
+  int? _activeBotRequestToken;
+  Completer<void>? _botRequestCompletion;
 
   MatchSnapshot? get snapshot => _snapshot;
   GameSnapshot? get round => _snapshot?.round;
@@ -66,7 +75,8 @@ final class MatchController {
   Opponent get opponent => _opponent;
 
   /// Whether the second seat can still be selected for this fresh match.
-  bool get canChangeOpponent => !hasPendingMove && !_hasAppliedMove;
+  bool get canChangeOpponent =>
+      !_hasAppliedMove && (!hasPendingMove || _botMovePending);
 
   /// Whether the second seat is waiting on a policy rather than a person.
   ///
@@ -93,6 +103,7 @@ final class MatchController {
     if (!canChangeOpponent) {
       return;
     }
+    cancelBotMovePreparation();
     _opponent = opponent;
     _selectedPieceId = null;
     _error = null;
@@ -100,8 +111,8 @@ final class MatchController {
   }
 
   /// Plays the move the policy chose. Does nothing when it is not its turn.
-  void playBotMove() {
-    if (prepareBotMove()) {
+  Future<void> playBotMove() async {
+    if (await prepareBotMove()) {
       commitPendingMove();
     } else if (_error != null) {
       _retryAction = playBotMove;
@@ -112,36 +123,111 @@ final class MatchController {
   ///
   /// The page owns the short replay between preparation and commit, while the
   /// controller keeps the resulting snapshot and legal moves together.
-  bool prepareBotMove() {
+  Future<bool> prepareBotMove() async {
     final snapshot = _snapshot;
     final policy = _opponent.policy;
     if (snapshot == null || policy == null || !isBotTurn || hasPendingMove) {
       return false;
     }
+    if (_botRequestActive) {
+      if (_activeBotRequestToken == _botRequestToken) {
+        return false;
+      }
+      final queuedToken = _botRequestToken;
+      final completion = _botRequestCompletion;
+      if (completion == null) {
+        return false;
+      }
+      await completion.future;
+      if (queuedToken != _botRequestToken) {
+        return false;
+      }
+      return prepareBotMove();
+    }
 
-    return _prepareMove(
-      () {
-        final move = _engine.chooseBotMove(snapshot, policy);
-        if (move == null) {
-          // The engine says the round offers nothing, which the phase should
-          // already have said. Treat the disagreement as a bridge fault.
-          throw const FormatException(
-            'a playing round must offer the policy a move',
-          );
-        }
-        return _engine.applyMove(snapshot, move);
-      },
-      onFailure: prepareBotMove,
-    );
+    final requestToken = ++_botRequestToken;
+    final snapshotHash = snapshot.snapshotHash;
+    final completion = Completer<void>();
+    _botRequestActive = true;
+    _activeBotRequestToken = requestToken;
+    _botRequestCompletion = completion;
+    try {
+      final move = await _engine.chooseBotMove(snapshot, policy);
+      if (!_isCurrentBotRequest(requestToken, snapshotHash, policy)) {
+        return false;
+      }
+      if (move == null) {
+        // The engine says the round offers nothing, which the phase should
+        // already have said. Treat the disagreement as a bridge fault.
+        throw const FormatException(
+          'a playing round must offer the policy a move',
+        );
+      }
+      final result = _engine.applyMove(snapshot, move);
+      _validateContract(result.snapshot);
+      final legalMoves = result.snapshot.phase == rust.GameMatchPhase.playing
+          ? _engine.legalMoves(result.snapshot)
+          : const <GameMove>[];
+      if (!_isCurrentBotRequest(requestToken, snapshotHash, policy)) {
+        return false;
+      }
+      _pendingMove = _PendingMove(result, legalMoves);
+      _botMovePending = true;
+      _error = null;
+      _retryAction = null;
+      _status = MatchStatus.ready;
+      return true;
+    } on Object catch (error) {
+      if (!_isCurrentBotRequest(requestToken, snapshotHash, policy)) {
+        return false;
+      }
+      _error = error;
+      _retryAction = () async {
+        await prepareBotMove();
+      };
+      return false;
+    } finally {
+      if (identical(_botRequestCompletion, completion)) {
+        _botRequestActive = false;
+        _activeBotRequestToken = null;
+        _botRequestCompletion = null;
+      }
+      if (!completion.isCompleted) {
+        completion.complete();
+      }
+    }
+  }
+
+  /// Makes any in-flight policy result stale without trying to stop Rust.
+  void cancelBotMovePreparation() {
+    _botRequestToken++;
+    if (_botMovePending) {
+      _pendingMove = null;
+      _botMovePending = false;
+    }
+  }
+
+  bool _isCurrentBotRequest(
+    int requestToken,
+    String snapshotHash,
+    rust.BotPolicy policy,
+  ) {
+    return requestToken == _botRequestToken &&
+        _snapshot?.snapshotHash == snapshotHash &&
+        _opponent.policy == policy &&
+        isBotTurn &&
+        !hasPendingMove;
   }
 
   void initialize() {
+    cancelBotMovePreparation();
     _snapshot = null;
     _legalMoves = const [];
     _selectedPieceId = null;
     _error = null;
     _status = MatchStatus.initializing;
     _pendingMove = null;
+    _botMovePending = false;
     _hasAppliedMove = false;
 
     try {
@@ -158,12 +244,12 @@ final class MatchController {
     }
   }
 
-  bool retry() {
+  Future<bool> retry() async {
     final retryAction = _retryAction;
     if (retryAction == null) {
       return false;
     }
-    retryAction();
+    await retryAction();
     return true;
   }
 
@@ -172,6 +258,7 @@ final class MatchController {
     if (hasPendingMove) {
       return;
     }
+    cancelBotMovePreparation();
     final previousSnapshot = _snapshot;
     final previousLegalMoves = _legalMoves;
     final previousSelection = _selectedPieceId;
@@ -306,6 +393,7 @@ final class MatchController {
     _snapshot = pendingMove.result.snapshot;
     _legalMoves = pendingMove.legalMoves;
     _pendingMove = null;
+    _botMovePending = false;
     _hasAppliedMove = true;
     _selectedPieceId = null;
     _error = null;
@@ -342,6 +430,7 @@ final class MatchController {
           ? _engine.legalMoves(result.snapshot)
           : const <GameMove>[];
       _pendingMove = _PendingMove(result, legalMoves);
+      _botMovePending = false;
       _error = null;
       _retryAction = null;
       _status = MatchStatus.ready;

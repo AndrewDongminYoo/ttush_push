@@ -524,7 +524,7 @@ fn value_api_carries_a_won_match_back_without_reopening_it() {
 
 /// Pins the move each policy plays from the parity fixture.
 ///
-/// The integration test asserts these same three moves on a real Android and
+/// The integration test asserts these same four moves on a real Android and
 /// a real iOS runtime. Legality and repeatability, which the test below
 /// covers, hold separately on either platform without the two agreeing, so
 /// the concrete move is what makes the bot's determinism a cross-platform
@@ -548,6 +548,7 @@ fn value_api_pins_the_parity_fixture_bot_moves() {
         (BotPolicy::Random, game_move(1, GameDirection::Down)),
         (BotPolicy::Greedy, game_move(1, GameDirection::Down)),
         (BotPolicy::Minimax, game_move(0, GameDirection::Right)),
+        (BotPolicy::Strategic, game_move(0, GameDirection::Right)),
     ] {
         assert_eq!(
             choose_bot_move(fixture.clone(), policy).unwrap(),
@@ -561,7 +562,12 @@ fn value_api_pins_the_parity_fixture_bot_moves() {
 fn value_api_chooses_a_bot_move_from_the_position_alone() {
     let initial = initial_match();
 
-    for policy in [BotPolicy::Random, BotPolicy::Greedy, BotPolicy::Minimax] {
+    for policy in [
+        BotPolicy::Random,
+        BotPolicy::Greedy,
+        BotPolicy::Minimax,
+        BotPolicy::Strategic,
+    ] {
         let chosen = choose_bot_move(initial.clone(), policy)
             .unwrap()
             .expect("the opening position offers moves");
