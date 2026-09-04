@@ -7,9 +7,30 @@ dev:
 
 # --- Builds -----------------------------------------------------------------
 build:
+  (default): $build:web
+
   web:
     (description): Builds the production Web app with its Rust Wasm payload.
     (scripts): tool/build_web.sh
+
+  apk:
+    (description): Builds the production Android APK using the pubspec version.
+    (scripts): flutter build apk --release --flavor production --target lib/main_production.dart
+
+  aab:
+    (description): Builds the production Android App Bundle using the pubspec version.
+    (scripts): flutter build appbundle --release --flavor production --target lib/main_production.dart
+
+  ipa:
+    (description): Builds the production iOS archive and IPA using the pubspec version, and fails if export produces no fresh IPA.
+    (scripts):
+      - flutter build ipa --release --flavor production --target lib/main_production.dart
+      - |
+        fresh_ipa_count=$(find build/ios/ipa -maxdepth 1 -type f -name '*.ipa' -newer build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app/Runner -print 2>/dev/null | wc -l | tr -d ' ')
+        if [ "$fresh_ipa_count" -ne 1 ]; then
+          echo "Expected exactly one fresh IPA in build/ios/ipa, found $fresh_ipa_count." >&2
+          exit 1
+        fi
 
 # --- Dart gates -------------------------------------------------------------
 format:
