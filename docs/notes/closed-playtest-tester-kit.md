@@ -104,14 +104,15 @@ Item 2 asks for a completed match on at least two real Android devices, and that
 Ask these once, after the tester has finished playing, never between matches.
 
 ```plaintext
-마지막으로 세 가지만 여쭙겠습니다. 한 줄씩이면 충분합니다.
+마지막으로 네 가지만 여쭙겠습니다. 한 줄씩이면 충분합니다.
 
 1. 규칙 중에서 끝까지 이해되지 않았거나, 한참 뒤에야 알게 된 것이 있었다면 무엇이었습니까?
 2. 불공평하다고 느낀 순간이 있었다면 어떤 상황이었습니까?
 3. 지루하다고 느낀 구간이 있었다면 언제였습니까?
+4. 앱 화면의 영어 문구를 읽는 것은 얼마나 편했습니까? 편함, 보통, 어려움 중 하나와 그 이유를 한 줄로 적어 주세요.
 ```
 
-The three questions map one to one onto item 8, which asks for the top three recurring reports of confusion, unfairness and boredom.
+The first three questions map one to one onto item 8, which asks for the top three recurring reports of confusion, unfairness and boredom.
 Recurring is the operative word: a single tester's answer is an anecdote, and the item is closed by what repeats across testers.
 
 ## Blocker report
@@ -122,12 +123,13 @@ Recurring is the operative word: a single tester's answer is an anecdote, and th
 어떤 화면에서 무엇을 누른 직후였는지 한 줄이면 충분합니다.
 ```
 
-## One thing to settle before sending
+## Interpreting the coach answers
 
 The app's interface is English only.
 `lib/l10n/arb/` holds `app_en.arb` and nothing else, so the coach lines, the mode and difficulty labels, and the win reasons all reach a Korean tester in English.
 
-That is a problem specifically for item 7.
-A tester who could not follow the coach cannot tell you whether the coach was unclear or whether it was in a language they do not read, and item 7 is the item that decides whether the tutorial needs work.
-Decide which reading you want before the invitations go out.
-Adding a Korean locale is out of scope for this milestone; asking each tester how comfortable they are reading English UI costs one line and separates the two readings well enough to interpret the answers.
+That affects item 7 specifically.
+A tester who could not follow the coach cannot show whether the coach was unclear or whether the tester could not read its language.
+The fourth closing question records how comfortable each tester is with English UI.
+Use that answer to separate coach-content problems from language-comprehension problems when you evaluate item 7.
+Adding a Korean locale remains out of scope for this milestone.
