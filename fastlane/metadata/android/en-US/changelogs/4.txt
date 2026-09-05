@@ -1,0 +1,9 @@
+🆕 What's New
+• Choose local two-player matches or four AI difficulty levels, including Expert.
+• Play the full game in English or Korean.
+
+✨ Improvements
+• Updated the first-match guidance and launcher artwork.
+
+🔧 Fixes
+• Corrected Korean result announcements.
