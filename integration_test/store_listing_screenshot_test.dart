@@ -16,6 +16,9 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('captures the Play Store listing scenes', (tester) async {
+    tester.binding.platformDispatcher.localesTestValue = const [Locale('en')];
+    addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
+
     await tester.pumpWidget(const App());
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('start-mode-versus-ai')));
