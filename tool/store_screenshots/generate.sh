@@ -10,7 +10,11 @@ manifest="${3:-${script_dir}/copy.tsv}"
 font_regular="${project_dir}/assets/fonts/Poppins-Regular.ttf"
 font_bold="${project_dir}/assets/fonts/Poppins-Bold.ttf"
 
-if ! command -v magick >/dev/null 2>&1; then
+magick_bin="${MAGICK_BIN:-$(command -v magick || true)}"
+convert_bin="${CONVERT_BIN:-$(command -v convert || true)}"
+image_command="${magick_bin:-${convert_bin}}"
+
+if [[ -z ${image_command} ]]; then
 	echo "ImageMagick is required to generate store screenshots." >&2
 	exit 69
 fi
@@ -35,7 +39,7 @@ while IFS=$'\t' read -r filename accent title subtitle; do
 		exit 66
 	fi
 
-	magick \
+	"${image_command}" \
 		-size 1080x1920 "gradient:#080B17-#151B36" \
 		-fill "#${accent}20" -stroke none \
 		-draw "circle 1010,120 1010,390" \

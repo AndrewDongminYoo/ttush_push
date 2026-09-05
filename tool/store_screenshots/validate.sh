@@ -4,7 +4,10 @@ set -euo pipefail
 
 listing_dir="${1:-fastlane/metadata/android/en-US}"
 
-if ! command -v magick >/dev/null 2>&1; then
+magick_bin="${MAGICK_BIN:-$(command -v magick || true)}"
+identify_bin="${IDENTIFY_BIN:-$(command -v identify || true)}"
+
+if [[ -z ${magick_bin} && -z ${identify_bin} ]]; then
 	echo "ImageMagick is required to validate store assets." >&2
 	exit 69
 fi
@@ -43,7 +46,11 @@ validate_dimensions() {
 	local relative_path="$1"
 	local expected_dimensions="$2"
 	local actual_dimensions
-	actual_dimensions="$(magick identify -format '%wx%h' "${listing_dir}/${relative_path}")"
+	if [[ -n ${magick_bin} ]]; then
+		actual_dimensions="$("${magick_bin}" identify -format '%wx%h' "${listing_dir}/${relative_path}")"
+	else
+		actual_dimensions="$("${identify_bin}" -format '%wx%h' "${listing_dir}/${relative_path}")"
+	fi
 	if [[ ${actual_dimensions} != "${expected_dimensions}" ]]; then
 		echo "$(basename "${relative_path}") must be ${expected_dimensions}, found ${actual_dimensions}." >&2
 		exit 65

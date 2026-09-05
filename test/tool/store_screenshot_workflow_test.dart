@@ -3,11 +3,13 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('accepts a complete Play Store listing', () async {
+  test('accepts a complete Play Store listing with ImageMagick 6', () async {
     final fixture = await _ListingFixture.create();
     addTearDown(fixture.dispose);
 
-    final result = await fixture.validate();
+    final result = await fixture.validate(
+      environment: fixture.imageMagick6Environment,
+    );
 
     expect(result.exitCode, 0, reason: result.stderr as String?);
     expect(result.stdout, contains('Play Store assets are valid.'));
@@ -73,7 +75,7 @@ void main() {
     );
   });
 
-  test('frames a raw capture for the Play Store', () async {
+  test('frames a raw capture with ImageMagick 6', () async {
     final fixture = await _ListingFixture.create();
     addTearDown(fixture.dispose);
     await fixture.writeImage('raw/01-scene.png', 1080, 2400);
@@ -83,13 +85,14 @@ void main() {
           '01-scene\t6C8CFF\tPUSH SMART\tEvery move changes the board.\n',
     );
 
-    final result = await fixture.generate();
+    final result = await fixture.generate(
+      environment: fixture.imageMagick6Environment,
+    );
 
     expect(result.exitCode, 0, reason: result.stderr as String?);
     final output = File('${fixture.root.path}/framed/01-scene.png');
     expect(output.existsSync(), isTrue);
-    final dimensions = await Process.run('magick', [
-      'identify',
+    final dimensions = await Process.run(fixture.identifyBin, [
       '-format',
       '%wx%h',
       output.path,
@@ -99,13 +102,25 @@ void main() {
 }
 
 final class _ListingFixture {
-  _ListingFixture(this.root);
+  _ListingFixture(this.root, this.convertBin, this.identifyBin);
 
   final Directory root;
+  final String convertBin;
+  final String identifyBin;
+
+  Map<String, String> get imageMagick6Environment => {
+    'PATH': '/usr/bin:/bin',
+    'CONVERT_BIN': convertBin,
+    'IDENTIFY_BIN': identifyBin,
+  };
 
   static Future<_ListingFixture> create() async {
     final root = await Directory.systemTemp.createTemp('ttush-store-listing-');
-    final fixture = _ListingFixture(root);
+    final fixture = _ListingFixture(
+      root,
+      await _findExecutable('convert'),
+      await _findExecutable('identify'),
+    );
     await fixture.writeText('title.txt', 'Ttush Push');
     await fixture.writeText(
       'short_description.txt',
@@ -127,6 +142,17 @@ final class _ListingFixture {
     return fixture;
   }
 
+  static Future<String> _findExecutable(String command) async {
+    final result = await Process.run('sh', [
+      '-c',
+      r'command -v "$1"',
+      'sh',
+      command,
+    ]);
+    expect(result.exitCode, 0, reason: result.stderr as String?);
+    return (result.stdout as String).trim();
+  }
+
   Future<void> writeText(String relativePath, String contents) async {
     final file = File('${root.path}/$relativePath');
     await file.parent.create(recursive: true);
@@ -140,7 +166,7 @@ final class _ListingFixture {
   ) async {
     final file = File('${root.path}/$relativePath');
     await file.parent.create(recursive: true);
-    final result = await Process.run('magick', [
+    final result = await Process.run(convertBin, [
       '-size',
       '${width}x$height',
       'xc:black',
@@ -149,17 +175,24 @@ final class _ListingFixture {
     expect(result.exitCode, 0, reason: result.stderr as String?);
   }
 
-  Future<ProcessResult> validate() => Process.run(
-    'bash',
-    ['tool/store_screenshots/validate.sh', root.path],
-  );
+  Future<ProcessResult> validate({Map<String, String>? environment}) =>
+      Process.run(
+        'bash',
+        ['tool/store_screenshots/validate.sh', root.path],
+        environment: environment,
+      );
 
-  Future<ProcessResult> generate() => Process.run('bash', [
-    'tool/store_screenshots/generate.sh',
-    '${root.path}/raw',
-    '${root.path}/framed',
-    '${root.path}/copy.tsv',
-  ]);
+  Future<ProcessResult> generate({Map<String, String>? environment}) =>
+      Process.run(
+        'bash',
+        [
+          'tool/store_screenshots/generate.sh',
+          '${root.path}/raw',
+          '${root.path}/framed',
+          '${root.path}/copy.tsv',
+        ],
+        environment: environment,
+      );
 
   Future<void> dispose() => root.delete(recursive: true);
 }
