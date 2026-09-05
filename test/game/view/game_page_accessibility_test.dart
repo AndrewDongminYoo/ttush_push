@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/view/game_page.dart';
 import 'package:ttush_push/game/view/round_board.dart';
+import 'package:ttush_push/l10n/l10n.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
 import '../../support/match_fixtures.dart';
@@ -1529,6 +1530,9 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('ko'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: GamePage(
           coachStore: _FakeFirstPlayCoachStore(
             completedVersions: {firstPlayCoachVersion},
@@ -1541,12 +1545,12 @@ void main() {
 
     tester.semantics.tap(
       find.semantics.byLabel(
-        'Azure Expedition explorer, row 1, column 1, 1 available move',
+        '푸른 원정대 탐험가, 1행 1열, 이동할 수 있는 위치 1개',
       ),
     );
     await tester.pump();
     tester.semantics.tap(
-      find.semantics.byLabel('Right move to row 1, column 2'),
+      find.semantics.byLabel('1행 2열로 오른쪽 이동'),
     );
     await tester.pump();
 
@@ -1558,7 +1562,9 @@ void main() {
     expect(
       tester.getSemantics(find.byKey(const Key('match-announcement'))),
       matchesSemantics(
-        label: 'Azure Expedition takes the round by immobilization.',
+        label:
+            '라운드에서 승리한 원정대는 푸른 원정대입니다. '
+            '상대의 움직임을 막았습니다.',
         isLiveRegion: true,
       ),
     );
@@ -1614,6 +1620,9 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('ko'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: GamePage(
           coachStore: _FakeFirstPlayCoachStore(
             completedVersions: {firstPlayCoachVersion},
@@ -1626,12 +1635,12 @@ void main() {
 
     tester.semantics.tap(
       find.semantics.byLabel(
-        'Azure Expedition explorer, row 1, column 1, 1 available move',
+        '푸른 원정대 탐험가, 1행 1열, 이동할 수 있는 위치 1개',
       ),
     );
     await tester.pump();
     tester.semantics.tap(
-      find.semantics.byLabel('Right move to row 1, column 2'),
+      find.semantics.byLabel('1행 2열로 오른쪽 이동'),
     );
     await tester.pump();
 
@@ -1643,7 +1652,10 @@ void main() {
     expect(
       tester.getSemantics(find.byKey(const Key('match-announcement'))),
       matchesSemantics(
-        label: 'Azure Expedition wins the match by knockout. Score 2 to 0.',
+        label:
+            '매치에서 승리한 원정대는 푸른 원정대입니다. '
+            '상대를 보드 밖으로 푸시했습니다. '
+            '점수는 2 대 0입니다.',
         isLiveRegion: true,
       ),
     );
