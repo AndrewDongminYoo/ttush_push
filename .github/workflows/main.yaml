@@ -29,6 +29,9 @@ jobs:
     with:
       run_bloc_lint: false
       coverage_excludes: lib/src/rust/** lib/game/rules/rules_engine.dart
+      setup: |
+        sudo apt-get update
+        sudo apt-get install --yes imagemagick
 
   engine:
     runs-on: ubuntu-latest
