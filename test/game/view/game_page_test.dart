@@ -1041,6 +1041,114 @@ void main() {
     _expectActiveTurn(tester, GamePlayer.first);
   });
 
+  testWidgets('starts the new match when the interruption outlives the '
+      'restart budget', (tester) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'ads-budget-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'ads-budget-terminal',
+    );
+    final restartedSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: startSnapshot.tiles,
+      pieces: startSnapshot.pieces,
+      snapshotHash: 'ads-budget-restarted',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    // This `hold` is never completed, which is the shape of a gateway call
+    // that goes out and never comes back. The page bounds that wait instead
+    // of adopting it, because an unbounded one leaves the new-match button
+    // dead for the life of the page.
+    final hold = Completer<void>();
+    final ads = RecordingAdGateway(hold: hold);
+    final engine = FakeRulesEngine(
+      initial: [
+        matchOf(startSnapshot, hash: 'ads-budget-start'),
+        matchOf(restartedSnapshot, hash: 'ads-budget-restarted'),
+      ],
+      moveResults: [
+        moveResultOf(
+          next: matchOverMatch(
+            terminalSnapshot,
+            winner: GamePlayer.first,
+            hash: 'ads-budget-over',
+          ),
+          resolution: _fallPushResolution,
+        ),
+      ],
+      legalMovesFor: (snapshot) =>
+          snapshot.snapshotHash == 'ads-budget-start' ? const [move] : const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(adGateway: ads, rulesEngine: engine),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    expect(find.text('MATCH COMPLETE'), findsOneWidget);
+
+    await tester.tap(find.text('Start New Match'));
+    await tester.pump();
+
+    expect(ads.events, ['match-decided', 'before-new-match']);
+
+    await tester.pump(const Duration(seconds: 44));
+
+    expect(
+      find.text('MATCH COMPLETE'),
+      findsOneWidget,
+      reason: 'the restart waits out the whole budget, not part of it',
+    );
+
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('MATCH COMPLETE'), findsNothing);
+    _expectActiveTurn(tester, GamePlayer.first);
+    // The abandoned call is still outstanding here, and that is the trade
+    // this budget accepts: the waiting is bounded, the gateway's own work is
+    // not cancelled, and keeping it from presenting late is an obligation on
+    // the adapter rather than code in this page.
+    expect(
+      hold.isCompleted,
+      isFalse,
+      reason: 'the restart runs while the gateway call is still live',
+    );
+    expect(
+      ads.events,
+      ['match-decided', 'before-new-match'],
+      reason: 'abandoning the call must not call the gateway again',
+    );
+  });
+
   testWidgets('applies only the selected legal destination without shifting '
       'the board', (tester) async {
     const initialSnapshot = GameSnapshot(

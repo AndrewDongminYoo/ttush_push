@@ -83,6 +83,7 @@ A recording fake stands in for a provider, because the assertions are about when
 2. A decided match produces exactly one `matchDecided` call.
 3. The board does not reset while `beforeNewMatch` is pending: a fake holding an incomplete future holds the restart, and completing it lets the restart run.
 4. The existing `GamePage` widget tests pass unchanged under the default gateway, which is what proves the shipped behavior did not move.
+5. An interruption that outlives the restart budget does not strand the page: a fake whose future never completes lets the budget elapse, and the new match then starts while that abandoned call is still outstanding, which is the page behavior that constraint 8 below turns into an obligation on the adapter.
 
 The third assertion is the one that earns this work before any SDK exists, because it fixes the ordering that a provider would otherwise be free to break.
 
@@ -130,6 +131,7 @@ It is written here because the Prism Defense session was asked what it would do 
 5. **Wrap the provider call one layer deeper than the gateway, so the adapter's own logic is testable.** In prism_defense the SDK-touching class has no test seam and sits outside the coverage floor, which leaves review as its only gate.
 6. **Frequency policy belongs behind the gateway, not in the game.** `beforeNewMatch` asks; whether anything shows is the gateway's decision, so a cap changes no game code and needs no interface change.
 7. **The two stores are two provider apps with different unit ids, and the app id is read from the manifest and the plist rather than passed in.** A silent mismatch there produces no fill and no error.
+8. **An operation the restart budget abandons must not present afterwards.** `_restart()` bounds how long it waits on `beforeNewMatch()` and starts the new match once that bound elapses, because a future that never completes would otherwise leave the new-match button dead for the life of the page. The bound ends the waiting only; it does not cancel the provider's work, so an interruption that resumes later would appear over a match already in progress. Keeping that from happening is the adapter's obligation, because the interface carries no cancellation and adding one is the signature change the Known Risk already covers: once its own `beforeNewMatch()` has been abandoned, the adapter drops the presentation rather than showing it late.
 
 ## Verification
 
