@@ -573,8 +573,6 @@ Add the test, plus the two local helpers it needs. They mirror the private helpe
       ),
     );
 
-The resolution has to be spelled out here because the equivalent constant in `game_page_test.dart` is private to that file, and the default fixture resolution describes a different move than the one this test taps.
-
     await tester.tap(find.byKey(const Key('start-match')));
     await tester.pumpAndSettle();
 
@@ -587,6 +585,8 @@ The resolution has to be spelled out here because the equivalent constant in `ga
     expect(ads.events, ['match-decided']);
   });
 ```
+
+The resolution has to be spelled out here because the equivalent constant in `game_page_test.dart` is private to that file, and the default fixture resolution describes a different move than the one this test taps.
 
 Add these two helpers at the bottom of the same file, outside `main()`:
 
