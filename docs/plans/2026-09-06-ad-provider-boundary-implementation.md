@@ -184,15 +184,14 @@ final class RecordingAdGateway implements AdGateway {
 
 - [ ] **Step 2: Write the three failing tests**
 
-Add to `test/game/view/game_page_test.dart`. The imports at the top of that file gain:
+Add to `test/game/view/game_page_test.dart`. The imports at the top of that file gain exactly one line:
 
 ```dart
-import 'package:ttush_push/game/ads/ad_gateway.dart';
-
 import '../../support/recording_ad_gateway.dart';
 ```
 
-The `AdGateway` import is used by the third test's `const NoAdGateway()` assertion.
+Do not import `ad_gateway.dart` here: the three tests below name only `RecordingAdGateway`, and an unused import fails `flutter analyze` under `very_good_analysis`.
+`dart:async`, which the third test needs for `Completer`, is already imported at the top of the file.
 Add these three tests inside the existing top-level `main()` group, next to the restart test that already builds a decided match:
 
 ```dart
