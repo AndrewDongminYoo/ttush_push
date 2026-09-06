@@ -107,14 +107,14 @@ The expeditions start four rows apart on a five-by-five board and a move advance
 Confirm before uploading that the recording shows the app's display name and icon as they appear in the submission.
 Upload the recording first and send the Resolution Center reply after it, because both the preamble and item 1 state that the recording is already provided.
 
-## Open item: the listing claims iPad
+## Decided: iPhone only, iPad deferred
 
-`TARGETED_DEVICE_FAMILY` is `"1,2"` in `ios/Runner.xcodeproj/project.pbxproj`, so the app is submitted as a universal app and App Review will run it on an iPad as well as an iPhone.
-The rejection's own prevention notes ask for every supported platform to be tested, and a universal listing also needs iPad screenshots.
+`TARGETED_DEVICE_FAMILY` is `"1"` in all nine build configurations of `ios/Runner.xcodeproj/project.pbxproj`, so the app ships for iPhone alone and App Review does not run it on an iPad.
+The decision was taken on 2026-09-06 because the app has never been exercised on an iPad and the listing carries no iPad screenshots; iPad support is deferred rather than ruled out.
 
-Decide one of the two before the next submission.
+Two consequences follow from it.
 
-- Run the app on an iPad, fix whatever the larger layout breaks, and add iPad screenshots to the listing.
-- Set the device family to `"1"` so the app ships as iPhone-only, and resubmit.
+- The change alters the binary, so the next upload needs a build number above the one already submitted.
+- `ios/Runner/Info.plist` still carries `UISupportedInterfaceOrientations~ipad`. It is inert while the family is iPhone-only, and it is left in place for the return.
 
-Neither is decided here, and the project file has not been changed.
+Bringing iPad back means restoring `"1,2"`, running the app on an iPad, fixing whatever the larger layout breaks, and adding iPad screenshots to the listing.
