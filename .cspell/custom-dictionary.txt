@@ -67,3 +67,4 @@ printcert
 screencap
 bundletool
 apks
+AppLovin
