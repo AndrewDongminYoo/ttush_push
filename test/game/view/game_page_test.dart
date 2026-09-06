@@ -15,6 +15,7 @@ import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
 import '../../support/match_fixtures.dart';
+import '../../support/recording_ad_gateway.dart';
 
 const _sharedPanelColor = Color(0xFF161A22);
 const _panelBorderColor = Color(0xFF303846);
@@ -592,6 +593,196 @@ void main() {
       tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
       isEmpty,
     );
+  });
+
+  testWidgets('reports no ad moment while a round is being played', (
+    tester,
+  ) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2)],
+      snapshotHash: 'ads-playing-start',
+    );
+    const nextSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      snapshotHash: 'ads-playing-next',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    final ads = RecordingAdGateway();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          adGateway: ads,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(startSnapshot, hash: 'ads-playing-start'),
+            next: matchOf(nextSnapshot, hash: 'ads-playing-next'),
+            legalMoves: const [move],
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    expect(ads.events, isEmpty);
+  });
+
+  testWidgets('reports the decided match exactly once', (tester) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'ads-decided-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'ads-decided-terminal',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    final ads = RecordingAdGateway();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          adGateway: ads,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(startSnapshot, hash: 'ads-decided-start'),
+            next: matchOverMatch(
+              terminalSnapshot,
+              winner: GamePlayer.first,
+              hash: 'ads-decided-over',
+            ),
+            legalMoves: const [move],
+            resolution: _fallPushResolution,
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    expect(find.text('MATCH COMPLETE'), findsOneWidget);
+    expect(ads.events, ['match-decided']);
+  });
+
+  testWidgets('holds the new match until the interruption is over', (
+    tester,
+  ) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'ads-hold-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'ads-hold-terminal',
+    );
+    final restartedSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: startSnapshot.tiles,
+      pieces: startSnapshot.pieces,
+      snapshotHash: 'ads-hold-restarted',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    final hold = Completer<void>();
+    final ads = RecordingAdGateway(hold: hold);
+    final engine = FakeRulesEngine(
+      initial: [
+        matchOf(startSnapshot, hash: 'ads-hold-start'),
+        matchOf(restartedSnapshot, hash: 'ads-hold-restarted'),
+      ],
+      moveResults: [
+        moveResultOf(
+          next: matchOverMatch(
+            terminalSnapshot,
+            winner: GamePlayer.first,
+            hash: 'ads-hold-over',
+          ),
+          resolution: _fallPushResolution,
+        ),
+      ],
+      legalMovesFor: (snapshot) =>
+          snapshot.snapshotHash == 'ads-hold-start' ? const [move] : const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(adGateway: ads, rulesEngine: engine),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    expect(find.text('MATCH COMPLETE'), findsOneWidget);
+
+    await tester.tap(find.text('Start New Match'));
+    await tester.pump();
+
+    expect(ads.events, ['match-decided', 'before-new-match']);
+    expect(
+      find.text('MATCH COMPLETE'),
+      findsOneWidget,
+      reason: 'the board must not restart while the interruption is up',
+    );
+
+    hold.complete();
+    await tester.pump();
+
+    expect(find.text('MATCH COMPLETE'), findsNothing);
+    _expectActiveTurn(tester, GamePlayer.first);
   });
 
   testWidgets('applies only the selected legal destination without shifting '
