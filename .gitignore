@@ -121,3 +121,6 @@ app.*.map.json
 
 # Generated l10n files
 lib/l10n/gen/
+
+# Subagent-driven development scratch (ledger, briefs, review packages)
+.superpowers/

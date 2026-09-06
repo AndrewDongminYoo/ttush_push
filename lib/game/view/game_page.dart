@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:ttush_push/game/ads/ad_gateway.dart';
 import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/coach/first_play_coach_store.dart';
 import 'package:ttush_push/game/feedback/round_feedback.dart';
@@ -28,6 +29,7 @@ class GamePage extends StatefulWidget {
     Opponent? opponent,
     this._coachStore,
     this._feedback,
+    this._adGateway,
   }) : _rulesEngine = rulesEngine ?? const FrbRulesEngine(),
        _boardDefinition = boardDefinition ?? baselineBoardDefinition,
        _opponent = opponent ?? Opponent.human;
@@ -40,6 +42,7 @@ class GamePage extends StatefulWidget {
   final Opponent _opponent;
   final FirstPlayCoachStore? _coachStore;
   final RoundFeedback? _feedback;
+  final AdGateway? _adGateway;
 
   @override
   State<GamePage> createState() => _GamePageState();
@@ -71,8 +74,17 @@ class _GamePageState extends State<GamePage>
   static const _botPause = Duration(milliseconds: 450);
   static const _normalReplayDuration = Duration(milliseconds: 540);
   static const _reducedReplayDuration = Duration(milliseconds: 120);
+
+  /// Bounds how long a restart waits on the ad gateway. A future that never
+  /// completes would otherwise leave [_restartPending] `true` for the life of
+  /// the page, and an interstitial that legitimately outlives this budget is
+  /// full screen, so a restart underneath it stays invisible until dismissal.
+  static const _adInterruptionBudget = Duration(seconds: 45);
   late final RoundFeedback _feedback;
   PlatformRoundFeedback? _ownedFeedback;
+  bool _restartPending = false;
+
+  AdGateway get _adGateway => widget._adGateway ?? const NoAdGateway();
 
   @override
   void initState() {
@@ -386,7 +398,7 @@ class _GamePageState extends State<GamePage>
                             onContinue: _controller.error != null
                                 ? null
                                 : _controller.isMatchOver
-                                ? _restart
+                                ? () => unawaited(_restart())
                                 : _advanceRound,
                           ),
                         ),
@@ -585,12 +597,14 @@ class _GamePageState extends State<GamePage>
         return;
       }
 
+      var decided = false;
       setState(() {
         _controller.commitPendingMove();
         _prunePieceFacings();
         _replayResolution = null;
         final l10n = localizationsOf(context);
         if (_controller.isMatchOver) {
+          decided = true;
           final snapshot = _controller.snapshot!;
           _announce(
             l10n.matchResultAnnouncement(
@@ -617,6 +631,24 @@ class _GamePageState extends State<GamePage>
           );
         }
       });
+      if (decided) {
+        // `Future.sync` so that a gateway raising before it returns a future
+        // — an adapter over an uninitialized SDK — reaches the handler below
+        // rather than escaping this status listener and skipping the win
+        // feedback the player earned.
+        unawaited(
+          Future<void>.sync(_adGateway.matchDecided).catchError((
+            Object error,
+            StackTrace stackTrace,
+          ) {
+            log(
+              'Ad gateway failed on a decided match',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          }),
+        );
+      }
       _feedbackForCommittedMove(resolution);
       _scheduleBotMove();
     };
@@ -645,8 +677,27 @@ class _GamePageState extends State<GamePage>
     }
   }
 
-  void _restart() {
+  Future<void> _restart() async {
+    if (_restartPending) {
+      return;
+    }
+    _restartPending = true;
     _cancelBotWork();
+    final controller = _controller;
+    try {
+      await _adGateway.beforeNewMatch().timeout(_adInterruptionBudget);
+    } on Object catch (error, stackTrace) {
+      log(
+        'Ad gateway failed before a new match',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      _restartPending = false;
+    }
+    if (!mounted || !identical(controller, _controller)) {
+      return;
+    }
     setState(() => _mutateAndResetFacing(_controller.restart));
   }
 

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/app/app.dart';
 import 'package:ttush_push/game/view/game_page.dart';
+import 'package:ttush_push/game/view/round_board.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
 import '../../support/match_fixtures.dart';
+import '../../support/recording_ad_gateway.dart';
 
 void main() {
   const snapshot = GameSnapshot(
@@ -184,6 +186,95 @@ void main() {
     expect(find.byType(GamePage), findsNothing);
     expect(find.byKey(const Key('start-match')), findsOneWidget);
   });
+
+  testWidgets('carries the ad gateway from the app down to the match', (
+    tester,
+  ) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'threading-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'threading-terminal',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    const resolution = MoveResolution(
+      actionKind: MoveActionKind.push,
+      mover: PieceTravel(pieceId: 0, fromX: 2, fromY: 2, toX: 2, toY: 1),
+      displaced: PieceDisplacement(
+        pieceId: 1,
+        fromX: 2,
+        fromY: 1,
+        exitDirection: GameDirection.up,
+      ),
+      tileTransition: TileTransition(
+        x: 2,
+        y: 2,
+        from: GameTileKind.normal,
+        to: GameTileKind.damaged,
+      ),
+    );
+    final ads = RecordingAdGateway();
+
+    await tester.pumpWidget(
+      App(
+        adGateway: ads,
+        rulesEngine: FakeRulesEngine.playing(
+          initial: matchOf(startSnapshot, hash: 'threading-start'),
+          next: matchOverMatch(
+            terminalSnapshot,
+            winner: GamePlayer.first,
+            hash: 'threading-over',
+          ),
+          legalMoves: const [move],
+          resolution: resolution,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('start-match')));
+    await tester.pumpAndSettle();
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    expect(ads.events, ['match-decided']);
+  });
+}
+
+Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
+  final boardRect = tester.getRect(
+    find.byKey(const Key('round-board-canvas')),
+  );
+  final board = tester.widget<RoundBoard>(find.byType(RoundBoard));
+  final geometry = BoardGeometry.fromSnapshot(board.snapshot, boardRect.size);
+  return (x, y) => boardRect.topLeft + geometry.cellCenter(x, y);
+}
+
+Future<void> _finishReplay(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 600));
+  await tester.pump();
 }
 
 /// WCAG relative contrast, matching the helper the match-screen tests use.
