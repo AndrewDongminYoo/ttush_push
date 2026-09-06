@@ -796,6 +796,178 @@ void main() {
     _expectActiveTurn(tester, GamePlayer.first);
   });
 
+  testWidgets('finishes a decided match even when the gateway fails to '
+      'report it', (tester) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'ads-decided-error-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'ads-decided-error-terminal',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    final ads = RecordingAdGateway(
+      matchDecidedError: StateError('ad gateway unavailable'),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          adGateway: ads,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(startSnapshot, hash: 'ads-decided-error-start'),
+            next: matchOverMatch(
+              terminalSnapshot,
+              winner: GamePlayer.first,
+              hash: 'ads-decided-error-over',
+            ),
+            legalMoves: const [move],
+            resolution: _fallPushResolution,
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    // A throwing gateway must not abort the state mutation it was hoisted
+    // out of: the result overlay and the match announcement it triggers are
+    // both prepared before the gateway is ever called.
+    expect(find.text('MATCH COMPLETE'), findsOneWidget);
+    final announcement = tester.widget<Semantics>(
+      find.descendant(
+        of: find.byKey(const Key('match-announcement')),
+        matching: find.byType(Semantics),
+      ),
+    );
+    expect(
+      announcement.properties.label,
+      'Azure Expedition wins the match by knockout. Score 2 to 0.',
+    );
+    expect(ads.events, ['match-decided']);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('restarts the match even when the gateway fails before it', (
+    tester,
+  ) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'ads-restart-error-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'ads-restart-error-terminal',
+    );
+    final restartedSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: startSnapshot.tiles,
+      pieces: startSnapshot.pieces,
+      snapshotHash: 'ads-restart-error-restarted',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    // Completing `hold` with an error, instead of a value, drives the
+    // `beforeNewMatch` failure path while reusing the same held-open shape
+    // as the test above: the interruption is still visible right up to the
+    // failure, and only then does the restart it gates get to run.
+    final hold = Completer<void>();
+    final ads = RecordingAdGateway(hold: hold);
+    final engine = FakeRulesEngine(
+      initial: [
+        matchOf(startSnapshot, hash: 'ads-restart-error-start'),
+        matchOf(restartedSnapshot, hash: 'ads-restart-error-restarted'),
+      ],
+      moveResults: [
+        moveResultOf(
+          next: matchOverMatch(
+            terminalSnapshot,
+            winner: GamePlayer.first,
+            hash: 'ads-restart-error-over',
+          ),
+          resolution: _fallPushResolution,
+        ),
+      ],
+      legalMovesFor: (snapshot) =>
+          snapshot.snapshotHash == 'ads-restart-error-start'
+          ? const [move]
+          : const [],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(adGateway: ads, rulesEngine: engine),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    expect(find.text('MATCH COMPLETE'), findsOneWidget);
+
+    await tester.tap(find.text('Start New Match'));
+    await tester.pump();
+
+    expect(ads.events, ['match-decided', 'before-new-match']);
+    expect(
+      find.text('MATCH COMPLETE'),
+      findsOneWidget,
+      reason: 'the interruption is still up while the gateway call is out',
+    );
+
+    hold.completeError(StateError('ad gateway unavailable'));
+    await tester.pump();
+
+    // The player must not be stranded behind a failed interruption: the
+    // restart the gateway call gates still runs, and `_restartPending`
+    // resets rather than sticking, so the board is fresh and playable
+    // again rather than left showing the stale result.
+    expect(tester.takeException(), isNull);
+    expect(find.text('MATCH COMPLETE'), findsNothing);
+    _expectActiveTurn(tester, GamePlayer.first);
+  });
+
   testWidgets('applies only the selected legal destination without shifting '
       'the board', (tester) async {
     const initialSnapshot = GameSnapshot(
