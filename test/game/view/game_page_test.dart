@@ -778,6 +778,17 @@ void main() {
       reason: 'the board must not restart while the interruption is up',
     );
 
+    await tester.tap(find.text('Start New Match'));
+    await tester.pump();
+
+    expect(
+      ads.events,
+      ['match-decided', 'before-new-match'],
+      reason:
+          'a second tap during the interruption must not queue a second '
+          'restart',
+    );
+
     hold.complete();
     await tester.pump();
 

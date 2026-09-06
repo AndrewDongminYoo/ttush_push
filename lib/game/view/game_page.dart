@@ -74,6 +74,12 @@ class _GamePageState extends State<GamePage>
   static const _botPause = Duration(milliseconds: 450);
   static const _normalReplayDuration = Duration(milliseconds: 540);
   static const _reducedReplayDuration = Duration(milliseconds: 120);
+
+  /// Bounds how long a restart waits on the ad gateway. A future that never
+  /// completes would otherwise leave [_restartPending] `true` for the life of
+  /// the page, and an interstitial that legitimately outlives this budget is
+  /// full screen, so a restart underneath it stays invisible until dismissal.
+  static const _adInterruptionBudget = Duration(seconds: 45);
   late final RoundFeedback _feedback;
   PlatformRoundFeedback? _ownedFeedback;
   bool _restartPending = false;
@@ -591,13 +597,14 @@ class _GamePageState extends State<GamePage>
         return;
       }
 
+      var decided = false;
       setState(() {
         _controller.commitPendingMove();
         _prunePieceFacings();
         _replayResolution = null;
         final l10n = localizationsOf(context);
         if (_controller.isMatchOver) {
-          unawaited(_adGateway.matchDecided());
+          decided = true;
           final snapshot = _controller.snapshot!;
           _announce(
             l10n.matchResultAnnouncement(
@@ -624,6 +631,20 @@ class _GamePageState extends State<GamePage>
           );
         }
       });
+      if (decided) {
+        unawaited(
+          _adGateway.matchDecided().catchError((
+            Object error,
+            StackTrace stackTrace,
+          ) {
+            log(
+              'Ad gateway failed on a decided match',
+              error: error,
+              stackTrace: stackTrace,
+            );
+          }),
+        );
+      }
       _feedbackForCommittedMove(resolution);
       _scheduleBotMove();
     };
@@ -658,12 +679,19 @@ class _GamePageState extends State<GamePage>
     }
     _restartPending = true;
     _cancelBotWork();
+    final controller = _controller;
     try {
-      await _adGateway.beforeNewMatch();
+      await _adGateway.beforeNewMatch().timeout(_adInterruptionBudget);
+    } on Object catch (error, stackTrace) {
+      log(
+        'Ad gateway failed before a new match',
+        error: error,
+        stackTrace: stackTrace,
+      );
     } finally {
       _restartPending = false;
     }
-    if (!mounted) {
+    if (!mounted || !identical(controller, _controller)) {
       return;
     }
     setState(() => _mutateAndResetFacing(_controller.restart));

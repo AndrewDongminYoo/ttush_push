@@ -56,7 +56,7 @@ Disposal stays off the interface.
 ## Wiring
 
 The gateway is threaded the way `rulesEngine` already is: `App` to `AppView` to `StartPage` to `GamePage`, nullable at each step.
-`GamePage` applies the default once, as it does for the rules engine and the board definition.
+`GamePage` applies the default once, as it does for its coach store and feedback dependencies, which resolve the same way.
 
 The flavor entry points `lib/main_development.dart`, `lib/main_staging.dart`, and `lib/main_production.dart` are the build-time swap point.
 They pass nothing today, so every flavor runs `NoAdGateway`.
@@ -72,6 +72,8 @@ The state check after the await follows the page's existing mounted and generati
 
 The point was chosen over the result screen itself so that an interruption never covers the outcome the player just earned.
 Moving it to the moment the result appears is a one-line change if the operator prefers that later.
+
+Leaving a decided match and starting again from the start screen reaches a new match without a `beforeNewMatch()` call, which is consistent with Product Contract item 1 but will make a future frequency policy undercount, so the first adapter should expect it.
 
 ## Test Strategy
 
