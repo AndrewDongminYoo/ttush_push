@@ -61,7 +61,7 @@ None. Every feature, board, AI difficulty level, and rule is identical in all re
 
 The app operates in no regulated industry: no gambling or simulated gambling, no real-money or virtual currency, no health or financial function, and no collection of personal data.
 
-It contains no protected third-party material. The explorer and foothold sprites and the background are original artwork, generated with an image generation tool at the developer's direction and processed by the developer, with no third-party asset pack, stock library, character, or trademark used. The sound effects are synthesized by a script kept in the project source. The only third-party component is the Poppins typeface, used under the SIL Open Font License 1.1, whose license text ships in the app bundle.
+The one piece of third-party material in the app is the Poppins typeface, used under the SIL Open Font License 1.1, whose license text ships in the app bundle. Everything else is original: the explorer and foothold sprites and the background were generated with an image generation tool at the developer's direction and processed by the developer, with no third-party asset pack, stock library, character, or trademark used, and the sound effects are synthesized by a script kept in the project source.
 ```
 
 ## Where each claim was verified
@@ -88,16 +88,20 @@ Install it from TestFlight on the physical iPhone, because a development build c
 Capture with Control Center screen recording on the phone, or with QuickTime Player's movie recording against the phone over USB.
 
 Start the recording on the Home Screen and tap the app icon, because Apple asked for the recording to begin with launching the app.
-Aim for ninety to a hundred and fifty seconds.
+Aim for two to three minutes.
+
+The play steps below are written as conditions rather than turn counts, because the board decides when each one becomes possible.
+The expeditions start four rows apart on a five-by-five board and a move advances one cell, so the earliest legal Push is several turns in, and a foothold only collapses on the second departure from the same cell.
 
 1. Home Screen, tap the Ttush Push icon, and let the launch screen play.
 2. New Match screen: leave "2 Players" selected and tap "Start Match".
-3. Tap an Azure explorer so the move dots and the Push ring appear, then tap a move dot.
-4. Take a Push on the next turn, and let the resolution play out.
-5. Move off a cracked foothold so it collapses into a hole.
-6. Tap the help icon and step through the three guide messages to "Done".
-7. Play the round to a win and let the round result appear.
-8. Leave the match, choose "Play vs AI" with Expert difficulty, tap "Start Match", and show one AI reply move.
+3. Tap an Azure explorer so its move dots appear, then tap a move dot.
+4. Tap the help icon and step through the three guide messages to "Done".
+5. Walk the two sides toward each other until a ring appears around a rival explorer, then take that Push and let the resolution play out.
+6. Move an explorer off a foothold it has already left once, so the cracked foothold collapses into a hole.
+7. Play the round to a win, let ROUND COMPLETE appear, and tap "Start Next Round".
+8. Take the second round as well, so MATCH COMPLETE appears and the recording shows a finished match rather than a finished round.
+9. Leave the match, choose "Play vs AI" with Expert difficulty, tap "Start Match", and show one AI reply move.
 
 Confirm before uploading that the recording shows the app's display name and icon as they appear in the submission.
 Upload the recording first and send the Resolution Center reply after it, because both the preamble and item 1 state that the recording is already provided.
