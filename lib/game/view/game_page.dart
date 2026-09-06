@@ -632,8 +632,12 @@ class _GamePageState extends State<GamePage>
         }
       });
       if (decided) {
+        // `Future.sync` so that a gateway raising before it returns a future
+        // — an adapter over an uninitialized SDK — reaches the handler below
+        // rather than escaping this status listener and skipping the win
+        // feedback the player earned.
         unawaited(
-          _adGateway.matchDecided().catchError((
+          Future<void>.sync(_adGateway.matchDecided).catchError((
             Object error,
             StackTrace stackTrace,
           ) {

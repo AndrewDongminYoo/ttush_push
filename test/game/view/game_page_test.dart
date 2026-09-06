@@ -870,6 +870,79 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('feels the won match when the gateway throws before it '
+      'returns a future', (tester) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'ads-decided-sync-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'ads-decided-sync-terminal',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    // The interface returns a future but does not require an `async` body, so
+    // an adapter over an uninitialized SDK raises before a future exists. That
+    // throw lands in the replay listener rather than in the handler attached
+    // to the result, which is a different path from the failed future above.
+    final ads = RecordingAdGateway(
+      matchDecidedError: StateError('ad gateway unavailable'),
+      matchDecidedFailsSynchronously: true,
+    );
+    final feedback = _RecordingFeedback();
+    final felt = feedback.events;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          adGateway: ads,
+          feedback: feedback,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(startSnapshot, hash: 'ads-decided-sync-start'),
+            next: matchOverMatch(
+              terminalSnapshot,
+              winner: GamePlayer.first,
+              hash: 'ads-decided-sync-over',
+            ),
+            legalMoves: const [move],
+            resolution: _fallPushResolution,
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.pump();
+
+    felt.clear();
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    expect(felt, ['win'], reason: 'the win outlives the gateway failure');
+    expect(tester.takeException(), isNull);
+    expect(find.text('MATCH COMPLETE'), findsOneWidget);
+    expect(ads.events, ['match-decided']);
+  });
+
   testWidgets('restarts the match even when the gateway fails before it', (
     tester,
   ) async {
