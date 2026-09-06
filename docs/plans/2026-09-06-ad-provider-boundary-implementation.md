@@ -21,6 +21,16 @@
 - `flutter analyze` must stay clean under `very_good_analysis`, which forbids a discarded future.
 - The Web CI job must stay green, so no `dart:io` import and no conditional import enters `lib/`.
 
+## What review changed after this plan was written
+
+This plan is the record of what was approved and executed, so its steps are left as they were run.
+Three of its snippets are superseded by fixes that hosted review found afterwards, and the shipped code in `lib/game/view/game_page.dart` is the authority wherever the two disagree.
+
+- Task 2 step 5 shows `unawaited(_adGateway.matchDecided().catchError(...))`. The shipped call is `Future<void>.sync(_adGateway.matchDecided)`, because the bare invocation is evaluated before `catchError` attaches, so a gateway that throws before it returns escaped the status listener and skipped the win feedback (1d57f3a).
+- Task 2 step 6 shows `_restart()` awaiting the gateway unbounded. The shipped version wraps that await in `try` / `on Object catch` / `finally` with a 45 second `_adInterruptionBudget`, because a future that never completes would otherwise leave `_restartPending` true and the new-match button dead for the life of the page (ea2e7e0).
+- The same step's post-await guard is `!mounted || !identical(controller, _controller)` in the shipped code, matching the file's three other post-await sites (ea2e7e0).
+- Task 2 lists three tests. The shipped suite adds three more: a gateway that fails asynchronously, one that throws synchronously, and an interruption that outlives the restart budget (ea2e7e0, 8f3a0e0, 1d57f3a, d0f0418).
+
 ## File Structure
 
 | File                                     | Responsibility                                                                               |
