@@ -37,7 +37,7 @@ The app has no accounts, no login, and therefore no account deletion flow. It ha
 
 Ttush Push is a single-device, turn-based tactics game. Two expeditions face each other on a board of floating ruins. On a turn a player moves one explorer or Pushes a rival explorer into the space behind it, and a foothold collapses once explorers have left it twice, so the board shrinks as the round runs. A round is won by pushing every rival explorer off the board or leaving the rival with no legal move, and the match by taking two rounds.
 
-It is entertainment for players who enjoy short abstract strategy: a five-minute duel that needs no connection and no account, where one phone serves two people across a table and four AI difficulty levels stand in when playing alone. It makes no educational, medical, financial, or professional claim.
+It is entertainment for players who enjoy short abstract strategy: a five-minute duel that needs no connection and no account, where one phone serves two people across a table and four AI difficulty levels stand in when playing alone.
 
 3. SETUP AND ACCESS TO MAIN FEATURES
 
@@ -51,33 +51,34 @@ The only value stored is whether the guide was completed, kept in local device p
 
 4. EXTERNAL SERVICES, TOOLS, AND PLATFORMS
 
-None. The app delivers its core functionality entirely on the device and makes no network request. There is no data provider, authentication service, payment processor, AI service, advertising network, analytics, or crash reporting, no backend, and no third-party SDK that contacts one. The game rules run in a Rust library compiled into the app binary and called in process. The runtime dependencies are Flutter, flutter_rust_bridge, audioplayers, shared_preferences, and intl, and none of them opens a connection here. ITSAppUsesNonExemptEncryption is false, and the Android build of the same codebase declares no INTERNET permission.
+None. The app delivers its core functionality entirely on the device and makes no network request. There is no data provider, authentication service, payment processor, AI service, advertising network, analytics, or crash reporting, no backend, and no third-party SDK that contacts one. The runtime dependencies are Flutter, flutter_rust_bridge, audioplayers, shared_preferences, and intl, and none of them opens a connection here. ITSAppUsesNonExemptEncryption is false, and the Android build of the same codebase declares no INTERNET permission.
 
 5. REGIONAL DIFFERENCES
 
-None. Every feature, board, AI difficulty level, and rule is identical in all regions, and nothing is region-gated. The interface is localized in English and Korean and follows the device language setting; any other language sees English, which is a device preference rather than a regional difference in features or content.
+None. Every feature, board, AI difficulty level, and rule is identical in all regions. The interface is localized in English and Korean and follows the device language setting; any other language sees English, which is a device preference rather than a regional difference in features or content.
 
 6. REGULATED INDUSTRY AND THIRD-PARTY MATERIAL
 
 The app operates in no regulated industry: no gambling or simulated gambling, no real-money or virtual currency, no health or financial function, and no collection of personal data.
 
-The one piece of third-party material in the app is the Poppins typeface, used under the SIL Open Font License 1.1, whose license text ships in the app bundle. Everything else is original: the explorer and foothold sprites and the background were generated with an image generation tool at the developer's direction and processed by the developer, with no third-party asset pack, stock library, character, or trademark used, and the sound effects are synthesized by a script kept in the project source.
+The app contains no licensed or restricted third-party content: no asset pack, no stock library, no character, no brand, and no trademark. The explorer and foothold sprites and the background were generated with an image generation tool at the developer's direction and processed by the developer, and the sound effects are synthesized by a script kept in the project source. What the app does ship from others is standard open source software, each item under its own license: the Poppins typeface under the SIL Open Font License 1.1, bundled with its license text; the Material Icons font that the Flutter framework bundles, under Creative Commons Attribution 4.0; and the framework itself with the packages listed in item 4.
 ```
 
 ## Where each claim was verified
 
-| Claim                                 | Verified against                                                                                                            |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| No network, no third-party service    | `pubspec.yaml` dependency list, `engine/Cargo.toml` (only `flutter_rust_bridge`), no HTTP or socket call under `lib/`       |
-| No INTERNET permission in release     | `uses-permission` appears only in `android/app/src/debug` and `android/app/src/profile` manifests                           |
-| Encryption declaration                | `ios/Runner/Info.plist`, `ITSAppUsesNonExemptEncryption` = false                                                            |
-| English and Korean, device-driven     | `ios/Runner/Info.plist` `CFBundleLocalizations`, `AppLocalizations.supportedLocales` in `lib/app/view/app.dart`             |
-| Guide replay entry point              | `_CoachHelp` in `lib/game/view/game_page.dart`, shown in the player panel while a round is playable                         |
-| Only stored value is guide completion | `lib/game/coach/first_play_coach_store.dart`, the single `shared_preferences` key                                           |
-| Artwork provenance                    | `assets/images/sprites/README.md`, and decision L3 in `docs/specs/0001-production-sprite-set/interview-ledger.md`           |
-| Sound provenance                      | `tool/generate_sfx.dart`, and `docs/specs/2026-08-22-tactile-feedback.md`                                                   |
-| Poppins license                       | `assets/licenses/poppins/OFL.txt`, bundled through the `assets/licenses/poppins/` entry in `pubspec.yaml`                   |
-| Opponent options                      | `enum Opponent` in `lib/game/match/match_controller.dart`, labelled Easy, Normal, Hard, Expert in `lib/l10n/arb/app_en.arb` |
+| Claim                                 | Verified against                                                                                                                                                                                         |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No network, no third-party service    | `pubspec.yaml` dependency list, `engine/Cargo.toml` (only `flutter_rust_bridge`), no HTTP or socket call under `lib/`                                                                                    |
+| No INTERNET permission in release     | `uses-permission` appears only in `android/app/src/debug` and `android/app/src/profile` manifests                                                                                                        |
+| Encryption declaration                | `ios/Runner/Info.plist`, `ITSAppUsesNonExemptEncryption` = false                                                                                                                                         |
+| English and Korean, device-driven     | `ios/Runner/Info.plist` `CFBundleLocalizations`, `AppLocalizations.supportedLocales` in `lib/app/view/app.dart`                                                                                          |
+| Guide replay entry point              | `_CoachHelp` in `lib/game/view/game_page.dart`, shown in the player panel while a round is playable                                                                                                      |
+| Only stored value is guide completion | `lib/game/coach/first_play_coach_store.dart`, the single `shared_preferences` key                                                                                                                        |
+| Artwork provenance                    | `assets/images/sprites/README.md`, and decision L3 in `docs/specs/0001-production-sprite-set/interview-ledger.md`                                                                                        |
+| Sound provenance                      | `tool/generate_sfx.dart`, and `docs/specs/2026-08-22-tactile-feedback.md`                                                                                                                                |
+| Material Icons license                | `MaterialIcons_LICENSE.txt` in the Flutter SDK's `material_fonts` artifact (Creative Commons Attribution 4.0), with `uses-material-design: true` in `pubspec.yaml` and three `Icons.*` uses under `lib/` |
+| Poppins license                       | `assets/licenses/poppins/OFL.txt`, bundled through the `assets/licenses/poppins/` entry in `pubspec.yaml`                                                                                                |
+| Opponent options                      | `enum Opponent` in `lib/game/match/match_controller.dart`, labelled Easy, Normal, Hard, Expert in `lib/l10n/arb/app_en.arb`                                                                              |
 
 ## Recording checklist
 
