@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ttush_push/game/ads/ad_gateway.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/game_page.dart';
@@ -23,10 +24,13 @@ const _selectedControlColor = Color(0xFF6C8CFF);
 /// Rust. The difficulty names here are the only place a policy is described in
 /// a player's words rather than the engine's.
 class StartPage extends StatefulWidget {
-  const StartPage({super.key, this.rulesEngine});
+  const StartPage({super.key, this.rulesEngine, this.adGateway});
 
   /// Passed through to the match so a test can hold the engine.
   final RulesEngine? rulesEngine;
+
+  /// Passed through to the match so a test can hold the gateway.
+  final AdGateway? adGateway;
 
   @override
   State<StartPage> createState() => _StartPageState();
@@ -44,8 +48,11 @@ class _StartPageState extends State<StartPage> {
   Future<void> _startMatch() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) =>
-            GamePage(rulesEngine: widget.rulesEngine, opponent: _opponent),
+        builder: (context) => GamePage(
+          rulesEngine: widget.rulesEngine,
+          adGateway: widget.adGateway,
+          opponent: _opponent,
+        ),
       ),
     );
   }
