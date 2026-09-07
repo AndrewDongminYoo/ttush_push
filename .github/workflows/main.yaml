@@ -22,10 +22,10 @@ jobs:
     # integration". The reusable workflow declares no permissions of its own.
     permissions:
       pull-requests: read
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@0d81600dd37bc87a473ee5b6e2293bef05751b04 # v1.20.1
 
   build:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@0d81600dd37bc87a473ee5b6e2293bef05751b04 # v1.20.1
     with:
       run_bloc_lint: false
       coverage_excludes: lib/src/rust/** lib/game/rules/rules_engine.dart
@@ -36,7 +36,7 @@ jobs:
   engine:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install the Rust formatter and linter
         run: rustup component add rustfmt clippy
@@ -53,9 +53,9 @@ jobs:
   bridge:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: subosito/flutter-action@v2.23.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
           cache: true
@@ -72,9 +72,9 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: subosito/flutter-action@v2.23.0
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
           cache: true
@@ -94,7 +94,7 @@ jobs:
         run: tool/build_web.sh
 
   spell-check:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@v1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@0d81600dd37bc87a473ee5b6e2293bef05751b04 # v1.20.1
     with:
       includes: |
         **/*.md

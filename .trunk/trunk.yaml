@@ -38,8 +38,8 @@ lint:
         - rust_builder/**
   disabled:
     - dart
-    - pinact
   enabled:
+    - pinact@4.0.0
     - shellcheck@0.11.0
     - shfmt@3.13.1
     - actionlint@1.7.12
