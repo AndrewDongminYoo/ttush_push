@@ -35,7 +35,7 @@ The app has no accounts, no login, and therefore no account deletion flow. It ha
 
 2. PURPOSE AND TARGET AUDIENCE
 
-Ttush Push is a single-device, turn-based tactics game. Two expeditions face each other on a board of floating ruins. On a turn a player moves one explorer or Pushes a rival explorer into the space behind it, and a foothold collapses once explorers have left it twice, so the board shrinks as the round runs. A round is won by pushing every rival explorer off the board or leaving the rival with no legal move, and the match by taking two rounds.
+Ttush Push is a single-device, turn-based tactics game. Two expeditions face each other on a board of floating ruins. On a turn a player moves one explorer or Pushes a rival explorer into the space behind it, and a foothold collapses once explorers have moved off it twice on their own turn, so the board shrinks as the round runs. A round is won by pushing one rival explorer into a collapsed foothold or off the board, or by leaving the rival with no legal move, and the match by taking two rounds.
 
 It is entertainment for players who enjoy short abstract strategy: a five-minute duel that needs no connection and no account, where one phone serves two people across a table and four AI difficulty levels stand in when playing alone.
 
@@ -69,6 +69,7 @@ The app contains no licensed or restricted third-party content: no asset pack, n
 | Claim                                 | Verified against                                                                                                                                                                                         |
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | No network, no third-party service    | `pubspec.yaml` dependency list, `engine/Cargo.toml` (only `flutter_rust_bridge`), no HTTP or socket call under `lib/`                                                                                    |
+| Round win and foothold decay          | `engine/src/lib.rs`: one knockout ends a round (`apply_resolved_move` returns on `resolution.knockout`), only the mover's departure tile decays, and `WINS_REQUIRED` is 2                                |
 | No INTERNET permission in release     | `uses-permission` appears only in `android/app/src/debug` and `android/app/src/profile` manifests                                                                                                        |
 | Encryption declaration                | `ios/Runner/Info.plist`, `ITSAppUsesNonExemptEncryption` = false                                                                                                                                         |
 | English and Korean, device-driven     | `ios/Runner/Info.plist` `CFBundleLocalizations`, `AppLocalizations.supportedLocales` in `lib/app/view/app.dart`                                                                                          |
