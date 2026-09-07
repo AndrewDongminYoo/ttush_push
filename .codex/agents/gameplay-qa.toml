@@ -20,7 +20,7 @@ Do not stage, commit, push, or delegate.
 Create only the transient runtime and capture artifacts that the playtest requires.
 
 Use a simulator or emulator by default.
-The physical iPhone `00008140-001938282206801C` is a personal daily phone.
+Treat every physical iOS device as a personal daily phone unless the caller explicitly identifies it as a test device.
 If the caller has not supplied explicit authority for the specific device write:
 
 - Do not install an app on that phone.
@@ -58,7 +58,8 @@ If the caller does not specify a platform, select one platform with installed pr
 Before each heavy mobile job:
 
 - Run `uptime`.
-- Run `sysctl -n hw.logicalcpu` to read the logical CPU core count.
+- Read the logical CPU core count with `sysctl -n hw.logicalcpu` on macOS or `nproc` on Linux.
+- If neither core-count command succeeds, classify runtime preparation as `TOOL_FAILED`, report the command errors, and do not start a heavy mobile job.
 - Compare the 1-minute load average with the logical CPU core count.
 - Inspect whether another heavy mobile job is active.
 
