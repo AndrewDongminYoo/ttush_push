@@ -1,5 +1,5 @@
 name: ttush_push
-description: A Very Good Project created by Very Good CLI.
+description: Ttush Push is a Flutter game project with a Rust rules engine that owns every gameplay rule, so both players see a position that neither client can bypass.
 version: 1.1.0+5
 publish_to: none
 

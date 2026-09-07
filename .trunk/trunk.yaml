@@ -6,6 +6,9 @@ cli:
 # Trunk provides extensibility via plugins. (https://docs.trunk.io/plugins)
 plugins:
   sources:
+    - id: quality-configs
+      ref: v0.6.0
+      uri: https://github.com/AndrewDongminYoo/quality-configs
     - id: trunk
       ref: v1.11.0
       uri: https://github.com/trunk-io/plugins
@@ -28,6 +31,7 @@ lint:
     - linters: [osv-scanner]
       paths:
         - ios/Podfile.lock
+        - macos/Podfile.lock
     # Preserve the operator-supplied reference PNG byte for byte.
     - linters: [oxipng]
       paths:
@@ -43,7 +47,7 @@ lint:
     - shellcheck@0.11.0
     - shfmt@3.13.1
     - actionlint@1.7.12
-    - checkov@3.3.13
+    - checkov@3.3.16
     - clippy@1.97.1
     - git-diff-check
     - grype@0.116.1
@@ -53,7 +57,7 @@ lint:
     - oxipng@10.1.1
     - prettier@3.9.6
     - rustfmt@1.85.0
-    - svgo@4.0.2
+    - svgo@4.1.0
     - taplo@0.10.0
     - trivy@0.70.0
     - trufflehog@3.96.0

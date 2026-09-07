@@ -37,12 +37,6 @@
   "enableGlobDot": true,
   "useGitignore": true,
   "ignoreWords": ["meta-data", "plaintext"],
-  "ignorePaths": [
-    ".git",
-    ".gitignore",
-    ".agents",
-    ".claude",
-    "rust_builder/**"
-  ],
+  "ignorePaths": [".git", ".gitignore", ".agents", ".claude", "rust_builder/**"],
   "words": ["ttush_push"]
 }

@@ -5,7 +5,7 @@
   "display": "standalone",
   "background_color": "#0B1024",
   "theme_color": "#0B1024",
-  "description": "A Very Good Project created by Very Good CLI.",
+  "description": "Ttush Push is a Flutter game project with a Rust rules engine that owns every gameplay rule, so both players see a position that neither client can bypass.",
   "orientation": "portrait-primary",
   "prefer_related_applications": false,
   "icons": [
