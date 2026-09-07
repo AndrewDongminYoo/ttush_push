@@ -45,11 +45,7 @@ Future<void> expectRulesEngineParity(RulesEngine rulesEngine) async {
   expect(match.phase, GameMatchPhase.playing);
   expect(
     rulesEngine.legalMoves(match),
-    isNot(
-      contains(
-        const GameMove(pieceId: 0, direction: GameDirection.down),
-      ),
-    ),
+    isNot(contains(const GameMove(pieceId: 0, direction: GameDirection.down))),
   );
 
   // The bot seeds itself from the round's own hash, so an agreed hash ought
@@ -91,20 +87,14 @@ void expectIrregularBoardDefinition(RulesEngine rulesEngine) {
     match.round.tiles.map((tile) => (tile.x, tile.y)),
     unorderedEquals(const [(4, 7), (5, 7), (5, 8)]),
   );
-  expect(
-    match.startingPieces,
-    const [
-      GamePiece(id: 7, owner: GamePlayer.first, x: 4, y: 7),
-      GamePiece(id: 9, owner: GamePlayer.second, x: 5, y: 8),
-    ],
-  );
+  expect(match.startingPieces, const [
+    GamePiece(id: 7, owner: GamePlayer.first, x: 4, y: 7),
+    GamePiece(id: 9, owner: GamePlayer.second, x: 5, y: 8),
+  ]);
 }
 
 const duplicateCellBoardRules = GameBoardDefinition(
-  playableCells: [
-    GameBoardCell(x: 1, y: 1),
-    GameBoardCell(x: 1, y: 1),
-  ],
+  playableCells: [GameBoardCell(x: 1, y: 1), GameBoardCell(x: 1, y: 1)],
   startingPieces: [],
 );
 

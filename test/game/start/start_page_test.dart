@@ -264,9 +264,7 @@ void main() {
 }
 
 Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
-  final boardRect = tester.getRect(
-    find.byKey(const Key('round-board-canvas')),
-  );
+  final boardRect = tester.getRect(find.byKey(const Key('round-board-canvas')));
   final board = tester.widget<RoundBoard>(find.byType(RoundBoard));
   final geometry = BoardGeometry.fromSnapshot(board.snapshot, boardRect.size);
   return (x, y) => boardRect.topLeft + geometry.cellCenter(x, y);

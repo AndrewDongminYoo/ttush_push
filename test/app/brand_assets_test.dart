@@ -36,22 +36,12 @@ void main() {
       final pixels = await _loadRgba(_androidSmallIconPath, size: 48);
 
       expect(
-        _coolPixelFraction(
-          pixels,
-          width: 48,
-          maxX: 24,
-          minimumBlue: 102,
-        ),
+        _coolPixelFraction(pixels, width: 48, maxX: 24, minimumBlue: 102),
         greaterThan(0.2),
         reason: 'bright Azure blue must fill the left side at 48 pixels',
       );
       expect(
-        _warmPixelFraction(
-          pixels,
-          width: 48,
-          minX: 24,
-          minimumRed: 102,
-        ),
+        _warmPixelFraction(pixels, width: 48, minX: 24, minimumRed: 102),
         greaterThan(0.2),
         reason: 'bright Ember red must fill the right side at 48 pixels',
       );
@@ -64,14 +54,8 @@ void main() {
     await tester.runAsync(() async {
       final pixels = await _loadRgba(_appleLaunchPath, size: 64);
 
-      expect(
-        _coolPixelFraction(pixels, width: 64),
-        greaterThan(0.01),
-      );
-      expect(
-        _warmPixelFraction(pixels, width: 64),
-        greaterThan(0.01),
-      );
+      expect(_coolPixelFraction(pixels, width: 64), greaterThan(0.01));
+      expect(_warmPixelFraction(pixels, width: 64), greaterThan(0.01));
       expect(
         _alphaValues(pixels),
         contains(0),
@@ -80,9 +64,7 @@ void main() {
     });
   });
 
-  testWidgets('keeps Android adaptive artwork opaque', (
-    tester,
-  ) async {
+  testWidgets('keeps Android adaptive artwork opaque', (tester) async {
     await tester.runAsync(() async {
       for (final path in _androidAdaptiveBackgroundPaths) {
         expect(File(path).existsSync(), isTrue, reason: path);
@@ -95,25 +77,22 @@ void main() {
     });
   });
 
-  testWidgets(
-    'keeps Android adaptive backgrounds flavor-neutral',
-    (
-      tester,
-    ) async {
-      await tester.runAsync(() async {
-        final backgroundPixels = <Uint8List>[];
-        for (final path in _androidAdaptiveBackgroundPaths) {
-          if (!File(path).existsSync()) {
-            fail('$path does not exist');
-          }
-          backgroundPixels.add(await _loadRgba(path, size: 64));
+  testWidgets('keeps Android adaptive backgrounds flavor-neutral', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final backgroundPixels = <Uint8List>[];
+      for (final path in _androidAdaptiveBackgroundPaths) {
+        if (!File(path).existsSync()) {
+          fail('$path does not exist');
         }
+        backgroundPixels.add(await _loadRgba(path, size: 64));
+      }
 
-        expect(backgroundPixels[1], equals(backgroundPixels[0]));
-        expect(backgroundPixels[2], equals(backgroundPixels[0]));
-      });
-    },
-  );
+      expect(backgroundPixels[1], equals(backgroundPixels[0]));
+      expect(backgroundPixels[2], equals(backgroundPixels[0]));
+    });
+  });
 
   testWidgets('keeps Android flavor badges in the upper-right safe zone', (
     tester,
@@ -195,11 +174,10 @@ void main() {
           for (final iconName in ['ic_launcher.png', 'ic_launcher_round.png']) {
             final path =
                 'android/app/src/$sourceSet/res/mipmap-${entry.key}/$iconName';
-            expect(
-              await _loadDimensions(path),
-              (entry.value, entry.value),
-              reason: path,
-            );
+            expect(await _loadDimensions(path), (
+              entry.value,
+              entry.value,
+            ), reason: path);
           }
         }
       }
@@ -304,9 +282,7 @@ void main() {
     expect(staging, isNot(equals(development)));
   });
 
-  testWidgets('preserves Apple development and staging badges', (
-    tester,
-  ) async {
+  testWidgets('preserves Apple development and staging badges', (tester) async {
     await tester.runAsync(() async {
       const artworkSets = {
         'iOS': [
@@ -473,11 +449,7 @@ double _matchingPixelFraction(
       continue;
     }
     visiblePixels += 1;
-    if (matches(
-      rgba[byteIndex],
-      rgba[byteIndex + 1],
-      rgba[byteIndex + 2],
-    )) {
+    if (matches(rgba[byteIndex], rgba[byteIndex + 1], rgba[byteIndex + 2])) {
       matchingPixels += 1;
     }
   }

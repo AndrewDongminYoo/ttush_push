@@ -26,9 +26,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      App(
-        rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot)),
-      ),
+      App(rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot))),
     );
 
     expect(find.text('새 매치'), findsOneWidget);
@@ -56,9 +54,7 @@ void main() {
     );
 
     await tester.pumpWidget(
-      App(
-        rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot)),
-      ),
+      App(rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot))),
     );
 
     expect(find.byType(StartPage), findsOneWidget);

@@ -26,13 +26,7 @@ const _secondPlayerColor = Color(0xFFE14B4B);
 const _pushResolution = MoveResolution(
   actionKind: MoveActionKind.push,
   mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 0, toY: 1),
-  displaced: PieceDisplacement(
-    pieceId: 1,
-    fromX: 0,
-    fromY: 1,
-    toX: 0,
-    toY: 2,
-  ),
+  displaced: PieceDisplacement(pieceId: 1, fromX: 0, fromY: 1, toX: 0, toY: 2),
   tileTransition: TileTransition(
     x: 0,
     y: 0,
@@ -73,10 +67,7 @@ const BoardDefinition _runtimeDefinitionA = baselineBoardDefinition;
 const _runtimeDefinitionB = BoardDefinition(
   backgroundAssetPath: 'assets/images/sprites/foothold_hole.png',
   rules: GameBoardDefinition(
-    playableCells: [
-      GameBoardCell(x: 3, y: 4),
-      GameBoardCell(x: 3, y: 5),
-    ],
+    playableCells: [GameBoardCell(x: 3, y: 4), GameBoardCell(x: 3, y: 5)],
     startingPieces: [
       GamePiece(id: 8, owner: GamePlayer.first, x: 3, y: 4),
       GamePiece(id: 9, owner: GamePlayer.second, x: 3, y: 5),
@@ -242,123 +233,114 @@ void main() {
     );
   });
 
-  testWidgets(
-    'restarts the retained page when its BoardDefinition changes',
-    (tester) async {
-      const snapshotA = GameSnapshot(
-        currentPlayer: GamePlayer.second,
-        tiles: [
-          GameTile(x: 0, y: 0, kind: GameTileKind.normal),
-          GameTile(x: 0, y: 1, kind: GameTileKind.normal),
-        ],
-        pieces: [
-          GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0),
-        ],
-        snapshotHash: 'runtime-board-a',
-      );
-      const botMove = GameMove(
-        pieceId: 1,
-        direction: GameDirection.down,
-      );
-      final engine = FakeRulesEngine(
-        initial: [matchOf(snapshotA), matchOf(_runtimeSnapshotB)],
-        legalMovesFor: (_) => const [botMove],
-        botMove: (_, _) => botMove,
-      );
-      const pageKey = Key('runtime-board-game-page');
-      Widget host(BoardDefinition definition) => MaterialApp(
-        home: GamePage(
-          key: pageKey,
-          boardDefinition: definition,
-          rulesEngine: engine,
-        ),
-      );
+  testWidgets('restarts the retained page when its BoardDefinition changes', (
+    tester,
+  ) async {
+    const snapshotA = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 0, y: 1, kind: GameTileKind.normal),
+      ],
+      pieces: [GamePiece(id: 1, owner: GamePlayer.second, x: 0, y: 0)],
+      snapshotHash: 'runtime-board-a',
+    );
+    const botMove = GameMove(pieceId: 1, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(snapshotA), matchOf(_runtimeSnapshotB)],
+      legalMovesFor: (_) => const [botMove],
+      botMove: (_, _) => botMove,
+    );
+    const pageKey = Key('runtime-board-game-page');
+    Widget host(BoardDefinition definition) => MaterialApp(
+      home: GamePage(
+        key: pageKey,
+        boardDefinition: definition,
+        rulesEngine: engine,
+      ),
+    );
 
-      await tester.pumpWidget(host(_runtimeDefinitionA));
-      final stateBefore = tester.state(find.byType(GamePage));
+    await tester.pumpWidget(host(_runtimeDefinitionA));
+    final stateBefore = tester.state(find.byType(GamePage));
 
-      await tester.pumpWidget(host(_runtimeDefinitionA));
-      expect(engine.initialDefinitions, [_runtimeDefinitionA.rules]);
+    await tester.pumpWidget(host(_runtimeDefinitionA));
+    expect(engine.initialDefinitions, [_runtimeDefinitionA.rules]);
 
-      await tester.tapAt(_cellCenterOf(tester)(0, 0));
-      await tester.pump();
-      expect(find.byKey(const Key('match-announcement')), findsOneWidget);
+    await tester.tapAt(_cellCenterOf(tester)(0, 0));
+    await tester.pump();
+    expect(find.byKey(const Key('match-announcement')), findsOneWidget);
 
-      await _selectOpponent(tester, 'random');
-      final oldTimerStartedAt = tester.binding.clock.now();
-      await tester.pumpAndSettle();
-      await tester.pumpWidget(host(_runtimeDefinitionB));
+    await _selectOpponent(tester, 'random');
+    final oldTimerStartedAt = tester.binding.clock.now();
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(host(_runtimeDefinitionB));
 
-      expect(tester.state(find.byType(GamePage)), same(stateBefore));
-      expect(engine.initialDefinitions, [
-        _runtimeDefinitionA.rules,
-        _runtimeDefinitionB.rules,
-      ]);
-      expect(
-        tester.widget<RoundBoard>(find.byType(RoundBoard)).snapshot,
-        _runtimeSnapshotB,
-      );
-      final background = tester.widget<Image>(
-        find.byKey(const Key('air-ruins-background')),
-      );
-      expect(
-        (background.image as AssetImage).assetName,
-        _runtimeDefinitionB.backgroundAssetPath,
-      );
-      expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
-      expect(find.byKey(const Key('match-announcement')), findsNothing);
+    expect(tester.state(find.byType(GamePage)), same(stateBefore));
+    expect(engine.initialDefinitions, [
+      _runtimeDefinitionA.rules,
+      _runtimeDefinitionB.rules,
+    ]);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).snapshot,
+      _runtimeSnapshotB,
+    );
+    final background = tester.widget<Image>(
+      find.byKey(const Key('air-ruins-background')),
+    );
+    expect(
+      (background.image as AssetImage).assetName,
+      _runtimeDefinitionB.backgroundAssetPath,
+    );
+    expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
+    expect(find.byKey(const Key('match-announcement')), findsNothing);
 
-      await tester.tap(find.byKey(const Key('opponent-control')));
-      await tester.pump();
-      Navigator.of(
-        tester.element(find.byKey(const Key('opponent-choice-random'))),
-      ).pop(Opponent.random);
-      await tester.pump();
-      const botPause = Duration(milliseconds: 450);
-      final elapsed = tester.binding.clock.now().difference(oldTimerStartedAt);
-      expect(elapsed, lessThan(botPause));
-      await tester.pump(botPause - elapsed);
-      expect(engine.botRequests, [BotPolicy.random, BotPolicy.random]);
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-  );
+    await tester.tap(find.byKey(const Key('opponent-control')));
+    await tester.pump();
+    Navigator.of(
+      tester.element(find.byKey(const Key('opponent-choice-random'))),
+    ).pop(Opponent.random);
+    await tester.pump();
+    const botPause = Duration(milliseconds: 450);
+    final elapsed = tester.binding.clock.now().difference(oldTimerStartedAt);
+    expect(elapsed, lessThan(botPause));
+    await tester.pump(botPause - elapsed);
+    expect(engine.botRequests, [BotPolicy.random, BotPolicy.random]);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
-  testWidgets(
-    'ignores an opponent choice opened before board replacement',
-    (tester) async {
-      const snapshotA = GameSnapshot(
-        currentPlayer: GamePlayer.first,
-        tiles: [],
-        pieces: [],
-        snapshotHash: 'opponent-sheet-board-a',
-      );
-      final engine = FakeRulesEngine(
-        initial: [matchOf(snapshotA), matchOf(_runtimeSnapshotB)],
-      );
-      const pageKey = Key('opponent-sheet-board-game-page');
-      Widget host(BoardDefinition definition) => MaterialApp(
-        home: GamePage(
-          key: pageKey,
-          boardDefinition: definition,
-          rulesEngine: engine,
-        ),
-      );
+  testWidgets('ignores an opponent choice opened before board replacement', (
+    tester,
+  ) async {
+    const snapshotA = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'opponent-sheet-board-a',
+    );
+    final engine = FakeRulesEngine(
+      initial: [matchOf(snapshotA), matchOf(_runtimeSnapshotB)],
+    );
+    const pageKey = Key('opponent-sheet-board-game-page');
+    Widget host(BoardDefinition definition) => MaterialApp(
+      home: GamePage(
+        key: pageKey,
+        boardDefinition: definition,
+        rulesEngine: engine,
+      ),
+    );
 
-      await tester.pumpWidget(host(_runtimeDefinitionA));
-      await tester.tap(find.byKey(const Key('opponent-control')));
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(host(_runtimeDefinitionA));
+    await tester.tap(find.byKey(const Key('opponent-control')));
+    await tester.pumpAndSettle();
 
-      await tester.pumpWidget(host(_runtimeDefinitionB));
-      expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
+    await tester.pumpWidget(host(_runtimeDefinitionB));
+    expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
 
-      await tester.tap(
-        find.byKey(const Key('opponent-choice-random')),
-      );
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('opponent-choice-random')));
+    await tester.pumpAndSettle();
 
-      expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
-    },
-  );
+    expect(_inPanel('second', 'Opponent: Human'), findsOneWidget);
+  });
 
   testWidgets('stops the previous board replay when its definition changes', (
     tester,
@@ -407,10 +389,9 @@ void main() {
     await tester.tapAt(cellCenter(0, 1));
     await tester.pump();
     expect(tester.hasRunningAnimations, isTrue);
-    expect(
-      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
-      {0: ExplorerFacing.up},
-    );
+    expect(tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings, {
+      0: ExplorerFacing.up,
+    });
 
     await tester.pumpWidget(host(_runtimeDefinitionB));
 
@@ -542,10 +523,7 @@ void main() {
       ],
       moveResults: [
         moveResultOf(
-          next: matchOverMatch(
-            terminalSnapshot,
-            winner: GamePlayer.first,
-          ),
+          next: matchOverMatch(terminalSnapshot, winner: GamePlayer.first),
           resolution: _fallPushResolution,
         ),
       ],
@@ -568,10 +546,7 @@ void main() {
     final matchScope = tester.widget<Container>(
       find.byKey(const Key('result-scope-match')),
     );
-    expect(
-      (matchScope.decoration! as BoxDecoration).color,
-      _firstPlayerColor,
-    );
+    expect((matchScope.decoration! as BoxDecoration).color, _firstPlayerColor);
     expect(_inOverlay('Azure Expedition'), findsOneWidget);
     expect(find.text('wins the match'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
@@ -1302,11 +1277,10 @@ void main() {
       isFalse,
       reason: 'the restart runs while the gateway call is still live',
     );
-    expect(
-      ads.events,
-      ['match-decided', 'before-new-match'],
-      reason: 'abandoning the call must not call the gateway again',
-    );
+    expect(ads.events, [
+      'match-decided',
+      'before-new-match',
+    ], reason: 'abandoning the call must not call the gateway again');
   });
 
   testWidgets('applies only the selected legal destination without shifting '
@@ -1403,10 +1377,9 @@ void main() {
       tester.widget<RoundBoard>(find.byType(RoundBoard)).playback,
       isNotNull,
     );
-    expect(
-      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
-      {0: ExplorerFacing.up},
-    );
+    expect(tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings, {
+      0: ExplorerFacing.up,
+    });
 
     await tester.pump(const Duration(milliseconds: 539));
     _expectActiveTurn(tester, GamePlayer.first);
@@ -1414,10 +1387,9 @@ void main() {
     await tester.pump(const Duration(milliseconds: 60));
     await tester.pump();
     _expectActiveTurn(tester, GamePlayer.second);
-    expect(
-      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
-      {0: ExplorerFacing.up},
-    );
+    expect(tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings, {
+      0: ExplorerFacing.up,
+    });
   });
 
   testWidgets('uses the same commit path with reduced motion', (tester) async {
@@ -1522,9 +1494,7 @@ void main() {
     expect(engine.appliedMoves, [move]);
     expect(
       tester
-          .widget<OutlinedButton>(
-            find.byKey(const Key('opponent-control')),
-          )
+          .widget<OutlinedButton>(find.byKey(const Key('opponent-control')))
           .onPressed,
       isNull,
     );
@@ -1583,9 +1553,7 @@ void main() {
 
   testWidgets(
     'clears selection after a tap outside the current player pieces',
-    (
-      tester,
-    ) async {
+    (tester) async {
       const initialSnapshot = GameSnapshot(
         currentPlayer: GamePlayer.first,
         tiles: [],
@@ -1657,18 +1625,18 @@ void main() {
     // rather than fall through to selecting their piece.
     await tester.tapAt(cellCenter(2, 1));
     await tester.pump();
-    expect(
-      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
-      {0: ExplorerFacing.up, 1: ExplorerFacing.up},
-    );
+    expect(tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings, {
+      0: ExplorerFacing.up,
+      1: ExplorerFacing.up,
+    });
     await _finishReplay(tester);
 
     expect(engine.appliedMoves, [move]);
     _expectActiveTurn(tester, GamePlayer.second);
-    expect(
-      tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings,
-      {0: ExplorerFacing.up, 1: ExplorerFacing.up},
-    );
+    expect(tester.widget<RoundBoard>(find.byType(RoundBoard)).pieceFacings, {
+      0: ExplorerFacing.up,
+      1: ExplorerFacing.up,
+    });
   });
 
   testWidgets('resets presentation facing after round advance', (tester) async {
@@ -1840,11 +1808,7 @@ void main() {
         ),
       );
 
-      expect(
-        find.text('Start New Match'),
-        findsOneWidget,
-        reason: 'at $size',
-      );
+      expect(find.text('Start New Match'), findsOneWidget, reason: 'at $size');
       expect(tester.takeException(), isNull, reason: 'terminal at $size');
     }
   });
@@ -1873,9 +1837,7 @@ void main() {
 
     // A panel squeezed below its content height deforms the player mark
     // before it ever reports an overflow, so the mark is measured directly.
-    final mark = tester.getRect(
-      find.byKey(const Key('player-mark-first')),
-    );
+    final mark = tester.getRect(find.byKey(const Key('player-mark-first')));
 
     expect(mark.width, mark.height);
     expect(tester.takeException(), isNull);
@@ -2022,10 +1984,7 @@ void main() {
     await tester.pump();
     await _finishReplay(tester);
 
-    expect(felt, [
-      'select',
-      'push',
-    ]);
+    expect(felt, ['select', 'push']);
   });
 
   testWidgets('stays silent when a tap changes nothing', (tester) async {
@@ -2244,10 +2203,7 @@ void main() {
     final roundScope = tester.widget<Container>(
       find.byKey(const Key('result-scope-round')),
     );
-    expect(
-      (roundScope.decoration! as BoxDecoration).color,
-      _sharedPanelColor,
-    );
+    expect((roundScope.decoration! as BoxDecoration).color, _sharedPanelColor);
     expect(_inOverlay('Azure Expedition'), findsOneWidget);
     expect(find.text('takes the round'), findsOneWidget);
     expect(find.text('by knockout'), findsOneWidget);
@@ -2561,11 +2517,7 @@ void main() {
           : secondCompletion.future,
     );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: GamePage(rulesEngine: engine),
-      ),
-    );
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
     await _selectOpponent(tester, 'random');
 
     expect(engine.botRequests, [BotPolicy.random]);
@@ -2771,10 +2723,7 @@ void main() {
       legalMovesFor: (_) => const [move],
       botMove: (_, _) => completion.future,
     );
-    final page = GamePage(
-      opponent: Opponent.random,
-      rulesEngine: engine,
-    );
+    final page = GamePage(opponent: Opponent.random, rulesEngine: engine);
 
     await tester.pumpWidget(MaterialApp(home: page));
     await tester.pumpWidget(MaterialApp(home: page));
@@ -2950,39 +2899,36 @@ void main() {
     expect(find.textContaining('Unable to update round'), findsNothing);
   });
 
-  testWidgets(
-    'drops a stranded bot error when the seat turns human',
-    (
-      tester,
-    ) async {
-      const botTurn = GameSnapshot(
-        currentPlayer: GamePlayer.second,
-        tiles: [],
-        pieces: [],
-        snapshotHash: 'bot-stranded',
-      );
-      const move = GameMove(pieceId: 0, direction: GameDirection.down);
-      final engine = FakeRulesEngine(
-        initial: [matchOf(botTurn)],
-        moveResults: [StateError('the bridge refused the move')],
-        legalMovesFor: (_) => const [move],
-        botMove: (_, _) => move,
-      );
+  testWidgets('drops a stranded bot error when the seat turns human', (
+    tester,
+  ) async {
+    const botTurn = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [],
+      pieces: [],
+      snapshotHash: 'bot-stranded',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.down);
+    final engine = FakeRulesEngine(
+      initial: [matchOf(botTurn)],
+      moveResults: [StateError('the bridge refused the move')],
+      legalMovesFor: (_) => const [move],
+      botMove: (_, _) => move,
+    );
 
-      await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
-      await _selectOpponent(tester, 'random');
-      await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpWidget(MaterialApp(home: GamePage(rulesEngine: engine)));
+    await _selectOpponent(tester, 'random');
+    await tester.pump(const Duration(milliseconds: 600));
 
-      expect(find.textContaining('Unable to update round'), findsOneWidget);
+    expect(find.textContaining('Unable to update round'), findsOneWidget);
 
-      // Retry still points at a bot move, so handing the seat back to a person
-      // would leave a banner whose only button does nothing.
-      await _selectOpponent(tester, 'human');
+    // Retry still points at a bot move, so handing the seat back to a person
+    // would leave a banner whose only button does nothing.
+    await _selectOpponent(tester, 'human');
 
-      expect(_inPanel('second', 'Ember Expedition'), findsOneWidget);
-      expect(find.textContaining('Unable to update round'), findsNothing);
-    },
-  );
+    expect(_inPanel('second', 'Ember Expedition'), findsOneWidget);
+    expect(find.textContaining('Unable to update round'), findsNothing);
+  });
 
   testWidgets('feels a round the bot won as a win, not as a move', (
     tester,
@@ -3073,9 +3019,7 @@ void main() {
     expect(opponentValue, findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    final label = tester.renderObject<RenderParagraph>(
-      opponentValue,
-    );
+    final label = tester.renderObject<RenderParagraph>(opponentValue);
 
     expect(label.didExceedMaxLines, isFalse);
   });
@@ -3131,9 +3075,7 @@ void main() {
 
 /// Maps a board cell to the point to tap for it.
 Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
-  final boardRect = tester.getRect(
-    find.byKey(const Key('round-board-canvas')),
-  );
+  final boardRect = tester.getRect(find.byKey(const Key('round-board-canvas')));
   final board = tester.widget<RoundBoard>(find.byType(RoundBoard));
   final geometry = BoardGeometry.fromSnapshot(board.snapshot, boardRect.size);
   return (x, y) => boardRect.topLeft + geometry.cellCenter(x, y);
@@ -3236,14 +3178,10 @@ void _expectActiveTurn(WidgetTester tester, GamePlayer player) {
     final decoration = mark.decoration! as BoxDecoration;
     final border = decoration.border! as Border;
 
-    expect(
-      decoration.color,
-      switch (seat) {
-        GamePlayer.first => _firstPlayerColor,
-        GamePlayer.second => _secondPlayerColor,
-      },
-      reason: 'the ${seat.name} team color',
-    );
+    expect(decoration.color, switch (seat) {
+      GamePlayer.first => _firstPlayerColor,
+      GamePlayer.second => _secondPlayerColor,
+    }, reason: 'the ${seat.name} team color');
     expect(
       border.top.color,
       seat == player ? Colors.white : Colors.transparent,

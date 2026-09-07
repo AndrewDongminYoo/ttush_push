@@ -35,12 +35,8 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 
   /// Initialize flutter_rust_bridge in mock mode.
   /// No libraries for FFI are loaded.
-  static void initMock({
-    required RustLibApi api,
-  }) {
-    instance.initMockImpl(
-      api: api,
-    );
+  static void initMock({required RustLibApi api}) {
+    instance.initMockImpl(api: api);
   }
 
   /// Dispose flutter_rust_bridge
@@ -127,10 +123,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     );
   }
 
-  TaskConstMeta get kCrateApiAdvanceRoundConstMeta => const TaskConstMeta(
-    debugName: "advance_round",
-    argNames: ["snapshot"],
-  );
+  TaskConstMeta get kCrateApiAdvanceRoundConstMeta =>
+      const TaskConstMeta(debugName: "advance_round", argNames: ["snapshot"]);
 
   @override
   Future<GameMove?> crateApiChooseBotMove({
@@ -338,10 +332,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     final arr = raw as List<dynamic>;
     if (arr.length != 2)
       throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
-    return GameBoardCell(
-      x: dco_decode_u_8(arr[0]),
-      y: dco_decode_u_8(arr[1]),
-    );
+    return GameBoardCell(x: dco_decode_u_8(arr[0]), y: dco_decode_u_8(arr[1]));
   }
 
   @protected

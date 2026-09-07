@@ -8,9 +8,7 @@ import '../test/support/rules_engine_parity.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('RulesEngine returns the cross-platform push fixture', (
-    _,
-  ) async {
+  testWidgets('RulesEngine returns the cross-platform push fixture', (_) async {
     await RustLib.init();
     addTearDown(RustLib.dispose);
 

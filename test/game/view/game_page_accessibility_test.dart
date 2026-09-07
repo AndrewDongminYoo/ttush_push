@@ -226,9 +226,7 @@ void main() {
 
   testWidgets(
     'announces coach steps as live regions when opened and advanced',
-    (
-      tester,
-    ) async {
+    (tester) async {
       final semantics = tester.ensureSemantics();
 
       await tester.pumpWidget(
@@ -336,9 +334,7 @@ void main() {
     expect(find.text('Select an Azure explorer.'), findsOneWidget);
   });
 
-  testWidgets('shows the coach when completion cannot be read', (
-    tester,
-  ) async {
+  testWidgets('shows the coach when completion cannot be read', (tester) async {
     final store = _FakeFirstPlayCoachStore(
       readError: StateError('preferences unavailable'),
     );
@@ -506,9 +502,7 @@ void main() {
 
     final cellCenter = _cellCenterOf(tester);
     final source = cellCenter(0, 1);
-    final coachRect = tester.getRect(
-      find.byKey(const Key('first-play-coach')),
-    );
+    final coachRect = tester.getRect(find.byKey(const Key('first-play-coach')));
     final boardRect = tester.getRect(
       find.byKey(const Key('round-board-canvas')),
     );
@@ -674,17 +668,12 @@ void main() {
     tester.semantics.performAction(explorer, SemanticsAction.tap);
     await tester.pump();
 
-    final destination = find.semantics.byLabel(
-      'Right move to row 1, column 2',
-    );
+    final destination = find.semantics.byLabel('Right move to row 1, column 2');
     tester.semantics.performAction(destination, SemanticsAction.tap);
     await tester.pump();
 
     expect(engine.appliedMoves, [move]);
-    expect(
-      find.semantics.byLabel('Move applied.'),
-      findsNothing,
-    );
+    expect(find.semantics.byLabel('Move applied.'), findsNothing);
 
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pump();
@@ -974,13 +963,7 @@ void main() {
       legalMoves: const [move],
       resolution: const MoveResolution(
         actionKind: MoveActionKind.normal,
-        mover: PieceTravel(
-          pieceId: 0,
-          fromX: 0,
-          fromY: 0,
-          toX: 1,
-          toY: 0,
-        ),
+        mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
         tileTransition: TileTransition(
           x: 0,
           y: 0,
@@ -1025,9 +1008,7 @@ void main() {
 
   testWidgets(
     'omits inert board cells and immovable explorers from semantics',
-    (
-      tester,
-    ) async {
+    (tester) async {
       final semantics = tester.ensureSemantics();
       const snapshot = GameSnapshot(
         currentPlayer: GamePlayer.first,
@@ -1213,18 +1194,14 @@ void main() {
         home: GamePage(
           coachStore: _FakeFirstPlayCoachStore(),
           rulesEngine: FakeRulesEngine(
-            initial: [
-              matchOverMatch(snapshot, winner: GamePlayer.first),
-            ],
+            initial: [matchOverMatch(snapshot, winner: GamePlayer.first)],
           ),
         ),
       ),
     );
     await tester.pump();
 
-    final resultRect = tester.getRect(
-      find.byKey(const Key('result-overlay')),
-    );
+    final resultRect = tester.getRect(find.byKey(const Key('result-overlay')));
     final scopeRect = tester.getRect(
       find.byKey(const Key('result-scope-match')),
     );
@@ -1405,10 +1382,7 @@ void main() {
     );
     expect(
       firstError,
-      matchesSemantics(
-        label: 'Unable to start round',
-        isLiveRegion: true,
-      ),
+      matchesSemantics(label: 'Unable to start round', isLiveRegion: true),
     );
 
     await tester.tap(find.text('Retry'));
@@ -1419,10 +1393,7 @@ void main() {
     );
     expect(
       repeatedError,
-      matchesSemantics(
-        label: 'Unable to start round',
-        isLiveRegion: true,
-      ),
+      matchesSemantics(label: 'Unable to start round', isLiveRegion: true),
     );
     expect(repeatedError.id, isNot(firstError.id));
     semantics.dispose();
@@ -1512,13 +1483,7 @@ void main() {
       legalMoves: const [move],
       resolution: const MoveResolution(
         actionKind: MoveActionKind.normal,
-        mover: PieceTravel(
-          pieceId: 0,
-          fromX: 0,
-          fromY: 0,
-          toX: 1,
-          toY: 0,
-        ),
+        mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
         tileTransition: TileTransition(
           x: 0,
           y: 0,
@@ -1544,14 +1509,10 @@ void main() {
     await tester.pump();
 
     tester.semantics.tap(
-      find.semantics.byLabel(
-        '푸른 원정대 탐험가, 1행 1열, 이동할 수 있는 위치 1개',
-      ),
+      find.semantics.byLabel('푸른 원정대 탐험가, 1행 1열, 이동할 수 있는 위치 1개'),
     );
     await tester.pump();
-    tester.semantics.tap(
-      find.semantics.byLabel('1행 2열로 오른쪽 이동'),
-    );
+    tester.semantics.tap(find.semantics.byLabel('1행 2열로 오른쪽 이동'));
     await tester.pump();
 
     expect(engine.appliedMoves, [move]);
@@ -1602,13 +1563,7 @@ void main() {
       legalMoves: const [move],
       resolution: const MoveResolution(
         actionKind: MoveActionKind.normal,
-        mover: PieceTravel(
-          pieceId: 0,
-          fromX: 0,
-          fromY: 0,
-          toX: 1,
-          toY: 0,
-        ),
+        mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
         tileTransition: TileTransition(
           x: 0,
           y: 0,
@@ -1634,14 +1589,10 @@ void main() {
     await tester.pump();
 
     tester.semantics.tap(
-      find.semantics.byLabel(
-        '푸른 원정대 탐험가, 1행 1열, 이동할 수 있는 위치 1개',
-      ),
+      find.semantics.byLabel('푸른 원정대 탐험가, 1행 1열, 이동할 수 있는 위치 1개'),
     );
     await tester.pump();
-    tester.semantics.tap(
-      find.semantics.byLabel('1행 2열로 오른쪽 이동'),
-    );
+    tester.semantics.tap(find.semantics.byLabel('1행 2열로 오른쪽 이동'));
     await tester.pump();
 
     expect(engine.appliedMoves, [move]);
@@ -1664,9 +1615,7 @@ void main() {
 }
 
 Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
-  final boardRect = tester.getRect(
-    find.byKey(const Key('round-board-canvas')),
-  );
+  final boardRect = tester.getRect(find.byKey(const Key('round-board-canvas')));
   final board = tester.widget<RoundBoard>(find.byType(RoundBoard));
   final geometry = BoardGeometry.fromSnapshot(board.snapshot, boardRect.size);
   return (x, y) => boardRect.topLeft + geometry.cellCenter(x, y);
@@ -1694,7 +1643,7 @@ final class _FakeFirstPlayCoachStore implements FirstPlayCoachStore {
       throw error;
     }
     if (readResult case final Future<bool> result) {
-      return result;
+      return await result;
     }
     return completedVersions.contains(version);
   }

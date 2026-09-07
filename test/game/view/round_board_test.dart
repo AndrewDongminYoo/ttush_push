@@ -182,9 +182,7 @@ void main() {
       onCellTap: (_, _) {},
     );
 
-    await tester.pumpWidget(
-      MaterialApp(home: UnconstrainedBox(child: board)),
-    );
+    await tester.pumpWidget(MaterialApp(home: UnconstrainedBox(child: board)));
     expect(find.byKey(const Key('round-board-canvas')), findsNothing);
 
     await tester.pumpWidget(
@@ -431,13 +429,7 @@ void main() {
         playback: const BoardPlayback(
           resolution: MoveResolution(
             actionKind: MoveActionKind.normal,
-            mover: PieceTravel(
-              pieceId: 0,
-              fromX: 0,
-              fromY: 0,
-              toX: 0,
-              toY: 1,
-            ),
+            mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 0, toY: 1),
             tileTransition: TileTransition(
               x: 0,
               y: 0,
@@ -717,9 +709,7 @@ void main() {
 
   testWidgets(
     'replays Rust-authored Push, fall, and collapse frames in order',
-    (
-      tester,
-    ) async {
+    (tester) async {
       const snapshot = GameSnapshot(
         currentPlayer: GamePlayer.first,
         tiles: [
@@ -733,13 +723,7 @@ void main() {
         ],
         snapshotHash: 'playback',
       );
-      const mover = PieceTravel(
-        pieceId: 0,
-        fromX: 0,
-        fromY: 0,
-        toX: 1,
-        toY: 0,
-      );
+      const mover = PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0);
       const collapse = TileTransition(
         x: 0,
         y: 0,
@@ -770,9 +754,7 @@ void main() {
       );
       expect(beforeImpact(_cellCenter(1, 0)), _secondPlayerColor);
       expect(
-        beforeImpact(
-          _cellCenter(0, 0) + const Offset(_cellSize * 5 / 9, 0),
-        ),
+        beforeImpact(_cellCenter(0, 0) + const Offset(_cellSize * 5 / 9, 0)),
         _firstPlayerColor,
       );
 
@@ -898,11 +880,7 @@ void main() {
         final falling = await _paintAndSample(
           tester,
           snapshot: fallSnapshot,
-          playback: fallPlayback(
-            direction,
-            0.65,
-            reducedMotion: false,
-          ),
+          playback: fallPlayback(direction, 0.65, reducedMotion: false),
         );
         final offset = switch (direction) {
           GameDirection.up => const Offset(0, _cellSize * 0.5),
@@ -915,11 +893,7 @@ void main() {
       final beforeFall = await _paintAndSample(
         tester,
         snapshot: fallSnapshot,
-        playback: fallPlayback(
-          GameDirection.right,
-          0.49,
-          reducedMotion: false,
-        ),
+        playback: fallPlayback(GameDirection.right, 0.49, reducedMotion: false),
       );
       final beforeBounds = _colorBounds(beforeFall, _secondPlayerColor)!;
       for (final (direction, expectedOffset) in const [
@@ -951,123 +925,115 @@ void main() {
     },
   );
 
-  testWidgets(
-    'renders a directional contact brace behind a horizontal Push',
-    (tester) async {
-      const snapshot = GameSnapshot(
-        currentPlayer: GamePlayer.first,
-        tiles: [
-          GameTile(x: 0, y: 0, kind: GameTileKind.normal),
-          GameTile(x: 1, y: 0, kind: GameTileKind.normal),
-          GameTile(x: 2, y: 0, kind: GameTileKind.normal),
-        ],
-        pieces: [
-          GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
-          GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
-        ],
-        snapshotHash: 'directional-contact-brace',
-      );
-      const resolution = MoveResolution(
-        actionKind: MoveActionKind.push,
-        mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
-        displaced: PieceDisplacement(
-          pieceId: 1,
-          fromX: 1,
-          fromY: 0,
-          toX: 2,
-          toY: 0,
-        ),
-        tileTransition: TileTransition(
-          x: 0,
-          y: 0,
-          from: GameTileKind.normal,
-          to: GameTileKind.damaged,
-        ),
-      );
+  testWidgets('renders a directional contact brace behind a horizontal Push', (
+    tester,
+  ) async {
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
+      ],
+      snapshotHash: 'directional-contact-brace',
+    );
+    const resolution = MoveResolution(
+      actionKind: MoveActionKind.push,
+      mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
+      displaced: PieceDisplacement(
+        pieceId: 1,
+        fromX: 1,
+        fromY: 0,
+        toX: 2,
+        toY: 0,
+      ),
+      tileTransition: TileTransition(
+        x: 0,
+        y: 0,
+        from: GameTileKind.normal,
+        to: GameTileKind.damaged,
+      ),
+    );
 
-      final impact = await _paintAndSample(
-        tester,
-        snapshot: snapshot,
-        legalMoves: const [
-          GameMove(pieceId: 0, direction: GameDirection.right),
-        ],
-        selectedPieceId: 0,
-        playback: const BoardPlayback(
-          resolution: resolution,
-          progress: 0.62,
-          reducedMotion: false,
-        ),
-      );
+    final impact = await _paintAndSample(
+      tester,
+      snapshot: snapshot,
+      legalMoves: const [GameMove(pieceId: 0, direction: GameDirection.right)],
+      selectedPieceId: 0,
+      playback: const BoardPlayback(
+        resolution: resolution,
+        progress: 0.62,
+        reducedMotion: false,
+      ),
+    );
 
-      expect(
-        impact(
-          _cellCenter(1, 0) + const Offset(-_cellSize * 0.28, 0),
-        ),
-        _pushImpactColor,
-      );
-      expect(
-        impact(_cellCenter(1, 0) + const Offset(0, _cellSize * 0.37)),
-        isNot(_destinationColor),
-      );
-      expect(
-        impact(_cellCenter(1, 0) + const Offset(0, _cellSize * 0.42)),
-        isNot(_selectionColor),
-      );
-    },
-  );
+    expect(
+      impact(_cellCenter(1, 0) + const Offset(-_cellSize * 0.28, 0)),
+      _pushImpactColor,
+    );
+    expect(
+      impact(_cellCenter(1, 0) + const Offset(0, _cellSize * 0.37)),
+      isNot(_destinationColor),
+    );
+    expect(
+      impact(_cellCenter(1, 0) + const Offset(0, _cellSize * 0.42)),
+      isNot(_selectionColor),
+    );
+  });
 
-  testWidgets(
-    'keeps the contact brace static when reduced motion is enabled',
-    (tester) async {
-      const snapshot = GameSnapshot(
-        currentPlayer: GamePlayer.first,
-        tiles: [
-          GameTile(x: 0, y: 0, kind: GameTileKind.normal),
-          GameTile(x: 1, y: 0, kind: GameTileKind.normal),
-          GameTile(x: 2, y: 0, kind: GameTileKind.normal),
-        ],
-        pieces: [
-          GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
-          GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
-        ],
-        snapshotHash: 'reduced-motion-contact-brace',
-      );
-      const resolution = MoveResolution(
-        actionKind: MoveActionKind.push,
-        mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
-        displaced: PieceDisplacement(
-          pieceId: 1,
-          fromX: 1,
-          fromY: 0,
-          toX: 2,
-          toY: 0,
-        ),
-        tileTransition: TileTransition(
-          x: 0,
-          y: 0,
-          from: GameTileKind.normal,
-          to: GameTileKind.damaged,
-        ),
-      );
+  testWidgets('keeps the contact brace static when reduced motion is enabled', (
+    tester,
+  ) async {
+    const snapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 0, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 1, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
+      ],
+      snapshotHash: 'reduced-motion-contact-brace',
+    );
+    const resolution = MoveResolution(
+      actionKind: MoveActionKind.push,
+      mover: PieceTravel(pieceId: 0, fromX: 0, fromY: 0, toX: 1, toY: 0),
+      displaced: PieceDisplacement(
+        pieceId: 1,
+        fromX: 1,
+        fromY: 0,
+        toX: 2,
+        toY: 0,
+      ),
+      tileTransition: TileTransition(
+        x: 0,
+        y: 0,
+        from: GameTileKind.normal,
+        to: GameTileKind.damaged,
+      ),
+    );
 
-      final impact = await _paintAndSample(
-        tester,
-        snapshot: snapshot,
-        playback: const BoardPlayback(
-          resolution: resolution,
-          progress: 0.62,
-          reducedMotion: true,
-        ),
-      );
+    final impact = await _paintAndSample(
+      tester,
+      snapshot: snapshot,
+      playback: const BoardPlayback(
+        resolution: resolution,
+        progress: 0.62,
+        reducedMotion: true,
+      ),
+    );
 
-      expect(
-        impact(
-          _cellCenter(1, 0) + const Offset(-_cellSize * 0.28, 0),
-        ),
-        _pushImpactColor,
-      );
-    },
-  );
+    expect(
+      impact(_cellCenter(1, 0) + const Offset(-_cellSize * 0.28, 0)),
+      _pushImpactColor,
+    );
+  });
 
   testWidgets('marks no destination without a resolvable selection', (
     tester,
@@ -1139,13 +1105,7 @@ void main() {
         playback: const BoardPlayback(
           resolution: MoveResolution(
             actionKind: MoveActionKind.normal,
-            mover: PieceTravel(
-              pieceId: 0,
-              fromX: 2,
-              fromY: 2,
-              toX: 2,
-              toY: 3,
-            ),
+            mover: PieceTravel(pieceId: 0, fromX: 2, fromY: 2, toX: 2, toY: 3),
             tileTransition: TileTransition(
               x: 2,
               y: 2,
@@ -1167,13 +1127,7 @@ void main() {
         playback: const BoardPlayback(
           resolution: MoveResolution(
             actionKind: MoveActionKind.normal,
-            mover: PieceTravel(
-              pieceId: 0,
-              fromX: 2,
-              fromY: 2,
-              toX: 2,
-              toY: 3,
-            ),
+            mover: PieceTravel(pieceId: 0, fromX: 2, fromY: 2, toX: 2, toY: 3),
             tileTransition: TileTransition(
               x: 2,
               y: 2,
@@ -1201,11 +1155,7 @@ Set<Color> _cellColors(Color Function(Offset) sample, int x, int y) {
   final colors = <Color>{};
   for (var dx = 2; dx < _cellSize - 2; dx += 2) {
     for (var dy = 2; dy < _cellSize - 2; dy += 2) {
-      colors.add(
-        sample(
-          Offset(x * _cellSize + dx, (4 - y) * _cellSize + dy),
-        ),
-      );
+      colors.add(sample(Offset(x * _cellSize + dx, (4 - y) * _cellSize + dy)));
     }
   }
   return colors;
@@ -1264,7 +1214,7 @@ Future<Color Function(Offset)> _paintAndSample(
   );
 
   await tester.pump();
-  return _sampleCurrentBoard(tester);
+  return await _sampleCurrentBoard(tester);
 }
 
 Future<Color Function(Offset)> _sampleCurrentBoard(WidgetTester tester) async {
@@ -1350,10 +1300,9 @@ Future<ProductionSpriteSet> _testSpriteSet() async {
 
 Future<ui.Image> _solidImage(Color color) async {
   final recorder = ui.PictureRecorder();
-  Canvas(recorder).drawRect(
-    const Rect.fromLTWH(0, 0, 8, 8),
-    Paint()..color = color,
-  );
+  Canvas(
+    recorder,
+  ).drawRect(const Rect.fromLTWH(0, 0, 8, 8), Paint()..color = color);
   final picture = recorder.endRecording();
   final image = await picture.toImage(8, 8);
   picture.dispose();

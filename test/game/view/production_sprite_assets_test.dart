@@ -195,36 +195,33 @@ void main() {
     });
   });
 
-  testWidgets(
-    'damaged foothold remains fractured and solid at board scale',
-    (
-      tester,
-    ) async {
-      await tester.runAsync(() async {
-        final intact = await _loadRgbaAtSize(_intactSpritePath, _nativeScale);
-        final damaged = await _loadRgbaAtSize(_damagedSpritePath, _nativeScale);
-        final hole = await _loadRgbaAtSize(_holeSpritePath, _nativeScale);
-        final intactDarkFraction = _darkVisiblePixelFraction(intact);
-        final damagedDarkFraction = _darkVisiblePixelFraction(damaged);
+  testWidgets('damaged foothold remains fractured and solid at board scale', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final intact = await _loadRgbaAtSize(_intactSpritePath, _nativeScale);
+      final damaged = await _loadRgbaAtSize(_damagedSpritePath, _nativeScale);
+      final hole = await _loadRgbaAtSize(_holeSpritePath, _nativeScale);
+      final intactDarkFraction = _darkVisiblePixelFraction(intact);
+      final damagedDarkFraction = _darkVisiblePixelFraction(damaged);
 
-        expect(
-          damagedDarkFraction,
-          greaterThan(intactDarkFraction),
-          reason: 'damage fractures must remain distinct after native scaling',
-        );
-        expect(
-          _centerAlphaValues(damaged, size: _nativeScale),
-          everyElement(greaterThanOrEqualTo(250)),
-          reason: 'the damaged foothold center region must remain solid',
-        );
-        expect(
-          _centerAlphaValues(hole, size: _nativeScale),
-          contains(lessThan(128)),
-          reason: 'the center-region check must detect a collapsed hole',
-        );
-      });
-    },
-  );
+      expect(
+        damagedDarkFraction,
+        greaterThan(intactDarkFraction),
+        reason: 'damage fractures must remain distinct after native scaling',
+      );
+      expect(
+        _centerAlphaValues(damaged, size: _nativeScale),
+        everyElement(greaterThanOrEqualTo(250)),
+        reason: 'the damaged foothold center region must remain solid',
+      );
+      expect(
+        _centerAlphaValues(hole, size: _nativeScale),
+        contains(lessThan(128)),
+        reason: 'the center-region check must detect a collapsed hole',
+      );
+    });
+  });
 
   test('rejects a fully transparent alpha footprint', () {
     expect(
@@ -342,10 +339,7 @@ Future<Uint8List> _loadRgbaAtSize(String assetPath, int size) async {
   if (pixels == null) {
     throw StateError('$assetPath failed to decode at $size pixels');
   }
-  return pixels.buffer.asUint8List(
-    pixels.offsetInBytes,
-    pixels.lengthInBytes,
-  );
+  return pixels.buffer.asUint8List(pixels.offsetInBytes, pixels.lengthInBytes);
 }
 
 double _darkVisiblePixelFraction(Uint8List rgba) {

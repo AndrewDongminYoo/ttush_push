@@ -11,13 +11,9 @@ Future<void> main() async {
           !_hasPngSignature(screenshotBytes)) {
         return false;
       }
-      final outputDirectory = Directory(
-        'build/screenshots/store-listing/raw',
-      );
+      final outputDirectory = Directory('build/screenshots/store-listing/raw');
       await outputDirectory.create(recursive: true);
-      final outputFile = File(
-        '${outputDirectory.path}/$screenshotName.png',
-      );
+      final outputFile = File('${outputDirectory.path}/$screenshotName.png');
       await outputFile.writeAsBytes(screenshotBytes, flush: true);
       return outputFile.lengthSync() == screenshotBytes.length;
     },

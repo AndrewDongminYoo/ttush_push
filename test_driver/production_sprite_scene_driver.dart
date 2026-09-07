@@ -15,9 +15,7 @@ Future<void> main() async {
         'build/screenshots/production-sprite-set',
       );
       await outputDirectory.create(recursive: true);
-      final outputFile = File(
-        '${outputDirectory.path}/$screenshotName.png',
-      );
+      final outputFile = File('${outputDirectory.path}/$screenshotName.png');
       await outputFile.writeAsBytes(screenshotBytes, flush: true);
       return outputFile.lengthSync() == screenshotBytes.length;
     },

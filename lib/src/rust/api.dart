@@ -41,12 +41,7 @@ Future<GameMove?> chooseBotMove({
   policy: policy,
 );
 
-enum BotPolicy {
-  random,
-  greedy,
-  minimax,
-  strategic,
-}
+enum BotPolicy { random, greedy, minimax, strategic }
 
 class CounterPushRestriction {
   final int pusherPieceId;
@@ -73,10 +68,7 @@ class GameBoardCell {
   final int x;
   final int y;
 
-  const GameBoardCell({
-    required this.x,
-    required this.y,
-  });
+  const GameBoardCell({required this.x, required this.y});
 
   @override
   int get hashCode => x.hashCode ^ y.hashCode;
@@ -111,27 +103,15 @@ class GameBoardDefinition {
           startingPieces == other.startingPieces;
 }
 
-enum GameDirection {
-  up,
-  down,
-  left,
-  right,
-}
+enum GameDirection { up, down, left, right }
 
-enum GameMatchPhase {
-  playing,
-  roundOver,
-  matchOver,
-}
+enum GameMatchPhase { playing, roundOver, matchOver }
 
 class GameMove {
   final int pieceId;
   final GameDirection direction;
 
-  const GameMove({
-    required this.pieceId,
-    required this.direction,
-  });
+  const GameMove({required this.pieceId, required this.direction});
 
   @override
   int get hashCode => pieceId.hashCode ^ direction.hashCode;
@@ -172,10 +152,7 @@ class GamePiece {
           y == other.y;
 }
 
-enum GamePlayer {
-  first,
-  second,
-}
+enum GamePlayer { first, second }
 
 class GameSnapshot {
   final GamePlayer currentPlayer;
@@ -225,11 +202,7 @@ class GameTile {
   final int y;
   final GameTileKind kind;
 
-  const GameTile({
-    required this.x,
-    required this.y,
-    required this.kind,
-  });
+  const GameTile({required this.x, required this.y, required this.kind});
 
   @override
   int get hashCode => x.hashCode ^ y.hashCode ^ kind.hashCode;
@@ -244,16 +217,9 @@ class GameTile {
           kind == other.kind;
 }
 
-enum GameTileKind {
-  normal,
-  damaged,
-  hole,
-}
+enum GameTileKind { normal, damaged, hole }
 
-enum GameWinReason {
-  knockout,
-  immobilization,
-}
+enum GameWinReason { knockout, immobilization }
 
 /// A best-of-three match, carried across the bridge by value.
 ///
@@ -311,10 +277,7 @@ class MatchSnapshot {
           snapshotHash == other.snapshotHash;
 }
 
-enum MoveActionKind {
-  normal,
-  push,
-}
+enum MoveActionKind { normal, push }
 
 class MoveResolution {
   final MoveActionKind actionKind;
@@ -351,10 +314,7 @@ class MoveResult {
   final MatchSnapshot snapshot;
   final MoveResolution resolution;
 
-  const MoveResult({
-    required this.snapshot,
-    required this.resolution,
-  });
+  const MoveResult({required this.snapshot, required this.resolution});
 
   @override
   int get hashCode => snapshot.hashCode ^ resolution.hashCode;

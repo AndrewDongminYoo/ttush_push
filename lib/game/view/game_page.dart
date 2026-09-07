@@ -349,9 +349,7 @@ class _GamePageState extends State<GamePage>
                 ),
                 if (_controller.error != null)
                   _ActionError(
-                    key: ValueKey(
-                      'action-error-$_errorAnnouncementGeneration',
-                    ),
+                    key: ValueKey('action-error-$_errorAnnouncementGeneration'),
                     onRetry: replaying ? null : _retry,
                     error: _controller.error!,
                   ),
@@ -493,9 +491,8 @@ class _GamePageState extends State<GamePage>
     final opponent = await showModalBottomSheet<Opponent>(
       context: context,
       backgroundColor: _panelColor,
-      builder: (context) => _OpponentSelectionSheet(
-        selectedOpponent: controller.opponent,
-      ),
+      builder: (context) =>
+          _OpponentSelectionSheet(selectedOpponent: controller.opponent),
     );
     if (!mounted || !identical(controller, _controller)) {
       return;
@@ -623,12 +620,10 @@ class _GamePageState extends State<GamePage>
             ),
           );
         } else {
-          _announce(
-            switch (resolution.actionKind) {
-              rust.MoveActionKind.normal => l10n.moveAppliedAnnouncement,
-              rust.MoveActionKind.push => l10n.pushAppliedAnnouncement,
-            },
-          );
+          _announce(switch (resolution.actionKind) {
+            rust.MoveActionKind.normal => l10n.moveAppliedAnnouncement,
+            rust.MoveActionKind.push => l10n.pushAppliedAnnouncement,
+          });
         }
       });
       if (decided) {
@@ -833,10 +828,7 @@ String _playerLabel(AppLocalizations l10n, rust.GamePlayer player) {
   };
 }
 
-String _winReasonLabel(
-  AppLocalizations l10n,
-  rust.GameWinReason winReason,
-) {
+String _winReasonLabel(AppLocalizations l10n, rust.GameWinReason winReason) {
   return switch (winReason) {
     rust.GameWinReason.knockout => l10n.byKnockout,
     rust.GameWinReason.immobilization => l10n.byImmobilization,
@@ -1352,9 +1344,7 @@ class _ResultOverlay extends StatelessWidget {
                   minimumSize: const Size(64, kMinInteractiveDimension),
                 ),
                 onPressed: onContinue,
-                child: Text(
-                  isMatchComplete ? l10n.newMatch : l10n.nextRound,
-                ),
+                child: Text(isMatchComplete ? l10n.newMatch : l10n.nextRound),
               ),
             ],
           ),

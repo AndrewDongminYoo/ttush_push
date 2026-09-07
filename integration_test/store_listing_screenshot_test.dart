@@ -104,9 +104,7 @@ void main() {
           coachStore: const _CoachStore(isComplete: true),
           feedback: const _SilentRoundFeedback(),
           rulesEngine: FakeRulesEngine(
-            initial: [
-              matchOverMatch(resultSnapshot, winner: GamePlayer.first),
-            ],
+            initial: [matchOverMatch(resultSnapshot, winner: GamePlayer.first)],
           ),
         ),
       ),
@@ -125,9 +123,7 @@ Widget _storeApp(Widget home) {
     debugShowCheckedModeBanner: false,
     theme: ThemeData(
       primaryColor: const Color(0xFF2A48DF),
-      colorScheme: ColorScheme.fromSwatch(
-        accentColor: const Color(0xFF2A48DF),
-      ),
+      colorScheme: ColorScheme.fromSwatch(accentColor: const Color(0xFF2A48DF)),
       fontFamily: 'Poppins',
     ),
     localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -182,9 +178,7 @@ GameSnapshot _resultSnapshot() {
   return GameSnapshot(
     currentPlayer: GamePlayer.second,
     tiles: _tiles(),
-    pieces: const [
-      GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
-    ],
+    pieces: const [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2)],
     winner: GamePlayer.first,
     winReason: GameWinReason.knockout,
     snapshotHash: 'store-result',

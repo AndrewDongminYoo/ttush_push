@@ -142,7 +142,7 @@ final class MatchController {
       if (queuedToken != _botRequestToken) {
         return false;
       }
-      return prepareBotMove();
+      return await prepareBotMove();
     }
 
     final requestToken = ++_botRequestToken;

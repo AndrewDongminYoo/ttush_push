@@ -4,9 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:ttush_push/src/rust/api.dart' as rust;
 
 typedef ProductionSpriteLoader =
-    Future<ProductionSpriteSet> Function(
-      AssetBundle bundle,
-    );
+    Future<ProductionSpriteSet> Function(AssetBundle bundle);
 
 const productionSpriteAssetPaths = [
   'assets/images/sprites/azure_explorer_up.png',

@@ -36,10 +36,7 @@ void main() {
     test('initializes from RulesEngine and exposes only its legal moves', () {
       const moves = [GameMove(pieceId: 0, direction: GameDirection.down)];
       final controller = MatchController(
-        FakeRulesEngine.playing(
-          initial: matchOf(round()),
-          legalMoves: moves,
-        ),
+        FakeRulesEngine.playing(initial: matchOf(round()), legalMoves: moves),
       )..initialize();
 
       expect(controller.status, MatchStatus.ready);
@@ -72,9 +69,7 @@ void main() {
     test('rejects a snapshot with only one terminal field', () {
       final controller = MatchController(
         FakeRulesEngine(
-          initial: [
-            matchOf(round(), roundWinner: GamePlayer.first),
-          ],
+          initial: [matchOf(round(), roundWinner: GamePlayer.first)],
         ),
       )..initialize();
 
@@ -215,9 +210,7 @@ void main() {
 
     test('changes the opponent before the first move', () {
       final controller =
-          MatchController(
-              FakeRulesEngine.playing(initial: matchOf(round())),
-            )
+          MatchController(FakeRulesEngine.playing(initial: matchOf(round())))
             ..initialize()
             ..selectOpponent(Opponent.greedy);
 
@@ -297,9 +290,7 @@ void main() {
       final next = matchOf(round(hash: 'after-bot'), hash: 'after-bot-match');
       final engine = FakeRulesEngine(
         initial: [matchOf(round(current: GamePlayer.second))],
-        moveResults: [
-          moveResultOf(next: next, resolution: testMoveResolution),
-        ],
+        moveResults: [moveResultOf(next: next, resolution: testMoveResolution)],
         legalMovesFor: (_) => const [move],
         botMove: (_, _) => move,
       );
@@ -454,9 +445,7 @@ void main() {
 
     test('ignores a selection that has no legal move', () {
       final controller =
-          MatchController(
-              FakeRulesEngine.playing(initial: matchOf(round())),
-            )
+          MatchController(FakeRulesEngine.playing(initial: matchOf(round())))
             ..initialize()
             ..selectPiece(0);
 
@@ -501,9 +490,7 @@ void main() {
       );
       final engine = FakeRulesEngine(
         initial: [initial],
-        moveResults: [
-          moveResultOf(next: next, resolution: testMoveResolution),
-        ],
+        moveResults: [moveResultOf(next: next, resolution: testMoveResolution)],
         legalMovesFor: (state) => switch (state.snapshotHash) {
           'initial-match' => const [move],
           'next-match' => const [nextMove],
@@ -538,9 +525,7 @@ void main() {
       );
       final engine = FakeRulesEngine(
         initial: [initial],
-        moveResults: [
-          moveResultOf(next: next, resolution: testMoveResolution),
-        ],
+        moveResults: [moveResultOf(next: next, resolution: testMoveResolution)],
         legalMovesFor: (_) => const [move],
         botMove: (_, _) => move,
       );
@@ -570,9 +555,7 @@ void main() {
       final completion = Completer<GameMove?>();
       final engine = FakeRulesEngine(
         initial: [initial],
-        moveResults: [
-          moveResultOf(next: next, resolution: testMoveResolution),
-        ],
+        moveResults: [moveResultOf(next: next, resolution: testMoveResolution)],
         legalMovesFor: (_) => const [move],
         botMove: (_, _) => completion.future,
       );
@@ -656,9 +639,7 @@ void main() {
       );
       final engine = FakeRulesEngine(
         initial: [initial],
-        moveResults: [
-          moveResultOf(next: next, resolution: testMoveResolution),
-        ],
+        moveResults: [moveResultOf(next: next, resolution: testMoveResolution)],
         legalMovesFor: (_) => const [move],
       );
       final controller = MatchController(engine)
@@ -892,9 +873,7 @@ void main() {
     test('refuses moves once the round is over', () {
       const move = GameMove(pieceId: 0, direction: GameDirection.down);
       final engine = FakeRulesEngine(
-        initial: [
-          roundOverMatch(round(), winner: GamePlayer.first),
-        ],
+        initial: [roundOverMatch(round(), winner: GamePlayer.first)],
         legalMovesFor: (_) => const [move],
       );
       final controller = MatchController(engine)..initialize();

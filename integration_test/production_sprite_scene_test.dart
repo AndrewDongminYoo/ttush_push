@@ -16,9 +16,7 @@ import '../test/support/match_fixtures.dart';
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('captures the exercised production sprite scene', (
-    tester,
-  ) async {
+  testWidgets('captures the exercised production sprite scene', (tester) async {
     const azurePieceId = 0;
     const azurePosition = (2, 2);
     const pushMove = GameMove(
@@ -89,12 +87,7 @@ void main() {
             ),
       ],
       pieces: const [
-        GamePiece(
-          id: azurePieceId,
-          owner: GamePlayer.first,
-          x: 2,
-          y: 3,
-        ),
+        GamePiece(id: azurePieceId, owner: GamePlayer.first, x: 2, y: 3),
       ],
       snapshotHash: 'production-sprite-scene-pushed',
     );
@@ -149,9 +142,7 @@ void main() {
         'production sprite screenshots require iOS or Android',
       ),
     };
-    final idleBytes = await binding.takeScreenshot(
-      '$screenshotPrefix-idle',
-    );
+    final idleBytes = await binding.takeScreenshot('$screenshotPrefix-idle');
     expect(idleBytes, isNotEmpty);
 
     final boardRect = tester.getRect(

@@ -164,12 +164,9 @@ final class FakeRulesEngine implements RulesEngine {
   }
 
   @override
-  Future<GameMove?> chooseBotMove(
-    MatchSnapshot state,
-    BotPolicy policy,
-  ) async {
+  Future<GameMove?> chooseBotMove(MatchSnapshot state, BotPolicy policy) async {
     botRequests.add(policy);
-    return _botMove?.call(state, policy);
+    return await _botMove?.call(state, policy);
   }
 
   MatchSnapshot _take(List<Object> results, String what) {

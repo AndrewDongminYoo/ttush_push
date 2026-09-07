@@ -51,10 +51,7 @@ void main() {
     final result = await fixture.validate();
 
     expect(result.exitCode, isNot(0));
-    expect(
-      result.stderr,
-      contains('icon.png must be 512x512, found 511x512.'),
-    );
+    expect(result.stderr, contains('icon.png must be 512x512, found 511x512.'));
   });
 
   test('rejects a phone screenshot with the wrong dimensions', () async {
@@ -159,11 +156,7 @@ final class _ListingFixture {
     await file.writeAsString(contents);
   }
 
-  Future<void> writeImage(
-    String relativePath,
-    int width,
-    int height,
-  ) async {
+  Future<void> writeImage(String relativePath, int width, int height) async {
     final file = File('${root.path}/$relativePath');
     await file.parent.create(recursive: true);
     final result = await Process.run(convertBin, [
@@ -176,23 +169,18 @@ final class _ListingFixture {
   }
 
   Future<ProcessResult> validate({Map<String, String>? environment}) =>
-      Process.run(
-        'bash',
-        ['tool/store_screenshots/validate.sh', root.path],
-        environment: environment,
-      );
+      Process.run('bash', [
+        'tool/store_screenshots/validate.sh',
+        root.path,
+      ], environment: environment);
 
   Future<ProcessResult> generate({Map<String, String>? environment}) =>
-      Process.run(
-        'bash',
-        [
-          'tool/store_screenshots/generate.sh',
-          '${root.path}/raw',
-          '${root.path}/framed',
-          '${root.path}/copy.tsv',
-        ],
-        environment: environment,
-      );
+      Process.run('bash', [
+        'tool/store_screenshots/generate.sh',
+        '${root.path}/raw',
+        '${root.path}/framed',
+        '${root.path}/copy.tsv',
+      ], environment: environment);
 
   Future<void> dispose() => root.delete(recursive: true);
 }
