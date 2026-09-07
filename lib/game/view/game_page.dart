@@ -632,22 +632,37 @@ class _GamePageState extends State<GamePage>
         }
       });
       if (decided) {
-        // `Future.sync` so that a gateway raising before it returns a future
-        // — an adapter over an uninitialized SDK — reaches the handler below
-        // rather than escaping this status listener and skipping the win
-        // feedback the player earned.
-        unawaited(
-          Future<void>.sync(_adGateway.matchDecided).catchError((
-            Object error,
-            StackTrace stackTrace,
-          ) {
-            log(
-              'Ad gateway failed on a decided match',
-              error: error,
-              stackTrace: stackTrace,
-            );
-          }),
-        );
+        // After the frame, because this listener runs before the frame that
+        // paints the result, and a provider is free to do synchronous setup
+        // before it returns its future. Leaving the future unawaited does not
+        // move that work: it would run here, inside the callback Flutter is
+        // waiting on to build and paint, and delay the very result this call
+        // is meant never to delay.
+        //
+        // Deliberately unguarded, unlike every other deferred call in this
+        // file: `mounted` and `identical(controller, _controller)` guard the
+        // ones that go on to mutate the page, and a page that died or was
+        // rebuilt in the meantime must not be mutated. This one mutates
+        // nothing. It reports a match that was already decided, so dropping it
+        // on a page torn down or reconfigured in the same frame would lose the
+        // call the spec counts and cost the first real adapter its prepare.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          // `Future.sync` so that a gateway raising before it returns a future
+          // — an adapter over an uninitialized SDK — reaches the handler below
+          // rather than escaping into the framework's post-frame machinery.
+          unawaited(
+            Future<void>.sync(_adGateway.matchDecided).catchError((
+              Object error,
+              StackTrace stackTrace,
+            ) {
+              log(
+                'Ad gateway failed on a decided match',
+                error: error,
+                stackTrace: stackTrace,
+              );
+            }),
+          );
+        });
       }
       _feedbackForCommittedMove(resolution);
       _scheduleBotMove();

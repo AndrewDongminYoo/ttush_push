@@ -16,20 +16,29 @@ import 'package:ttush_push/game/ads/ad_gateway.dart';
 /// a returned failed future, or a throw that happens before any future
 /// exists. The interface permits both, and an adapter over an uninitialized
 /// SDK raises the second one, so the page has to survive either.
+///
+/// `onMatchDecided` runs at the instant the call arrives, before anything is
+/// recorded, which is how a test reads the state of the frame the page called
+/// from. The recorded event alone cannot answer that: the call and the frame
+/// that paints the result fall inside the same `pump`, so only what is true
+/// *during* the call separates a pre-paint caller from a post-paint one.
 final class RecordingAdGateway implements AdGateway {
   RecordingAdGateway({
     this.hold,
     this.matchDecidedError,
     this.matchDecidedFailsSynchronously = false,
+    this.onMatchDecided,
   });
 
   final Completer<void>? hold;
   final Error? matchDecidedError;
   final bool matchDecidedFailsSynchronously;
+  final void Function()? onMatchDecided;
   final List<String> events = [];
 
   @override
   Future<void> matchDecided() {
+    onMatchDecided?.call();
     events.add('match-decided');
     final error = matchDecidedError;
     if (error == null) {

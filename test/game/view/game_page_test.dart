@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
@@ -698,6 +699,162 @@ void main() {
     expect(ads.events, ['match-decided']);
   });
 
+  testWidgets('paints the decided result before it reports the match', (
+    tester,
+  ) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'ads-order-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'ads-order-terminal',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+
+    // The call and the frame that paints the result fall inside one `pump`,
+    // so a pump-level assertion cannot separate a gateway invoked from the
+    // replay's status listener from one invoked after the frame. What the
+    // page did is only visible from inside the call itself.
+    SchedulerPhase? phaseAtCall;
+    var resultPaintedAtCall = false;
+    var callCount = 0;
+    final ads = RecordingAdGateway(
+      onMatchDecided: () {
+        callCount++;
+        phaseAtCall = SchedulerBinding.instance.schedulerPhase;
+        resultPaintedAtCall = _matchResultIsPainted();
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          adGateway: ads,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(startSnapshot, hash: 'ads-order-start'),
+            next: matchOverMatch(
+              terminalSnapshot,
+              winner: GamePlayer.first,
+              hash: 'ads-order-over',
+            ),
+            legalMoves: const [move],
+            resolution: _fallPushResolution,
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+    await _finishReplay(tester);
+
+    expect(callCount, 1, reason: 'the decided match reports exactly once');
+    expect(
+      resultPaintedAtCall,
+      isTrue,
+      reason:
+          'the result the player earned must already be built, laid out and '
+          'painted when the gateway is called',
+    );
+    expect(
+      phaseAtCall,
+      SchedulerPhase.postFrameCallbacks,
+      reason:
+          'the gateway must be called after the frame, not from the replay '
+          'status listener Flutter is waiting on to build and paint',
+    );
+    expect(ads.events, ['match-decided']);
+  });
+
+  testWidgets('reports the decided match even when the page goes with the '
+      'frame', (tester) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'ads-unmount-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'ads-unmount-terminal',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    final ads = RecordingAdGateway();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          adGateway: ads,
+          rulesEngine: FakeRulesEngine.playing(
+            initial: matchOf(startSnapshot, hash: 'ads-unmount-start'),
+            next: matchOverMatch(
+              terminalSnapshot,
+              winner: GamePlayer.first,
+              hash: 'ads-unmount-over',
+            ),
+            legalMoves: const [move],
+            resolution: _fallPushResolution,
+          ),
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+
+    // One pump that both finishes the replay and rebuilds the tree without
+    // the page: the ticker completes and the callback is scheduled during the
+    // transient callbacks, the build that follows unmounts `GamePage`, and the
+    // post-frame callbacks drain after that. The match was decided before any
+    // of it, so the call is owed whether or not the page survived the frame —
+    // a `mounted` guard on the callback would swallow it, and the first real
+    // adapter would lose its prepare.
+    await tester.pumpWidget(
+      const MaterialApp(home: SizedBox()),
+      duration: const Duration(milliseconds: 600),
+    );
+
+    expect(ads.events, ['match-decided']);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('holds the new match until the interruption is over', (
     tester,
   ) async {
@@ -900,8 +1057,11 @@ void main() {
     const move = GameMove(pieceId: 0, direction: GameDirection.up);
     // The interface returns a future but does not require an `async` body, so
     // an adapter over an uninitialized SDK raises before a future exists. That
-    // throw lands in the replay listener rather than in the handler attached
-    // to the result, which is a different path from the failed future above.
+    // throw escapes the call rather than the future it never returned, which
+    // is a different path from the failed future above: the `Future.sync`
+    // around the call is the only thing routing it into `catchError`, and
+    // without it the throw would reach the post-frame callback the page
+    // schedules the call from, and from there the framework.
     final ads = RecordingAdGateway(
       matchDecidedError: StateError('ad gateway unavailable'),
       matchDecidedFailsSynchronously: true,
@@ -3006,6 +3166,26 @@ double _contrastRatio(Color foreground, Color background) {
       ? backgroundLuminance
       : foregroundLuminance;
   return (lighter + 0.05) / (darker + 0.05);
+}
+
+/// Whether the match result is on screen right now: built, laid out, and
+/// painted, rather than merely scheduled by a `setState` that has not been
+/// built yet.
+///
+/// Called from inside a gateway invocation, so it reads the frame the page
+/// called from. From the replay's status listener the result element does not
+/// exist at all; from a post-frame callback it exists and is clean.
+bool _matchResultIsPainted() {
+  final elements = find.text('MATCH COMPLETE').evaluate();
+  if (elements.length != 1) {
+    return false;
+  }
+  final box = elements.single.renderObject;
+  return box is RenderBox &&
+      box.attached &&
+      box.hasSize &&
+      !box.debugNeedsLayout &&
+      !box.debugNeedsPaint;
 }
 
 Future<void> _finishReplay(WidgetTester tester) async {
