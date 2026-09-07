@@ -20,12 +20,12 @@ Do not stage, commit, push, or delegate.
 Create only the transient runtime and capture artifacts that the playtest requires.
 
 Use a simulator or emulator by default.
-Treat every physical iOS device as a personal daily phone unless the caller explicitly identifies it as a test device.
+Treat every physical device as a personal daily device unless the caller explicitly identifies it as a test device.
 If the caller has not supplied explicit authority for the specific device write:
 
-- Do not install an app on that phone.
-- Do not uninstall an app from that phone.
-- Do not launch with `--terminate-existing` on that phone.
+- Do not install an app on that device.
+- Do not uninstall an app from that device.
+- Do not launch with `--terminate-existing` on that device.
 - Return the missing authority as a blocker.
 
 Never clear app data or reset player state without explicit authority for that reset.
