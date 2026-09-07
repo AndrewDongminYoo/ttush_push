@@ -1,6 +1,5 @@
 use std::collections::{BTreeSet, HashMap};
 
-#[cfg(not(debug_assertions))]
 use std::time::{Duration, Instant};
 
 use engine::api::{
@@ -484,7 +483,6 @@ fn translated_horizon_state(extra_cells: impl IntoIterator<Item = Position>) -> 
     apply_move(&state, Move::new(PieceId(0), Direction::Right)).unwrap()
 }
 
-#[cfg(not(debug_assertions))]
 fn larger_multi_piece_state() -> GameState {
     rectangular_state(
         7,
@@ -536,7 +534,6 @@ fn strategic_beats_hard_from_both_seats_in_each_topology_group() {
     );
 }
 
-#[cfg(not(debug_assertions))]
 #[test]
 fn strategic_searches_meet_the_host_turn_limit() {
     let fixtures = [
