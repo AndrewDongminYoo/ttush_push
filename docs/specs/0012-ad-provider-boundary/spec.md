@@ -64,8 +64,9 @@ Adopting a provider changes one line in each entry point that should carry it.
 
 ## Call Sites
 
-`matchDecided()` is called, unawaited, where the controller first reports the match is over.
-An ad provider must never delay the result the player is waiting to read.
+`matchDecided()` is called, unawaited, from a post-frame callback the page schedules where the controller first reports the match is over, so the call lands after the frame that paints the result rather than inside the replay listener Flutter is waiting on to build and paint it.
+An ad provider must never delay the result the player is waiting to read, and leaving the future unawaited alone does not achieve that: an adapter is free to do synchronous setup before it returns a future, and that work would run wherever the call is made.
+The call is deliberately not guarded on `mounted` or on controller identity, unlike the deferred calls that go on to mutate the page, because it reports a match that was already decided and mutates nothing — a decided match owes exactly one call whether or not the page survives the frame.
 
 `beforeNewMatch()` is awaited inside `_restart()` before the controller restarts.
 The state check after the await follows the page's existing mounted and generation pattern, so a page disposed during an interruption does not restart a dead state.
