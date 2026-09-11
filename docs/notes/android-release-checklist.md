@@ -54,6 +54,8 @@ merry run release alpha check
 ```
 
 The preflight reads the version from `pubspec.yaml`.
+The known published Alpha baseline is versionCode 5.
+The preflight rejects that versionCode and any lower value.
 It requires non-empty `en-US` and `ko-KR` changelogs whose filename matches the versionCode.
 It also requires a production AAB whose embedded package and version match `pubspec.yaml`.
 The AAB must be signed by the registered upload certificate.

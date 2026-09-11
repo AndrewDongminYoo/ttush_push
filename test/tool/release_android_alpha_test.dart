@@ -15,16 +15,38 @@ version: 1.1.0+6
     expect(version.code, 6);
   });
 
-  test('accepts a production AAB with both changelogs', () async {
-    final fixture = await _ReleaseFixture.create();
+  test(
+    'accepts release inputs with a non-empty AAB and both changelogs',
+    () async {
+      final fixture = await _ReleaseFixture.create();
+      addTearDown(fixture.dispose);
+
+      final inputs = inspectAlphaRelease(fixture.root);
+
+      expect(inputs.version.name, '1.1.0');
+      expect(inputs.version.code, 6);
+      expect(inputs.aab.path, endsWith('app-production-release.aab'));
+      expect(inputs.changelogs, hasLength(2));
+    },
+  );
+
+  test('rejects the latest published Alpha versionCode', () async {
+    final fixture = await _ReleaseFixture.create(versionCode: 5);
     addTearDown(fixture.dispose);
 
-    final inputs = inspectAlphaRelease(fixture.root);
-
-    expect(inputs.version.name, '1.1.0');
-    expect(inputs.version.code, 6);
-    expect(inputs.aab.path, endsWith('app-production-release.aab'));
-    expect(inputs.changelogs, hasLength(2));
+    expect(
+      () => inspectAlphaRelease(fixture.root),
+      throwsA(
+        isA<ReleaseException>().having(
+          (error) => error.message,
+          'message',
+          contains(
+            'versionCode 5 must be greater than the latest published Alpha '
+            'versionCode 5',
+          ),
+        ),
+      ),
+    );
   });
 
   test('rejects a release without the Korean changelog', () async {
@@ -66,10 +88,20 @@ version: 1.1.0+6
   });
 
   test('rejects an AAB version that differs from pubspec.yaml', () {
-    const manifest = BundleManifest(
-      packageName: 'kr.donminzzi.ttush_push',
-      version: ReleaseVersion(name: '1.1.0', code: 5),
-    );
+    final manifest = parseBundleManifest('''
+4 {
+  2: "package"
+  3: "kr.donminzzi.ttush_push"
+}
+4 {
+  2: "versionCode"
+  3: "5"
+}
+4 {
+  2: "versionName"
+  3: "1.1.0"
+}
+''');
 
     expect(
       () => validateBundleManifest(
@@ -123,19 +155,19 @@ final class _ReleaseFixture {
 
   final Directory root;
 
-  static Future<_ReleaseFixture> create() async {
+  static Future<_ReleaseFixture> create({int versionCode = 6}) async {
     final root = await Directory.systemTemp.createTemp('ttush-alpha-release-');
     final fixture = _ReleaseFixture(root);
     final inputTime = DateTime.utc(2026, 9, 11, 1);
     final artifactTime = inputTime.add(const Duration(minutes: 1));
 
-    await fixture._write('pubspec.yaml', 'version: 1.1.0+6\n');
+    await fixture._write('pubspec.yaml', 'version: 1.1.0+$versionCode\n');
     await fixture._write(
-      'fastlane/metadata/android/en-US/changelogs/6.txt',
+      'fastlane/metadata/android/en-US/changelogs/$versionCode.txt',
       'English release notes.\n',
     );
     await fixture._write(
-      'fastlane/metadata/android/ko-KR/changelogs/6.txt',
+      'fastlane/metadata/android/ko-KR/changelogs/$versionCode.txt',
       '한국어 출시 노트입니다.\n',
     );
     await fixture._writeBytes(
@@ -145,8 +177,8 @@ final class _ReleaseFixture {
 
     for (final path in [
       'pubspec.yaml',
-      'fastlane/metadata/android/en-US/changelogs/6.txt',
-      'fastlane/metadata/android/ko-KR/changelogs/6.txt',
+      'fastlane/metadata/android/en-US/changelogs/$versionCode.txt',
+      'fastlane/metadata/android/ko-KR/changelogs/$versionCode.txt',
     ]) {
       await File('${root.path}/$path').setLastModified(inputTime);
     }
