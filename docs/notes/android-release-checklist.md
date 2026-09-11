@@ -11,6 +11,29 @@ Otherwise it reads `storeFile`, `storePassword`, `keyAlias`, and `keyPassword` f
 Neither source is validated at configuration time, so a missing or wrong keystore does not announce itself in the Gradle output.
 That is why the signer check below is not optional.
 
+Google Play uploads use a separate service account.
+Create a new service account for the personal Play developer account, enable the Google Play Developer API, and grant the account access to `kr.donminzzi.ttush_push`.
+Grant only the app-level permission to release builds to testing tracks.
+Do not grant tester-management or production-release permission.
+Download its JSON key outside the repository and export its absolute path:
+
+```sh
+export SUPPLY_JSON_KEY="/absolute/path/to/ttush-push-play-service-account.json"
+```
+
+Use `.env.example` as a variable-name reference only.
+The release command does not source `.env` automatically.
+
+Install the locked Fastlane dependencies once:
+
+```sh
+cd android
+BUNDLE_PATH=vendor/bundle bundle install
+cd ..
+```
+
+The preflight also requires `unzip`, `protoc`, and `keytool` on `PATH`.
+
 Rust needs the Android targets installed. Verify with `rustup target list --installed`; the build uses `aarch64-linux-android`, `armv7-linux-androideabi`, and `x86_64-linux-android`.
 
 ## Build
@@ -21,6 +44,31 @@ flutter build appbundle --release --flavor production --target lib/main_producti
 
 The artifact lands at `build/app/outputs/bundle/productionRelease/app-production-release.aab`.
 A warm-cache run took 106 seconds and produced a 55.7 MB bundle.
+
+## Release to the closed Alpha track
+
+Run the local preflight before a release:
+
+```sh
+merry run release alpha check
+```
+
+The preflight reads the version from `pubspec.yaml`.
+It requires non-empty `en-US` and `ko-KR` changelogs whose filename matches the versionCode.
+It also requires a production AAB whose embedded package and version match `pubspec.yaml`.
+The AAB must be signed by the registered upload certificate.
+The command makes no Google Play changes.
+
+Publish only after the preflight output names `kr.donminzzi.ttush_push`, the `alpha` track, and the intended version:
+
+```sh
+merry run release alpha publish
+```
+
+The publish command builds the exact production AAB path and repeats the local checks.
+Fastlane then uploads only that AAB and its two changelogs.
+It completes a 100% rollout on the closed Alpha track.
+It does not upload listing text, images, screenshots, or tester settings.
 
 ## Verify the artifact
 
@@ -90,9 +138,11 @@ That makes it the thing most likely to go quietly out of date, because nothing i
 
 ## What this checklist does not cover
 
-It stops at a signed local artifact. Uploading it is a separate manual step in Play Console.
+This automation stops at the closed Alpha track.
+It does not promote a release to open testing or production, change tester membership, or complete Play policy declarations.
 
-That upload has happened once already, outside this checklist: version 1 (1.0.0), version code 1, was published to the internal testing track on 2026-09-01 and is available to the 34-member beta tester list. The next upload therefore needs a build number of 2 or higher, which is the rule above and not a detail.
+Version 1.1.0, version code 5, was released to the closed Alpha track on 2026-09-11 through Play Console.
+The next uploaded artifact therefore needs a versionCode greater than 5.
 
 What remains uncovered is everything a production release needs. The app is still a draft in Play Console, so the store listing, the data safety form and the content rating questionnaire are all outstanding. iOS packaging is not covered here at all; no archive has been produced.
 
