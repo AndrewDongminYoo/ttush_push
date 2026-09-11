@@ -17,34 +17,37 @@ Everything outside a block is a note for whoever runs the playtest, not for a te
 | Closing questions | Items 7 and 8: whether the coach alone carried the rules, and the three recurring reports |
 | Blocker report    | Item 9: zero P0/P1 crashes and zero progress-blocking defects                             |
 
-## Release notes for the internal testing track
+## Release notes for the closed Alpha track
 
 Play asks for these per language, capped at 500 characters each.
+The blocks must match `fastlane/metadata/android/en-US/changelogs/5.txt` and `fastlane/metadata/android/ko-KR/changelogs/5.txt` before upload.
 
 `en-US`:
 
 ```plaintext
-New in 1.1.0
+🆕 What's New
+• Choose local two-player matches or four AI difficulty levels, including Expert.
+• Play the full game in English or Korean.
 
-- Match setup: pick 2 Players or Play vs AI, and Easy, Normal or Hard, before the board opens.
-- Leaving a match asks first, so one stray tap no longer ends a round in progress.
-- A new launcher icon.
-- The interface font ships inside the app, so the first screen no longer waits on a download.
+✨ Improvements
+• Updated the first-match guidance and launcher artwork.
 
-Tell us anything that crashes, blocks you, or leaves you unsure what to do.
+🔧 Fixes
+• Corrected Korean result announcements.
 ```
 
 `ko-KR`:
 
 ```plaintext
-1.1.0에서 달라진 점
+🆕 새로운 기능
+• 한 기기 2인 대전과 전문가를 포함한 네 단계의 AI 대전을 선택할 수 있습니다.
+• 게임 전체를 영어 또는 한국어로 플레이할 수 있습니다.
 
-- 보드가 열리기 전에 2인 대전과 AI 대전 중에서 고르고, Easy, Normal, Hard 중에서 난이도를 선택합니다.
-- 매치 도중에 나가려고 하면 확인을 먼저 묻기 때문에, 잘못 누른 한 번으로 진행 중인 라운드가 끝나지 않습니다.
-- 런처 아이콘을 새 그림으로 교체했습니다.
-- 인터페이스 글꼴을 앱 안에 함께 담았기 때문에, 첫 화면이 글꼴을 내려받기를 기다리지 않습니다.
+✨ 개선
+• 첫 매치 안내와 앱 아이콘을 개선했습니다.
 
-앱이 튕기거나, 더 진행할 수 없게 막히거나, 무엇을 해야 할지 알 수 없었던 순간이 있으면 알려 주세요.
+🔧 수정
+• 한국어 결과 안내 문구를 바로잡았습니다.
 ```
 
 ## Invitation
@@ -55,7 +58,7 @@ The invitation deliberately does not explain a single rule.
 Item 7 asks whether the game is playable from the coach alone, and a tester who was told the rules in the invitation can no longer answer that question.
 
 ```plaintext
-안녕하세요. Ttush Push 1.1.0 내부 테스트를 부탁드립니다.
+안녕하세요. Ttush Push 1.1.0 비공개 Alpha 테스트를 부탁드립니다.
 
 먼저 Play 스토어에서 앱을 최신 버전으로 업데이트해 주세요.
 파일을 직접 설치하지 마시고 Play가 전달하는 업데이트로 받아 주셔야, 실제 배포 경로가 함께 검증됩니다.
@@ -65,7 +68,8 @@ Item 7 asks whether the game is playable from the coach alone, and a tester who 
 첫째, 규칙 설명을 따로 찾지 마시고 화면에 나오는 안내만 보고 플레이해 주세요.
 규칙이 안내만으로 전달되는지가 이번 테스트에서 확인하려는 가장 중요한 항목이라서, 저도 규칙을 미리 설명하지 않겠습니다.
 
-둘째, 여러 판을 해 보시되 2인 대전과 AI 대전을 모두 해 보시고, AI 대전은 Easy, Normal, Hard를 각각 한 번 이상 겪어 봐 주세요.
+둘째, 여러 판을 해 보시되 2인 플레이와 AI 대전을 모두 해 보세요.
+AI 대전은 쉬움, 보통, 어려움, 전문가를 각각 한 번 이상 겪어 봐 주세요.
 
 셋째, 매치를 한 판 끝낼 때마다 아래 형식으로 한 줄씩 적어서 보내 주세요.
 ```
@@ -77,27 +81,31 @@ That matters because all 34 testers already on the track had dismissed it, and i
 
 ## Per-match record
 
-Five fields, all of them readable off the screen the match ends on.
-The win reason appears there in English as `by knockout` or `by immobilization`, so a tester can copy it rather than judge it.
+Five fields are readable on the screen when the match ends.
+Ask the tester to copy each visible label in the interface language instead of translating it.
 
 ```plaintext
 한 판이 끝날 때마다 이렇게 한 줄씩 남겨 주세요.
 
+[기기 모델] / [Android 버전] / [화면 언어]
 [소요 시간] / [모드] / [난이도] / [결과] / [승리 사유]
 
+- 기기를 바꾸면 새 기기 정보 아래에 그 기기에서 플레이한 매치를 적어 주세요.
 - 소요 시간: 분 단위의 대략적인 값이면 충분합니다.
-- 모드: 2 Players 또는 Play vs AI
-- 난이도: AI 대전일 때만 Easy, Normal, Hard 중 하나를 적고, 2인 대전이면 비워 두세요.
-- 결과: AI 대전이면 승 또는 패, 2인 대전이면 이긴 쪽을 Azure 또는 Ember로 적어 주세요.
+- 모드: 화면에 표시된 2인 플레이 또는 AI 대전을 적어 주세요.
+- 난이도: AI 대전일 때만 쉬움, 보통, 어려움, 전문가 중 화면에 표시된 항목을 적고, 2인 플레이이면 비워 두세요.
+- 결과: AI 대전이면 승 또는 패, 2인 플레이이면 이긴 쪽을 화면에 표시된 원정대 이름으로 적어 주세요.
 - 승리 사유: 매치가 끝난 화면에 표시되는 문구를 그대로 옮겨 주세요.
 
 예시
-4분 / Play vs AI / Normal / 패 / by immobilization
-7분 / 2 Players / / Ember / by knockout
+Pixel 9 / Android 16 / 한국어
+4분 / AI 대전 / 보통 / 패 / 상대의 움직임을 막았습니다.
+Galaxy S24 / Android 15 / 한국어
+7분 / 2인 플레이 / / 불씨 원정대 / 상대를 보드 밖으로 푸시했습니다.
 ```
 
-Also collect the device model and the Android version once per tester, not once per match.
-Item 2 asks for a completed match on at least two real Android devices, and that is the only field that answers it.
+Group the match records by device model, Android version, and interface language.
+Item 2 requires at least one completed match on each of at least two different physical Android devices.
 
 ## Closing questions
 
@@ -109,7 +117,7 @@ Ask these once, after the tester has finished playing, never between matches.
 1. 규칙 중에서 끝까지 이해되지 않았거나, 한참 뒤에야 알게 된 것이 있었다면 무엇이었습니까?
 2. 불공평하다고 느낀 순간이 있었다면 어떤 상황이었습니까?
 3. 지루하다고 느낀 구간이 있었다면 언제였습니까?
-4. 앱 화면의 영어 문구를 읽는 것은 얼마나 편했습니까? 편함, 보통, 어려움 중 하나와 그 이유를 한 줄로 적어 주세요.
+4. 게임 규칙을 알려 주는 안내 화면의 문구를 이해하는 것은 얼마나 편했습니까? 편함, 보통, 어려움 중 하나와 그 이유를 한 줄로 적어 주세요.
 ```
 
 The first three questions map one to one onto item 8, which asks for the top three recurring reports of confusion, unfairness and boredom.
@@ -125,11 +133,9 @@ Recurring is the operative word: a single tester's answer is an anecdote, and th
 
 ## Interpreting the coach answers
 
-The app's interface is English only.
-`lib/l10n/arb/` holds `app_en.arb` and nothing else, so the coach lines, the mode and difficulty labels, and the win reasons all reach a Korean tester in English.
+The app ships English and Korean localizations through `lib/l10n/arb/app_en.arb` and `lib/l10n/arb/app_ko.arb`.
+The interface follows the device locale.
 
 That affects item 7 specifically.
-A tester who could not follow the coach cannot show whether the coach was unclear or whether the tester could not read its language.
-The fourth closing question records how comfortable each tester is with English UI.
-Use that answer to separate coach-content problems from language-comprehension problems when you evaluate item 7.
-Adding a Korean locale remains out of scope for this milestone.
+A tester who cannot follow the coach does not show whether the coach sequence or its localized wording caused the problem.
+Use the recorded interface language and the fourth closing answer to separate these causes when you evaluate item 7.

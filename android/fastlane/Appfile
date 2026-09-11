@@ -1,0 +1,2 @@
+json_key_file(ENV["SUPPLY_JSON_KEY"])
+package_name("kr.donminzzi.ttush_push")
