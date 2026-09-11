@@ -54,8 +54,7 @@ merry run release alpha check
 ```
 
 The preflight reads the version from `pubspec.yaml`.
-The known published Alpha baseline is versionCode 5.
-The preflight rejects that versionCode and any lower value.
+The offline preflight rejects the known published Alpha baseline, versionCode 5, and any lower value.
 It requires non-empty `en-US` and `ko-KR` changelogs whose filename matches the versionCode.
 It also requires a production AAB whose embedded package and version match `pubspec.yaml`.
 The AAB must be signed by the registered upload certificate.
@@ -68,6 +67,8 @@ merry run release alpha publish
 ```
 
 The publish command builds the exact production AAB path and repeats the local checks.
+Before the build and immediately before the upload, Fastlane queries the live closed Alpha track and requires a versionCode greater than the highest value on that track.
+A successful query creates a temporary Play edit and aborts it without changing a release.
 Fastlane then uploads only that AAB and its two changelogs.
 It completes a 100% rollout on the closed Alpha track.
 It does not upload listing text, images, screenshots, or tester settings.
@@ -142,6 +143,8 @@ That makes it the thing most likely to go quietly out of date, because nothing i
 
 This automation stops at the closed Alpha track.
 It does not promote a release to open testing or production, change tester membership, or complete Play policy declarations.
+The live version check reads only the closed Alpha track.
+Google Play remains the authority for a versionCode that was used on another track or in an upload that is not attached to Alpha.
 
 Version 1.1.0, version code 5, was released to the closed Alpha track on 2026-09-11 through Play Console.
 The next uploaded artifact therefore needs a versionCode greater than 5.

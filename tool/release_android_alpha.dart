@@ -4,7 +4,7 @@ import 'dart:io';
 const expectedUploadCertificateSha256 =
     '84:10:5B:BF:5B:C0:3D:7C:1A:E8:16:2D:76:8D:1F:44:C1:09:4C:21:'
     '53:63:57:0C:F9:0D:AF:6E:38:C3:97:E5';
-const latestPublishedAlphaVersionCode = 5;
+const minimumAlphaVersionCodeExclusive = 5;
 
 final class ReleaseException implements Exception {
   const ReleaseException(this.message);
@@ -56,18 +56,7 @@ ReleaseVersion parseReleaseVersion(String pubspec) {
 }
 
 AlphaReleaseInputs inspectAlphaRelease(Directory root) {
-  final pubspec = File('${root.path}/pubspec.yaml');
-  if (!pubspec.existsSync()) {
-    throw ReleaseException('Missing pubspec.yaml at ${pubspec.path}.');
-  }
-
-  final version = parseReleaseVersion(pubspec.readAsStringSync());
-  if (version.code <= latestPublishedAlphaVersionCode) {
-    throw ReleaseException(
-      'versionCode ${version.code} must be greater than the latest published '
-      'Alpha versionCode $latestPublishedAlphaVersionCode.',
-    );
-  }
+  final version = inspectAlphaReleaseVersion(root);
   final changelogs = [
     for (final locale in ['en-US', 'ko-KR'])
       File(
@@ -99,6 +88,22 @@ AlphaReleaseInputs inspectAlphaRelease(Directory root) {
   }
 
   return AlphaReleaseInputs(version: version, aab: aab, changelogs: changelogs);
+}
+
+ReleaseVersion inspectAlphaReleaseVersion(Directory root) {
+  final pubspec = File('${root.path}/pubspec.yaml');
+  if (!pubspec.existsSync()) {
+    throw ReleaseException('Missing pubspec.yaml at ${pubspec.path}.');
+  }
+
+  final version = parseReleaseVersion(pubspec.readAsStringSync());
+  if (version.code <= minimumAlphaVersionCodeExclusive) {
+    throw ReleaseException(
+      'versionCode ${version.code} must be greater than the known published '
+      'Alpha baseline $minimumAlphaVersionCodeExclusive.',
+    );
+  }
+  return version;
 }
 
 BundleManifest parseBundleManifest(String decodedManifest) {
@@ -198,10 +203,13 @@ String validatePlayCredential(Map<String, String> environment) {
       'SUPPLY_JSON_KEY must point to the Play service-account JSON file.',
     );
   }
-  if (!File(jsonKey).existsSync()) {
-    throw ReleaseException('SUPPLY_JSON_KEY does not exist: $jsonKey.');
+  final absoluteJsonKey = File(jsonKey).absolute;
+  if (!absoluteJsonKey.existsSync()) {
+    throw ReleaseException(
+      'SUPPLY_JSON_KEY does not exist: ${absoluteJsonKey.path}.',
+    );
   }
-  return jsonKey;
+  return absoluteJsonKey.path;
 }
 
 Future<void> main(List<String> arguments) async {
@@ -216,7 +224,7 @@ Future<void> main(List<String> arguments) async {
 
   final command = arguments.single;
   final root = File.fromUri(Platform.script).parent.parent;
-  const bundleEnvironment = {'BUNDLE_PATH': 'vendor/bundle'};
+  final bundleEnvironment = {'BUNDLE_PATH': 'vendor/bundle'};
   try {
     await _run(
       'bundle',
@@ -225,7 +233,21 @@ Future<void> main(List<String> arguments) async {
       environment: bundleEnvironment,
     );
     if (command == 'publish') {
-      validatePlayCredential(Platform.environment);
+      final jsonKey = validatePlayCredential(Platform.environment);
+      bundleEnvironment['SUPPLY_JSON_KEY'] = jsonKey;
+      final version = inspectAlphaReleaseVersion(root);
+      await _run(
+        'bundle',
+        [
+          'exec',
+          'fastlane',
+          'android',
+          'alpha_version_check',
+          'version_code:${version.code}',
+        ],
+        workingDirectory: '${root.path}/android',
+        environment: bundleEnvironment,
+      );
       await _run('flutter', [
         'build',
         'appbundle',
@@ -275,7 +297,13 @@ Future<void> main(List<String> arguments) async {
 
     await _run(
       'bundle',
-      ['exec', 'fastlane', 'android', 'alpha'],
+      [
+        'exec',
+        'fastlane',
+        'android',
+        'alpha',
+        'version_code:${inputs.version.code}',
+      ],
       workingDirectory: '${root.path}/android',
       environment: bundleEnvironment,
     );

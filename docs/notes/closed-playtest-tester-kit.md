@@ -87,8 +87,10 @@ Ask the tester to copy each visible label in the interface language instead of t
 ```plaintext
 한 판이 끝날 때마다 이렇게 한 줄씩 남겨 주세요.
 
+[기기 모델] / [Android 버전] / [화면 언어]
 [소요 시간] / [모드] / [난이도] / [결과] / [승리 사유]
 
+- 기기를 바꾸면 새 기기 정보 아래에 그 기기에서 플레이한 매치를 적어 주세요.
 - 소요 시간: 분 단위의 대략적인 값이면 충분합니다.
 - 모드: 화면에 표시된 2인 플레이 또는 AI 대전을 적어 주세요.
 - 난이도: AI 대전일 때만 쉬움, 보통, 어려움, 전문가 중 화면에 표시된 항목을 적고, 2인 플레이이면 비워 두세요.
@@ -96,12 +98,14 @@ Ask the tester to copy each visible label in the interface language instead of t
 - 승리 사유: 매치가 끝난 화면에 표시되는 문구를 그대로 옮겨 주세요.
 
 예시
+Pixel 9 / Android 16 / 한국어
 4분 / AI 대전 / 보통 / 패 / 상대의 움직임을 막았습니다.
+Galaxy S24 / Android 15 / 한국어
 7분 / 2인 플레이 / / 불씨 원정대 / 상대를 보드 밖으로 푸시했습니다.
 ```
 
-Also collect the device model, Android version, and interface language once per tester, not once per match.
-Item 2 asks for a completed match on at least two real Android devices, and that is the only field that answers it.
+Group the match records by device model, Android version, and interface language.
+Item 2 requires at least one completed match on each of at least two different physical Android devices.
 
 ## Closing questions
 
@@ -113,7 +117,7 @@ Ask these once, after the tester has finished playing, never between matches.
 1. 규칙 중에서 끝까지 이해되지 않았거나, 한참 뒤에야 알게 된 것이 있었다면 무엇이었습니까?
 2. 불공평하다고 느낀 순간이 있었다면 어떤 상황이었습니까?
 3. 지루하다고 느낀 구간이 있었다면 언제였습니까?
-4. 앱 화면의 문구를 이해하는 것은 얼마나 편했습니까? 편함, 보통, 어려움 중 하나와 그 이유를 한 줄로 적어 주세요.
+4. 게임 규칙을 알려 주는 안내 화면의 문구를 이해하는 것은 얼마나 편했습니까? 편함, 보통, 어려움 중 하나와 그 이유를 한 줄로 적어 주세요.
 ```
 
 The first three questions map one to one onto item 8, which asks for the top three recurring reports of confusion, unfairness and boredom.

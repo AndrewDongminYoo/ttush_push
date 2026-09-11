@@ -1,6 +1,34 @@
+require_relative "version_guard"
+
 default_platform(:android)
 
 platform :android do
+  private_lane :ensure_alpha_version_unused do |options|
+    version_code = options[:version_code].to_s
+    UI.user_error!("version_code must be a positive integer") unless version_code.match?(/\A[1-9]\d*\z/)
+
+    json_key = ENV["SUPPLY_JSON_KEY"]
+    UI.user_error!("SUPPLY_JSON_KEY is not set") if json_key.to_s.empty?
+    UI.user_error!("SUPPLY_JSON_KEY does not exist: #{json_key}") unless File.file?(json_key)
+
+    published_version_codes = google_play_track_version_codes(
+      package_name: "kr.donminzzi.ttush_push",
+      track: "alpha",
+      json_key: json_key,
+      timeout: 600
+    )
+    version_error = AlphaVersionGuard.error(
+      version_code.to_i,
+      published_version_codes
+    )
+    UI.user_error!(version_error) if version_error
+  end
+
+  desc "Check that a versionCode is not already on the closed Alpha track"
+  lane :alpha_version_check do |options|
+    ensure_alpha_version_unused(version_code: options[:version_code])
+  end
+
   desc "Upload the production AAB and changelogs to the closed Alpha track"
   lane :alpha do |options|
     repository_root = File.expand_path("../..", __dir__)
@@ -14,6 +42,7 @@ platform :android do
     UI.user_error!("Production AAB not found: #{aab}") unless File.file?(aab)
     UI.user_error!("SUPPLY_JSON_KEY is not set") if json_key.to_s.empty?
     UI.user_error!("SUPPLY_JSON_KEY does not exist: #{json_key}") unless File.file?(json_key)
+    ensure_alpha_version_unused(version_code: options[:version_code])
 
     upload_to_play_store(
       package_name: "kr.donminzzi.ttush_push",

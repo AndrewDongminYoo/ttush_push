@@ -41,8 +41,8 @@ version: 1.1.0+6
           (error) => error.message,
           'message',
           contains(
-            'versionCode 5 must be greater than the latest published Alpha '
-            'versionCode 5',
+            'versionCode 5 must be greater than the known published Alpha '
+            'baseline 5',
           ),
         ),
       ),
@@ -147,6 +147,25 @@ version: 1.1.0+6
         ),
       ),
     );
+  });
+
+  test('returns an absolute Play service-account key path', () async {
+    final originalDirectory = Directory.current;
+    final fixture = await Directory.systemTemp.createTemp(
+      'ttush-play-credential-',
+    );
+    Directory.current = fixture;
+    addTearDown(() async {
+      Directory.current = originalDirectory;
+      await fixture.delete(recursive: true);
+    });
+    await File('service-account.json').writeAsString('{}');
+
+    final jsonKey = validatePlayCredential(const {
+      'SUPPLY_JSON_KEY': 'service-account.json',
+    });
+
+    expect(jsonKey, File('service-account.json').absolute.path);
   });
 }
 

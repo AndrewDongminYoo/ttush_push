@@ -41,6 +41,10 @@ release:
       (description): Checks the production AAB, Alpha changelogs, and upload certificate without changing Google Play.
       (scripts): dart run tool/release_android_alpha.dart check
 
+    test:
+      (description): Tests the closed Alpha version guard without calling Google Play.
+      (scripts): cd android && BUNDLE_PATH=vendor/bundle bundle exec ruby fastlane/version_guard_test.rb
+
     publish:
       (description): 🚨 Builds and releases the production AAB to 100% of the closed Google Play Alpha track.
       (scripts): dart run tool/release_android_alpha.dart publish
@@ -136,5 +140,6 @@ check:
     - $rust:lint
     - $rust:test
     - $bridge:host
+    - $release:alpha:test
     - trunk check --no-progress
     - $parity
