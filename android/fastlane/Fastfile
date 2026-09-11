@@ -49,7 +49,6 @@ platform :android do
       track: "alpha",
       aab: aab,
       release_status: "completed",
-      rollout: 1.0,
       metadata_path: metadata,
       skip_upload_metadata: true,
       skip_upload_changelogs: false,
