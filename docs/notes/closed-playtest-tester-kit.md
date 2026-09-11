@@ -17,7 +17,7 @@ Everything outside a block is a note for whoever runs the playtest, not for a te
 | Closing questions | Items 7 and 8: whether the coach alone carried the rules, and the three recurring reports |
 | Blocker report    | Item 9: zero P0/P1 crashes and zero progress-blocking defects                             |
 
-## Release notes for the internal testing track
+## Release notes for the closed Alpha track
 
 Play asks for these per language, capped at 500 characters each.
 The blocks must match `fastlane/metadata/android/en-US/changelogs/5.txt` and `fastlane/metadata/android/ko-KR/changelogs/5.txt` before upload.
@@ -58,7 +58,7 @@ The invitation deliberately does not explain a single rule.
 Item 7 asks whether the game is playable from the coach alone, and a tester who was told the rules in the invitation can no longer answer that question.
 
 ```plaintext
-안녕하세요. Ttush Push 1.1.0 내부 테스트를 부탁드립니다.
+안녕하세요. Ttush Push 1.1.0 비공개 Alpha 테스트를 부탁드립니다.
 
 먼저 Play 스토어에서 앱을 최신 버전으로 업데이트해 주세요.
 파일을 직접 설치하지 마시고 Play가 전달하는 업데이트로 받아 주셔야, 실제 배포 경로가 함께 검증됩니다.
