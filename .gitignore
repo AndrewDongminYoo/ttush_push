@@ -12,6 +12,11 @@
 .swiftpm/
 migrate_working_dir/
 
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+
 # IntelliJ related
 *.iml
 *.ipr
@@ -54,6 +59,9 @@ unlinked_spec.ds
 **/android/app/debug
 **/android/app/profile
 **/android/app/release
+android/vendor/bundle/
+android/fastlane/README.md
+android/fastlane/report.xml
 *.jks
 
 # iOS/XCode related

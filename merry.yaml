@@ -32,6 +32,19 @@ build:
           exit 1
         fi
 
+# --- Google Play release ---------------------------------------------------
+release:
+  alpha:
+    (default): $release:alpha:check
+
+    check:
+      (description): Checks the production AAB, Alpha changelogs, and upload certificate without changing Google Play.
+      (scripts): dart run tool/release_android_alpha.dart check
+
+    publish:
+      (description): 🚨 Builds and releases the production AAB to 100% of the closed Google Play Alpha track.
+      (scripts): dart run tool/release_android_alpha.dart publish
+
 # --- Dart gates -------------------------------------------------------------
 format:
   (description): Formats the hand-written Dart sources.

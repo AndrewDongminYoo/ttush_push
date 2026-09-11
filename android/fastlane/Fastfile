@@ -1,0 +1,33 @@
+default_platform(:android)
+
+platform :android do
+  desc "Upload the production AAB and changelogs to the closed Alpha track"
+  lane :alpha do |options|
+    repository_root = File.expand_path("../..", __dir__)
+    aab = File.join(
+      repository_root,
+      "build/app/outputs/bundle/productionRelease/app-production-release.aab"
+    )
+    metadata = File.join(repository_root, "fastlane/metadata/android")
+    json_key = ENV["SUPPLY_JSON_KEY"]
+
+    UI.user_error!("Production AAB not found: #{aab}") unless File.file?(aab)
+    UI.user_error!("SUPPLY_JSON_KEY is not set") if json_key.to_s.empty?
+    UI.user_error!("SUPPLY_JSON_KEY does not exist: #{json_key}") unless File.file?(json_key)
+
+    upload_to_play_store(
+      package_name: "kr.donminzzi.ttush_push",
+      track: "alpha",
+      aab: aab,
+      release_status: "completed",
+      rollout: 1.0,
+      metadata_path: metadata,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: false,
+      skip_upload_images: true,
+      skip_upload_screenshots: true,
+      validate_only: options[:validate_only] || false,
+      timeout: 600
+    )
+  end
+end
