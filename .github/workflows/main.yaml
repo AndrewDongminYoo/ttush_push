@@ -22,10 +22,10 @@ jobs:
     # integration". The reusable workflow declares no permissions of its own.
     permissions:
       pull-requests: read
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@0d81600dd37bc87a473ee5b6e2293bef05751b04 # v1.20.1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/semantic_pull_request.yml@bca17593224500d894e3fc7df09937ec603e35cd # v1.21.0
 
   build:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@0d81600dd37bc87a473ee5b6e2293bef05751b04 # v1.20.1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/flutter_package.yml@bca17593224500d894e3fc7df09937ec603e35cd # v1.21.0
     with:
       run_bloc_lint: false
       coverage_excludes: lib/src/rust/** lib/game/rules/rules_engine.dart
@@ -94,7 +94,7 @@ jobs:
         run: tool/build_web.sh
 
   spell-check:
-    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@0d81600dd37bc87a473ee5b6e2293bef05751b04 # v1.20.1
+    uses: VeryGoodOpenSource/very_good_workflows/.github/workflows/spell_check.yml@bca17593224500d894e3fc7df09937ec603e35cd # v1.21.0
     with:
       includes: |
         **/*.md
