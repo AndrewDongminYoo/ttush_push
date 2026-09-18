@@ -108,14 +108,23 @@ The expeditions start four rows apart on a five-by-five board and a move advance
 Confirm before uploading that the recording shows the app's display name and icon as they appear in the submission.
 Upload the recording first and send the Resolution Center reply after it, because both the preamble and item 1 state that the recording is already provided.
 
-## Decided: iPhone only, iPad deferred
+## Decided: iPhone only, iPad deferred (reversed 2026-09-18, see below)
 
-`TARGETED_DEVICE_FAMILY` is `"1"` in all nine build configurations of `ios/Runner.xcodeproj/project.pbxproj`, so the app ships for iPhone alone and App Review does not run it on an iPad.
-The decision was taken on 2026-09-06 because the app has never been exercised on an iPad and the listing carries no iPad screenshots; iPad support is deferred rather than ruled out.
+`TARGETED_DEVICE_FAMILY` was set to `"1"` in all nine build configurations of `ios/Runner.xcodeproj/project.pbxproj` on 2026-09-06, so that the app would ship for iPhone alone and App Review would not run it on an iPad.
+The decision was taken because the app has never been exercised on an iPad and the listing carries no iPad screenshots; iPad support was deferred rather than ruled out.
 
-Two consequences follow from it.
+Two consequences followed from it.
 
 - The change alters the binary, so the next upload needs a build number above the one already submitted.
-- `ios/Runner/Info.plist` still carries `UISupportedInterfaceOrientations~ipad`. It is inert while the family is iPhone-only, and it is left in place for the return.
+- `ios/Runner/Info.plist` still carries `UISupportedInterfaceOrientations~ipad`. It was inert while the family was iPhone-only, and it was left in place for the return.
 
-Bringing iPad back means restoring `"1,2"`, running the app on an iPad, fixing whatever the larger layout breaks, and adding iPad screenshots to the listing.
+Bringing iPad back was described as restoring `"1,2"`, running the app on an iPad, fixing whatever the larger layout breaks, and adding iPad screenshots to the listing.
+
+## Reversed: App Store Connect refuses to drop a device family
+
+The 1.1.1 (6) archive built with `"1"` failed its upload on 2026-09-18 at 23:57 with `This bundle does not support one or more of the devices supported by the previous app version. Your app update must continue to support all devices previously supported.`, citing QA1623.
+The 1.1.0 (4) build already in App Store Connect declared `"1,2"`, and Apple applies the rule to every later upload of the same app, so the iPhone-only decision cannot be carried out as an update.
+
+`TARGETED_DEVICE_FAMILY` is back to `"1,2"` in all nine configurations, and `xcodebuild -showBuildSettings` for `Release-production` resolves it to `1,2`.
+What the 2026-09-06 note listed as the price of bringing iPad back is therefore due before the next submission rather than optional: run the app on an iPad, fix whatever the larger layout breaks, and add iPad screenshots to the listing.
+The bugs-and-crashes risk that motivated the decision is unchanged; the only way left to remove it is to test on the device family the app is committed to.
