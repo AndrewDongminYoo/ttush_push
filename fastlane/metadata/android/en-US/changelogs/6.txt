@@ -1,0 +1,12 @@
+🆕 What's New
+• Pick your rival: share one device for a head-to-head duel, or challenge four AI levels, from a gentle Easy to a ruthless Expert.
+• The whole game now speaks English and Korean.
+
+✨ Improvements
+• A friendlier first-match guide and a fresh launcher icon with rivals mid-push.
+• Under-the-hood tune-ups for a smoother match.
+
+🔧 Fixes
+• Korean result announcements now say who really won.
+
+Push smart. Hold your ground. Win two rounds. 🏆
