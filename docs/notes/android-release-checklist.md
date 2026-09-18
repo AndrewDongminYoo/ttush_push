@@ -57,7 +57,7 @@ merry run release alpha check
 ```
 
 The preflight reads the version from `pubspec.yaml`.
-The offline preflight rejects the known published Alpha baseline, versionCode 5, and any lower value.
+The offline preflight rejects the known published Alpha baseline and any lower value; `minimumAlphaVersionCodeExclusive` in `tool/release_android_alpha.dart` holds that baseline, and it is raised to the new versionCode after every upload so that the preflight refuses a re-run of the same version without a Play query.
 It requires non-empty `en-US` and `ko-KR` changelogs whose filename matches the versionCode.
 It also requires a production AAB whose embedded package and version match `pubspec.yaml`.
 The AAB must be signed by the registered upload certificate.
@@ -150,7 +150,8 @@ The live version check reads only the closed Alpha track.
 Google Play remains the authority for a versionCode that was used on another track or in an upload that is not attached to Alpha.
 
 Version 1.1.0, version code 5, was released to the closed Alpha track on 2026-09-11 through Play Console.
-The next uploaded artifact therefore needs a versionCode greater than 5.
+Version 1.1.1, version code 6, was released to the same track on 2026-09-18 through `merry run release alpha publish`, the first upload made by this automation; its first run failed the live track query with `The caller does not have permission`, and the same command succeeded five minutes later without a code change.
+The next uploaded artifact therefore needs a versionCode greater than 6.
 
 What remains uncovered is everything a production release needs. The app is still a draft in Play Console, so the store listing, the data safety form and the content rating questionnaire are all outstanding. iOS packaging is not covered here at all; no archive has been produced.
 

@@ -24,14 +24,16 @@ version: 1.1.0+6
       final inputs = inspectAlphaRelease(fixture.root);
 
       expect(inputs.version.name, '1.1.0');
-      expect(inputs.version.code, 6);
+      expect(inputs.version.code, minimumAlphaVersionCodeExclusive + 1);
       expect(inputs.aab.path, endsWith('app-production-release.aab'));
       expect(inputs.changelogs, hasLength(2));
     },
   );
 
   test('rejects the latest published Alpha versionCode', () async {
-    final fixture = await _ReleaseFixture.create(versionCode: 5);
+    final fixture = await _ReleaseFixture.create(
+      versionCode: minimumAlphaVersionCodeExclusive,
+    );
     addTearDown(fixture.dispose);
 
     expect(
@@ -41,8 +43,9 @@ version: 1.1.0+6
           (error) => error.message,
           'message',
           contains(
-            'versionCode 5 must be greater than the known published Alpha '
-            'baseline 5',
+            'versionCode $minimumAlphaVersionCodeExclusive must be greater '
+            'than the known published Alpha baseline '
+            '$minimumAlphaVersionCodeExclusive',
           ),
         ),
       ),
@@ -60,7 +63,7 @@ version: 1.1.0+6
         isA<ReleaseException>().having(
           (error) => error.message,
           'message',
-          contains('ko-KR/changelogs/6.txt'),
+          contains('ko-KR/changelogs/${fixture.versionCode}.txt'),
         ),
       ),
     );
@@ -170,13 +173,16 @@ version: 1.1.0+6
 }
 
 final class _ReleaseFixture {
-  _ReleaseFixture(this.root);
+  _ReleaseFixture(this.root, this.versionCode);
 
   final Directory root;
+  final int versionCode;
 
-  static Future<_ReleaseFixture> create({int versionCode = 6}) async {
+  static Future<_ReleaseFixture> create({
+    int versionCode = minimumAlphaVersionCodeExclusive + 1,
+  }) async {
     final root = await Directory.systemTemp.createTemp('ttush-alpha-release-');
-    final fixture = _ReleaseFixture(root);
+    final fixture = _ReleaseFixture(root, versionCode);
     final inputTime = DateTime.utc(2026, 9, 11, 1);
     final artifactTime = inputTime.add(const Duration(minutes: 1));
 
@@ -211,7 +217,7 @@ final class _ReleaseFixture {
   );
 
   Future<void> removeKoreanChangelog() => File(
-    '${root.path}/fastlane/metadata/android/ko-KR/changelogs/6.txt',
+    '${root.path}/fastlane/metadata/android/ko-KR/changelogs/$versionCode.txt',
   ).delete();
 
   Future<void> _write(String relativePath, String contents) async {

@@ -4,7 +4,7 @@ import 'dart:io';
 const expectedUploadCertificateSha256 =
     '84:10:5B:BF:5B:C0:3D:7C:1A:E8:16:2D:76:8D:1F:44:C1:09:4C:21:'
     '53:63:57:0C:F9:0D:AF:6E:38:C3:97:E5';
-const minimumAlphaVersionCodeExclusive = 5;
+const minimumAlphaVersionCodeExclusive = 6;
 
 final class ReleaseException implements Exception {
   const ReleaseException(this.message);
