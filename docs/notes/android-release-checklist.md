@@ -149,8 +149,8 @@ It does not promote a release to open testing or production, change tester membe
 The live version check reads only the closed Alpha track.
 Google Play remains the authority for a versionCode that was used on another track or in an upload that is not attached to Alpha.
 
-Version 1.1.0, version code 5, was released to the closed Alpha track on 2026-09-11 through Play Console.
-Version 1.1.1, version code 6, was released to the same track on 2026-09-18 through `merry run release alpha publish`, the first upload made by this automation; its first run failed the live track query with `The caller does not have permission`, and the same command succeeded five minutes later without a code change.
+Version 1.1.0, version code 5, was released to the closed Alpha track on 2026-09-11 through Play Console; its AAB was built on 2026-09-10 from `a1f3543`, eleven app-code commits after the commit that wrote the version, which was established afterwards from the git reference log and the bundle manifest because nothing recorded it at the time.
+Version 1.1.1, version code 6, was released to the same track on 2026-09-18 through `merry run release alpha publish` from `f145ea8`, tagged `v1.1.1+6`, the first upload made by this automation; its first run failed the live track query with `The caller does not have permission`, and the same command succeeded five minutes later without a code change.
 The next uploaded artifact therefore needs a versionCode greater than 6.
 
 What remains uncovered is everything a production release needs. The app is still a draft in Play Console, so the store listing, the data safety form and the content rating questionnaire are all outstanding. iOS packaging is not covered here at all; no archive has been produced.
