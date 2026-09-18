@@ -24,6 +24,9 @@ export SUPPLY_JSON_KEY="/absolute/path/to/ttush-push-play-service-account.json"
 Use `.env.example` as a variable-name reference only.
 The release command does not source `.env` automatically.
 
+`.ruby-version` at the repository root names the Ruby the bundle is installed and run with.
+rbenv reads it from any subdirectory, so on a machine without that Ruby run `rbenv install "$(cat .ruby-version)"` first; a Ruby from another source, such as Homebrew, installs its gems under a different ABI path and `bundle check` then reports every gem missing.
+
 Install the locked Fastlane dependencies once:
 
 ```sh
