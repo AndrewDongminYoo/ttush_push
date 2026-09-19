@@ -1,0 +1,9 @@
+app_identifier(ENV.fetch("IOS_APP_IDENTIFIER", "kr.donminzzi.ttush-push")) # The bundle identifier of your app
+apple_id(ENV.fetch("FASTLANE_APPLE_ID", "ydm2790@gmail.com")) # Your Apple Developer Portal username
+
+itc_team_id(ENV.fetch("APP_STORE_CONNECT_TEAM_ID", "127513048")) # App Store Connect Team ID
+# cspell:word 393JTTV68D
+team_id(ENV.fetch("DEVELOPER_PORTAL_TEAM_ID", "393JTTV68D")) # Developer Portal Team ID
+
+# For more information about the Appfile, see:
+#     https://docs.fastlane.tools/advanced/#appfile

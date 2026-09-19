@@ -132,3 +132,5 @@ lib/l10n/gen/
 
 # Subagent-driven development scratch (ledger, briefs, review packages)
 .superpowers/
+fastlane/metadata/ios/review_information/email_address.txt
+fastlane/metadata/ios/review_information/phone_number.txt

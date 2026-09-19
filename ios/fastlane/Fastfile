@@ -1,0 +1,82 @@
+default_platform(:ios)
+
+def root_ios_metadata_path
+  File.expand_path("../../fastlane/metadata/ios", __dir__)
+end
+
+def truthy_option?(value)
+  case value
+  when true
+    true
+  when false, nil
+    false
+  else
+    %w[1 true yes y on].include?(value.to_s.strip.downcase)
+  end
+end
+
+def active_review_submission(app_identifier:, username:)
+  Spaceship::ConnectAPI.login(
+    username,
+    nil,
+    use_portal: false,
+    use_tunes: true,
+    portal_team_id: ENV["DEVELOPER_PORTAL_TEAM_ID"] || CredentialsManager::AppfileConfig.try_fetch_value(:team_id),
+    tunes_team_id: ENV["FASTLANE_ITC_TEAM_ID"] || ENV["APP_STORE_CONNECT_TEAM_ID"] || CredentialsManager::AppfileConfig.try_fetch_value(:itc_team_id)
+  )
+
+  app = Spaceship::ConnectAPI::App.find(app_identifier)
+  UI.user_error!("Could not find App Store Connect app for '#{app_identifier}'") if app.nil?
+
+  app.get_in_progress_review_submission(
+    platform: Spaceship::ConnectAPI::Platform::IOS,
+    includes: "appStoreVersionForReview"
+  )
+end
+
+platform :ios do
+  desc "Push a new release build to the App Store"
+  lane :release do |options|
+    build_app(workspace: "Runner.xcworkspace", scheme: "production")
+    upload_to_app_store(
+      app_identifier: options[:app_identifier] || ENV.fetch("IOS_APP_IDENTIFIER", "kr.donminzzi.ttush-push"),
+      metadata_path: root_ios_metadata_path
+    )
+  end
+
+  desc "Upload App Store metadata only from repo root"
+  lane :metadata do |options|
+    app_identifier = options[:app_identifier] || ENV.fetch("IOS_APP_IDENTIFIER", "kr.donminzzi.ttush-push")
+    username = options[:username] || ENV.fetch("FASTLANE_APPLE_ID", "ydm2790@gmail.com")
+    edit_live = truthy_option?(options[:edit_live])
+    skip_screenshots = truthy_option?(options[:skip_screenshots])
+
+    if !edit_live && !skip_screenshots
+      review_submission = active_review_submission(app_identifier: app_identifier, username: username)
+
+      if review_submission
+        version = review_submission.app_store_version_for_review
+        version_label = version&.version_string || "unknown"
+
+        UI.important(
+          "Detected App Store review submission '#{review_submission.state}' for version '#{version_label}'. " \
+          "Skipping screenshots because App Store Connect blocks screenshot changes while review is in progress."
+        )
+
+        skip_screenshots = true
+      end
+    end
+
+    deliver(
+      app_identifier: app_identifier,
+      username: username,
+      metadata_path: root_ios_metadata_path,
+      skip_binary_upload: true,
+      skip_metadata: false,
+      skip_screenshots: skip_screenshots,
+      submit_for_review: false,
+      force: true,
+      edit_live: edit_live
+    )
+  end
+end

@@ -1,0 +1,5 @@
+# The Deliverfile allows you to store various App Store Connect metadata
+# For more information, check out the docs
+# https://docs.fastlane.tools/actions/deliver/
+metadata_path(File.expand_path("../../fastlane/metadata/ios", __dir__))
+screenshots_path(File.expand_path("../../fastlane/screenshots/ios", __dir__))

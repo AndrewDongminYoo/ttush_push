@@ -1,0 +1,1 @@
+strategy,turn-based,tactics,board game,local multiplayer,offline
