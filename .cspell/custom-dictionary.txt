@@ -19,6 +19,7 @@ Cargokit
 cdylib
 CODEGRAPH
 debugsymbols
+Deliverfile
 dists
 Dongmin
 donminzzi
@@ -41,6 +42,7 @@ lproj
 LTWH
 Metaspace
 miniaturizable
+mirae
 mockingjay
 MSGSEND
 Onone

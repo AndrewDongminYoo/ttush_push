@@ -62,6 +62,12 @@ unlinked_spec.ds
 android/vendor/bundle/
 android/fastlane/README.md
 android/fastlane/report.xml
+ios/vendor/bundle/
+ios/fastlane/README.md
+ios/fastlane/report.xml
+# App Review contact details stay local: the repository is public
+fastlane/metadata/ios/review_information/email_address.txt
+fastlane/metadata/ios/review_information/phone_number.txt
 *.jks
 
 # iOS/XCode related
@@ -132,5 +138,3 @@ lib/l10n/gen/
 
 # Subagent-driven development scratch (ledger, briefs, review packages)
 .superpowers/
-fastlane/metadata/ios/review_information/email_address.txt
-fastlane/metadata/ios/review_information/phone_number.txt

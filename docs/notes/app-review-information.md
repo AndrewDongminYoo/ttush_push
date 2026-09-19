@@ -9,6 +9,12 @@ Paste the canonical block into two places.
 
 1. **Resolution Center reply**: the preamble under "Reply preamble", then the canonical block.
 2. **App Store Connect → App Review Information → Notes**: the canonical block alone, with no preamble.
+   Since 2026-09-19 `deliver` fills that field from `fastlane/metadata/ios/review_information/notes.txt`, which is generated from this file rather than edited: after changing the canonical block, regenerate it with the command below and commit both.
+   The block pulled from App Store Connect that day was the 2026-09-06 wording, five sentences behind this file, which is what the regeneration exists to prevent.
+
+   ````sh
+   awk '/^## Canonical block$/{s=1} s&&/^```plaintext$/{f=1;next} f&&/^```$/{exit} f' docs/notes/app-review-information.md > fastlane/metadata/ios/review_information/notes.txt
+   ````
 
 The canonical block carries no build number and no dates, so it stays correct across submissions.
 Anything submission-specific belongs in the preamble.

@@ -3,6 +3,8 @@
 set -euo pipefail
 
 listing_dir="${1:-fastlane/metadata/android/en-US}"
+screenshots_dir="${2:-fastlane/screenshots/android/en-US}"
+artwork_dir="${3:-fastlane/screenshots/store_artwork/en-US}"
 
 magick_bin="${MAGICK_BIN:-$(command -v magick || true)}"
 identify_bin="${IDENTIFY_BIN:-$(command -v identify || true)}"
@@ -13,16 +15,16 @@ if [[ -z ${magick_bin} && -z ${identify_bin} ]]; then
 fi
 
 required_files=(
-	"title.txt"
-	"short_description.txt"
-	"full_description.txt"
-	"images/icon.png"
-	"images/featureGraphic.png"
+	"${listing_dir}/title.txt"
+	"${listing_dir}/short_description.txt"
+	"${listing_dir}/full_description.txt"
+	"${artwork_dir}/icon.png"
+	"${artwork_dir}/featureGraphic.png"
 )
 
 for required_file in "${required_files[@]}"; do
-	if [[ ! -f "${listing_dir}/${required_file}" ]]; then
-		echo "Missing required store asset: ${listing_dir}/${required_file}" >&2
+	if [[ ! -f ${required_file} ]]; then
+		echo "Missing required store asset: ${required_file}" >&2
 		exit 66
 	fi
 done
@@ -43,32 +45,31 @@ validate_text_limit "short_description.txt" 80
 validate_text_limit "full_description.txt" 4000
 
 validate_dimensions() {
-	local relative_path="$1"
+	local image_path="$1"
 	local expected_dimensions="$2"
 	local actual_dimensions
 	if [[ -n ${magick_bin} ]]; then
-		actual_dimensions="$("${magick_bin}" identify -format '%wx%h' "${listing_dir}/${relative_path}")"
+		actual_dimensions="$("${magick_bin}" identify -format '%wx%h' "${image_path}")"
 	else
-		actual_dimensions="$("${identify_bin}" -format '%wx%h' "${listing_dir}/${relative_path}")"
+		actual_dimensions="$("${identify_bin}" -format '%wx%h' "${image_path}")"
 	fi
 	if [[ ${actual_dimensions} != "${expected_dimensions}" ]]; then
-		echo "$(basename "${relative_path}") must be ${expected_dimensions}, found ${actual_dimensions}." >&2
+		echo "$(basename "${image_path}") must be ${expected_dimensions}, found ${actual_dimensions}." >&2
 		exit 65
 	fi
 }
 
-validate_dimensions "images/icon.png" "512x512"
-validate_dimensions "images/featureGraphic.png" "1024x500"
+validate_dimensions "${artwork_dir}/icon.png" "512x512"
+validate_dimensions "${artwork_dir}/featureGraphic.png" "1024x500"
 
 shopt -s nullglob
-screenshots=("${listing_dir}"/images/phoneScreenshots/*.png)
+screenshots=("${screenshots_dir}"/*.png)
 if ((${#screenshots[@]} < 4)); then
 	echo "Expected at least 4 phone screenshots, found ${#screenshots[@]}." >&2
 	exit 65
 fi
 for screenshot in "${screenshots[@]}"; do
-	relative_path="images/phoneScreenshots/$(basename "${screenshot}")"
-	validate_dimensions "${relative_path}" "1080x1920"
+	validate_dimensions "${screenshot}" "1080x1920"
 done
 
 echo "Play Store assets are valid."

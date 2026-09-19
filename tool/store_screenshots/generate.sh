@@ -5,7 +5,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_dir="$(cd "${script_dir}/../.." && pwd)"
 raw_dir="${1:-${project_dir}/build/screenshots/store-listing/raw}"
-output_dir="${2:-${project_dir}/fastlane/metadata/android/en-US/images/phoneScreenshots}"
+output_dir="${2:-${project_dir}/fastlane/screenshots/android/en-US}"
 manifest="${3:-${script_dir}/copy.tsv}"
 font_regular="${project_dir}/assets/fonts/Poppins-Regular.ttf"
 font_bold="${project_dir}/assets/fonts/Poppins-Bold.ttf"
