@@ -32,7 +32,7 @@ void main() {
   test('rejects a feature graphic with the wrong dimensions', () async {
     final fixture = await _ListingFixture.create();
     addTearDown(fixture.dispose);
-    await fixture.writeImage('images/featureGraphic.png', 1024, 501);
+    await fixture.writeImage('store_artwork/featureGraphic.png', 1024, 501);
 
     final result = await fixture.validate();
 
@@ -46,7 +46,7 @@ void main() {
   test('rejects a Play Store icon with the wrong dimensions', () async {
     final fixture = await _ListingFixture.create();
     addTearDown(fixture.dispose);
-    await fixture.writeImage('images/icon.png', 511, 512);
+    await fixture.writeImage('store_artwork/icon.png', 511, 512);
 
     final result = await fixture.validate();
 
@@ -57,11 +57,7 @@ void main() {
   test('rejects a phone screenshot with the wrong dimensions', () async {
     final fixture = await _ListingFixture.create();
     addTearDown(fixture.dispose);
-    await fixture.writeImage(
-      'images/phoneScreenshots/01-scene.png',
-      1080,
-      1919,
-    );
+    await fixture.writeImage('screenshots/01-scene.png', 1080, 1919);
 
     final result = await fixture.validate();
 
@@ -127,14 +123,10 @@ final class _ListingFixture {
       'full_description.txt',
       'Choose a rival, plan each move, and take two rounds to win the match.',
     );
-    await fixture.writeImage('images/icon.png', 512, 512);
-    await fixture.writeImage('images/featureGraphic.png', 1024, 500);
+    await fixture.writeImage('store_artwork/icon.png', 512, 512);
+    await fixture.writeImage('store_artwork/featureGraphic.png', 1024, 500);
     for (var index = 1; index <= 4; index++) {
-      await fixture.writeImage(
-        'images/phoneScreenshots/0$index-scene.png',
-        1080,
-        1920,
-      );
+      await fixture.writeImage('screenshots/0$index-scene.png', 1080, 1920);
     }
     return fixture;
   }
@@ -172,6 +164,8 @@ final class _ListingFixture {
       Process.run('bash', [
         'tool/store_screenshots/validate.sh',
         root.path,
+        '${root.path}/screenshots',
+        '${root.path}/store_artwork',
       ], environment: environment);
 
   Future<ProcessResult> generate({Map<String, String>? environment}) =>
