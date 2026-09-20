@@ -27,16 +27,8 @@ Only `en-US` carries screenshots on either store today.
 
 ## Commands
 
-The iOS lanes are not in `merry.yaml` yet, so they run directly, each from its platform directory with that directory's bundle and the Ruby named by `.ruby-version`:
-
-```sh
-cd ios
-BUNDLE_PATH=vendor/bundle bundle install
-BUNDLE_PATH=vendor/bundle bundle exec fastlane deliver download_metadata
-BUNDLE_PATH=vendor/bundle bundle exec fastlane deliver download_screenshots
-BUNDLE_PATH=vendor/bundle bundle exec fastlane ios metadata
-```
-
-`download_*` overwrite the trees with what App Store Connect holds, so run them on a clean tree and read the diff before committing.
-`ios metadata` uploads text and screenshots without a binary and skips screenshots on its own while a review submission is open.
+`merry run release ios pull` overwrites both iOS trees with what App Store Connect holds, and `merry run release ios metadata` uploads them without a binary; `merry ls` shows both, and `ios/fastlane/Fastfile` also carries a `release` lane that builds and uploads a binary, which has not been exercised here because uploads go through Xcode Organizer.
+Each runs from `ios/` with that directory's bundle, installed once with `cd ios && BUNDLE_PATH=vendor/bundle bundle install` under the Ruby named by `.ruby-version`.
+Run `pull` on a clean tree and read the diff before committing.
+`metadata` skips screenshots on its own while a review submission is open.
 Both need an Apple ID login with two-factor authentication, so they are run by hand rather than from an agent session.

@@ -49,6 +49,19 @@ release:
       (description): 🚨 Builds and releases the production AAB to 100% of the closed Google Play Alpha track.
       (scripts): dart run tool/release_android_alpha.dart publish
 
+  ios:
+    (default): $release:ios:metadata
+
+    metadata:
+      (description): 🚨 Uploads fastlane/metadata/ios and fastlane/screenshots/ios to App Store Connect without a binary; needs an Apple ID login and skips screenshots while a review is open.
+      (scripts): cd ios && BUNDLE_PATH=vendor/bundle bundle exec fastlane ios metadata
+
+    pull:
+      (description): Overwrites fastlane/metadata/ios and fastlane/screenshots/ios with what App Store Connect holds; needs an Apple ID login, so read the diff before committing.
+      (scripts):
+        - cd ios && BUNDLE_PATH=vendor/bundle bundle exec fastlane deliver download_metadata
+        - cd ios && BUNDLE_PATH=vendor/bundle bundle exec fastlane deliver download_screenshots
+
 # --- Dart gates -------------------------------------------------------------
 format:
   (description): Formats the hand-written Dart sources.

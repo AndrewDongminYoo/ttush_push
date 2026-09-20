@@ -134,3 +134,10 @@ The 1.1.0 (4) build already in App Store Connect declared `"1,2"`, and Apple app
 `TARGETED_DEVICE_FAMILY` is back to `"1,2"` in all nine configurations, and `xcodebuild -showBuildSettings` for `Release-production` resolves it to `1,2`.
 What the 2026-09-06 note listed as the price of bringing iPad back is therefore due before the next submission rather than optional: run the app on an iPad, fix whatever the larger layout breaks, and add iPad screenshots to the listing.
 The bugs-and-crashes risk that motivated the decision is unchanged; the only way left to remove it is to test on the device family the app is committed to.
+
+## Outcome: 1.1.1 (6) approved
+
+The universal 1.1.1 (6) archive was submitted on 2026-09-19 and approved by App Review on 2026-09-20, in the operator's words; the verdict itself lives in App Store Connect and his inbox, not in this repository.
+The submission carried the Notes field as sent on 2026-09-06, and App Store Connect already held four iPad Pro 12.9-inch screenshots alongside the iPhone set when the listing was pulled on 2026-09-19, so the iPad screenshot obligation above was met before this round closed.
+Whether the app was exercised on an iPad before that submission is not recorded here.
+The next submission starts from the regenerated `review_information/notes.txt` through `merry run release ios metadata`, and from the same universal device family.
