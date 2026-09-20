@@ -20,6 +20,7 @@ Only `en-US` carries screenshots on either store today.
 
 - `merry run release alpha publish` uploads the AAB and `metadata/android/<locale>/changelogs/<versionCode>.txt`, nothing else; `tool/release_android_alpha.dart` validates those changelogs and `docs/notes/android-release-checklist.md` owns that flow.
 - `tool/store_screenshots/generate.sh` writes the Play screenshots into `screenshots/android/en-US/`, and `tool/store_screenshots/validate.sh` checks the Play text limits, the artwork and screenshot dimensions across the three Play directories.
+  `test/tool/store_screenshot_workflow_test.dart` runs both scripts against a temporary fixture and passes all three roots explicitly; change the scripts and that test together, because a fixture that leaves a root to the script's default is read from the real `fastlane/` tree instead, and its accepting case then passes without reading the fixture at all (CI was red from 8e5a826 until 35fd9ec for exactly that).
   `supply` would read images from `metadata/android/<locale>/images/` if a lane ever uploaded them; none does, so the images live only under `screenshots/` and a future image-upload lane copies them across, as mirae's does.
 - `ios/fastlane/Deliverfile` points `metadata_path` and `screenshots_path` at `metadata/ios` and `screenshots/ios`, so `deliver` reads and writes these trees directly.
   `review_information/notes.txt` is generated from `docs/notes/app-review-information.md`, which owns the text and the command.
