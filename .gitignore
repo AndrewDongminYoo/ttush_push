@@ -42,6 +42,9 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 build/
+# The vendored Android CLI skill keeps its Google docs under references/android/build/
+!.claude/skills/*/references/android/build/
+!.agents/skills/*/references/android/build/
 flutter_*.png
 linked_*.ds
 unlinked.ds
