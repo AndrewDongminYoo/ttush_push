@@ -761,6 +761,82 @@ void main() {
     expect(ads.events, ['match-decided']);
   });
 
+  testWidgets('reports the decided match to the gateway active when it ended', (
+    tester,
+  ) async {
+    const startSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.first,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.normal),
+      ],
+      pieces: [
+        GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 2),
+        GamePiece(id: 1, owner: GamePlayer.second, x: 2, y: 1),
+      ],
+      snapshotHash: 'ads-captured-start',
+    );
+    const terminalSnapshot = GameSnapshot(
+      currentPlayer: GamePlayer.second,
+      tiles: [
+        GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+        GameTile(x: 2, y: 1, kind: GameTileKind.normal),
+        GameTile(x: 2, y: 2, kind: GameTileKind.damaged),
+      ],
+      pieces: [GamePiece(id: 0, owner: GamePlayer.first, x: 2, y: 1)],
+      winner: GamePlayer.first,
+      winReason: GameWinReason.knockout,
+      snapshotHash: 'ads-captured-terminal',
+    );
+    const move = GameMove(pieceId: 0, direction: GameDirection.up);
+    final originalGateway = RecordingAdGateway();
+    final replacementGateway = RecordingAdGateway();
+    final engine = FakeRulesEngine.playing(
+      initial: matchOf(startSnapshot, hash: 'ads-captured-start'),
+      next: matchOverMatch(
+        terminalSnapshot,
+        winner: GamePlayer.first,
+        hash: 'ads-captured-over',
+      ),
+      legalMoves: const [move],
+      resolution: _fallPushResolution,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          key: const ValueKey('captured-gateway-page'),
+          adGateway: originalGateway,
+          rulesEngine: engine,
+        ),
+      ),
+    );
+
+    final cellCenter = _cellCenterOf(tester);
+    await tester.tapAt(cellCenter(2, 2));
+    await tester.tapAt(cellCenter(2, 1));
+    await tester.pump();
+
+    // The ticker completes before this frame rebuilds the same State with the
+    // replacement gateway. The post-frame call still belongs to the match
+    // that ended under the original gateway.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GamePage(
+          key: const ValueKey('captured-gateway-page'),
+          adGateway: replacementGateway,
+          rulesEngine: engine,
+        ),
+      ),
+      duration: const Duration(milliseconds: 600),
+    );
+
+    expect(originalGateway.events, ['match-decided']);
+    expect(replacementGateway.events, isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('reports the decided match even when the page goes with the '
       'frame', (tester) async {
     const startSnapshot = GameSnapshot(
