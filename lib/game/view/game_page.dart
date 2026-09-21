@@ -641,12 +641,13 @@ class _GamePageState extends State<GamePage>
         // nothing. It reports a match that was already decided, so dropping it
         // on a page torn down or reconfigured in the same frame would lose the
         // call the spec counts and cost the first real adapter its prepare.
+        final adGateway = _adGateway;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           // `Future.sync` so that a gateway raising before it returns a future
           // — an adapter over an uninitialized SDK — reaches the handler below
           // rather than escaping into the framework's post-frame machinery.
           unawaited(
-            Future<void>.sync(_adGateway.matchDecided).catchError((
+            Future<void>.sync(adGateway.matchDecided).catchError((
               Object error,
               StackTrace stackTrace,
             ) {
