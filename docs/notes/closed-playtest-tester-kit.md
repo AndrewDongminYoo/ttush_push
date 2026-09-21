@@ -69,6 +69,9 @@ Item 8 asks whether the game is playable from the coach alone, and a tester who 
 먼저 Play 스토어에서 앱을 최신 버전으로 업데이트해 주세요.
 파일을 직접 설치하지 마시고 Play가 전달하는 업데이트로 받아 주셔야, 실제 배포 경로가 함께 검증됩니다.
 
+1.1.0 비공개 Alpha를 플레이한 적이 있다면, 매치 화면에서 물음표 아이콘(게임 방법)을 눌러 안내를 다시 열어 주세요.
+1.0.0에서만 플레이했거나 처음 플레이한다면 앱이 안내를 자동으로 엽니다.
+
 부탁드리는 것은 세 가지입니다.
 
 첫째, 규칙 설명을 따로 찾지 마시고 화면에 나오는 안내만 보고 플레이해 주세요.
@@ -80,10 +83,12 @@ AI 대전은 쉬움, 보통, 어려움, 전문가를 각각 한 번 이상 겪�
 셋째, 매치를 한 판 끝낼 때마다 아래 형식으로 한 줄씩 적어서 보내 주세요.
 ```
 
-Returning testers are asked to do nothing about the coach, because the build handles it.
-`firstPlayCoachVersion` moved from 1 to 2 in `lib/game/coach/first_play_coach_store.dart`, and completion is stored under a key that carries that number, so a tester who finished the coach in 1.0.0 meets it again here.
-That matters because all 34 testers already on the track had dismissed it, and item 8 asks what a player learns from the coach.
+`firstPlayCoachVersion` moved from 1 to 2 in `lib/game/coach/first_play_coach_store.dart` before build 5, and completion is stored under a key that carries that number.
+A tester whose last completed coach was in 1.0.0 therefore meets it automatically in build 6.
+A tester who opened 1.1.0 (5) may already have version 2 completion recorded, so the invitation tells every returning build 5 tester to reopen it from the HUD help control before playing.
+That matters because item 8 asks what a player learns from the coach.
 `shows the coach to a player who completed the 1.0.0 version` in `test/game/view/game_page_accessibility_test.dart` fails if the constant goes back to 1.
+`reopens a completed coach from HUD help without resetting it` pins the returning-build-5 path used by the invitation.
 
 ## Per-match record
 
