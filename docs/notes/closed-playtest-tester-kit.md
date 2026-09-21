@@ -11,43 +11,49 @@ Everything outside a block is a note for whoever runs the playtest, not for a te
 
 | Block             | Definition of Done item it closes                                                         |
 | ----------------- | ----------------------------------------------------------------------------------------- |
-| Release notes     | The upload itself, which is item 1                                                        |
-| Invitation        | Items 2 and 5: a Play-delivered install, and coverage of every mode and difficulty        |
-| Per-match record  | Items 4, 5 and 6: the match count, the coverage, and the five fields per match            |
-| Closing questions | Items 7 and 8: whether the coach alone carried the rules, and the three recurring reports |
-| Blocker report    | Item 9: zero P0/P1 crashes and zero progress-blocking defects                             |
+| Release notes     | The upload itself, which is item 2                                                        |
+| Invitation        | Items 3 and 6: a Play-delivered install, and coverage of every mode and difficulty        |
+| Per-match record  | Items 5, 6 and 7: the match count, the coverage, and the five fields per match            |
+| Closing questions | Items 8 and 9: whether the coach alone carried the rules, and the three recurring reports |
+| Blocker report    | Item 10: zero P0/P1 crashes and zero progress-blocking defects                            |
 
 ## Release notes for the closed Alpha track
 
 Play asks for these per language, capped at 500 characters each.
-The blocks must match `fastlane/metadata/android/en-US/changelogs/5.txt` and `fastlane/metadata/android/ko-KR/changelogs/5.txt` before upload.
+The blocks must match `fastlane/metadata/android/en-US/changelogs/6.txt` and `fastlane/metadata/android/ko-KR/changelogs/6.txt` before upload.
 
 `en-US`:
 
 ```plaintext
 🆕 What's New
-• Choose local two-player matches or four AI difficulty levels, including Expert.
-• Play the full game in English or Korean.
+• Pick your rival: share one device for a head-to-head duel, or challenge four AI levels, from a gentle Easy to a ruthless Expert.
+• The whole game now speaks English and Korean.
 
 ✨ Improvements
-• Updated the first-match guidance and launcher artwork.
+• A friendlier first-match guide and a fresh launcher icon with rivals mid-push.
+• Under-the-hood tune-ups for a smoother match.
 
 🔧 Fixes
-• Corrected Korean result announcements.
+• Korean result announcements now say who really won.
+
+Push smart. Hold your ground. Win two rounds. 🏆
 ```
 
 `ko-KR`:
 
 ```plaintext
 🆕 새로운 기능
-• 한 기기 2인 대전과 전문가를 포함한 네 단계의 AI 대전을 선택할 수 있습니다.
-• 게임 전체를 영어 또는 한국어로 플레이할 수 있습니다.
+• 상대를 고르세요. 한 기기에서 친구와 맞대결을 펼치거나, 쉬움부터 만만치 않은 전문가까지 네 단계의 AI에 도전할 수 있습니다.
+• 게임 전체를 영어와 한국어로 즐길 수 있습니다.
 
 ✨ 개선
-• 첫 매치 안내와 앱 아이콘을 개선했습니다.
+• 첫 매치 안내가 더 친절해지고, 앱 아이콘은 서로를 밀어내는 두 탐험가로 새 단장했습니다.
+• 보이지 않는 곳도 손봐서 매치가 더 매끄럽게 이어집니다.
 
 🔧 수정
-• 한국어 결과 안내 문구를 바로잡았습니다.
+• 한국어 결과 안내가 누가 이겼는지 정확하게 알려줍니다.
+
+푸시하고, 버티고, 두 라운드를 먼저 차지하세요. 🏆
 ```
 
 ## Invitation
@@ -55,10 +61,10 @@ The blocks must match `fastlane/metadata/android/en-US/changelogs/5.txt` and `fa
 Send this after the build reaches the track and Play shows it as available.
 
 The invitation deliberately does not explain a single rule.
-Item 7 asks whether the game is playable from the coach alone, and a tester who was told the rules in the invitation can no longer answer that question.
+Item 8 asks whether the game is playable from the coach alone, and a tester who was told the rules in the invitation can no longer answer that question.
 
 ```plaintext
-안녕하세요. Ttush Push 1.1.0 비공개 Alpha 테스트를 부탁드립니다.
+안녕하세요. Ttush Push 1.1.1 비공개 Alpha 테스트를 부탁드립니다.
 
 먼저 Play 스토어에서 앱을 최신 버전으로 업데이트해 주세요.
 파일을 직접 설치하지 마시고 Play가 전달하는 업데이트로 받아 주셔야, 실제 배포 경로가 함께 검증됩니다.
@@ -76,7 +82,7 @@ AI 대전은 쉬움, 보통, 어려움, 전문가를 각각 한 번 이상 겪�
 
 Returning testers are asked to do nothing about the coach, because the build handles it.
 `firstPlayCoachVersion` moved from 1 to 2 in `lib/game/coach/first_play_coach_store.dart`, and completion is stored under a key that carries that number, so a tester who finished the coach in 1.0.0 meets it again here.
-That matters because all 34 testers already on the track had dismissed it, and item 7 asks what a player learns from the coach.
+That matters because all 34 testers already on the track had dismissed it, and item 8 asks what a player learns from the coach.
 `shows the coach to a player who completed the 1.0.0 version` in `test/game/view/game_page_accessibility_test.dart` fails if the constant goes back to 1.
 
 ## Per-match record
@@ -105,7 +111,7 @@ Galaxy S24 / Android 15 / 한국어
 ```
 
 Group the match records by device model, Android version, and interface language.
-Item 2 requires at least one completed match on each of at least two different physical Android devices.
+Item 3 requires at least one completed match on each of at least two different physical Android devices.
 
 ## Closing questions
 
@@ -120,7 +126,7 @@ Ask these once, after the tester has finished playing, never between matches.
 4. 게임 규칙을 알려 주는 안내 화면의 문구를 이해하는 것은 얼마나 편했습니까? 편함, 보통, 어려움 중 하나와 그 이유를 한 줄로 적어 주세요.
 ```
 
-The first three questions map one to one onto item 8, which asks for the top three recurring reports of confusion, unfairness and boredom.
+The first three questions map one to one onto item 9, which asks for the top three recurring reports of confusion, unfairness and boredom.
 Recurring is the operative word: a single tester's answer is an anecdote, and the item is closed by what repeats across testers.
 
 ## Blocker report
@@ -136,6 +142,6 @@ Recurring is the operative word: a single tester's answer is an anecdote, and th
 The app ships English and Korean localizations through `lib/l10n/arb/app_en.arb` and `lib/l10n/arb/app_ko.arb`.
 The interface follows the device locale.
 
-That affects item 7 specifically.
+That affects item 8 specifically.
 A tester who cannot follow the coach does not show whether the coach sequence or its localized wording caused the problem.
-Use the recorded interface language and the fourth closing answer to separate these causes when you evaluate item 7.
+Use the recorded interface language and the fourth closing answer to separate these causes when you evaluate item 8.
