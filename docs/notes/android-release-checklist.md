@@ -164,8 +164,9 @@ The statement added in [commit a1f10d0 on 2026-09-02](https://github.com/AndrewD
 Repository files do not establish the current Play Console state.
 Public store readiness is therefore verification pending under [#70](https://github.com/AndrewDongminYoo/ttush_push/issues/70), rather than an asserted current status.
 
-The iPad screenshots do not prove that a gameplay match was exercised on iPad.
-That manual verification remains [#69](https://github.com/AndrewDongminYoo/ttush_push/issues/69).
+The listing screenshots alone do not prove that a gameplay match was exercised on iPad.
+The separate [2026-09-25 iPad gameplay run](2026-09-25-ipad-gameplay-validation.md) supplies the evidence recorded under closed [#69](https://github.com/AndrewDongminYoo/ttush_push/issues/69): complete matches in portrait and Landscape Left, plus basic interaction and rotation observations across all four orientations on the stated simulator.
+That source-specific simulator run does not certify the earlier App Store-delivered binary or establish when gameplay was tested before submission.
 The [2026-09-25 actual TalkBack run](2026-09-25-talkback-gameplay-validation.md) supplies the Android core-move, Push, and complete-match evidence tracked by [#68](https://github.com/AndrewDongminYoo/ttush_push/issues/68).
 Actual TalkBack error/Retry behavior and audio intelligibility remain unobserved; the run does not establish current store readiness.
 Use [#81](https://github.com/AndrewDongminYoo/ttush_push/issues/81) as the single tracker for these remaining verification and release decisions.
