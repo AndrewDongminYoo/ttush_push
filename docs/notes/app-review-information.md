@@ -141,3 +141,9 @@ The universal 1.1.1 (6) archive was submitted on 2026-09-19 and approved by App 
 The submission carried the Notes field as sent on 2026-09-06, and App Store Connect already held four iPad Pro 12.9-inch screenshots alongside the iPhone set when the listing was pulled on 2026-09-19, so the iPad screenshot obligation above was met before this round closed.
 Whether the app was exercised on an iPad before that submission is not recorded here.
 The next submission starts from the regenerated `review_information/notes.txt` through `merry run release ios metadata`, and from the same universal device family.
+
+## Later evidence: iPad gameplay on 2026-09-25
+
+The [dated iPad validation record](2026-09-25-ipad-gameplay-validation.md) records real-engine local and Expert gameplay on an iPad Pro 11-inch (M5) simulator, including rotation, English/Korean layouts, large text, and observed limitations.
+Its source and debug-build provenance are separate from the approved `1.1.1 (6)` archive above.
+It does not retrospectively establish a pre-submission iPad playtest or replace a release-binary check for a later submission.
