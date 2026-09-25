@@ -277,6 +277,14 @@ impl Move {
     pub const fn new(piece: PieceId, direction: Direction) -> Self {
         Self { piece, direction }
     }
+
+    pub const fn piece(self) -> PieceId {
+        self.piece
+    }
+
+    pub const fn direction(self) -> Direction {
+        self.direction
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

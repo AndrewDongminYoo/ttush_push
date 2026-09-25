@@ -1,10 +1,10 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::env;
 use std::fmt;
 use std::process;
 
-use engine::bot::{GreedyBot, MinimaxBot, Policy, RandomBot};
-use engine::{GameState, Outcome, Player, WinReason, apply_move, outcome};
+use engine::bot::{GreedyBot, MinimaxBot, Policy, RandomBot, StrategicBot};
+use engine::{Direction, GameState, Move, Outcome, Player, WinReason, apply_move, outcome};
 
 #[derive(Debug)]
 struct Options {
@@ -22,6 +22,7 @@ enum PolicyKind {
     Random,
     Greedy,
     Minimax(u8),
+    Strategic,
 }
 
 impl PolicyKind {
@@ -29,6 +30,7 @@ impl PolicyKind {
         match value {
             "random" => Ok(Self::Random),
             "greedy" => Ok(Self::Greedy),
+            "strategic" => Ok(Self::Strategic),
             _ => match value.strip_prefix("minimax") {
                 Some("") => Ok(Self::Minimax(2)),
                 Some(depth) => depth
@@ -47,6 +49,7 @@ impl PolicyKind {
             Self::Random => Box::new(RandomBot::new(seed)),
             Self::Greedy => Box::new(GreedyBot::new(seed)),
             Self::Minimax(depth) => Box::new(MinimaxBot::new(depth, seed)),
+            Self::Strategic => Box::new(StrategicBot::new(seed)),
         }
     }
 }
@@ -64,12 +67,14 @@ impl fmt::Display for PolicyKind {
             Self::Random => f.write_str("random"),
             Self::Greedy => f.write_str("greedy"),
             Self::Minimax(depth) => write!(f, "minimax:{depth}"),
+            Self::Strategic => f.write_str("strategic"),
         }
     }
 }
 
 #[derive(Default)]
 struct Statistics {
+    games: u64,
     first_mover_wins: u64,
     second_mover_wins: u64,
     knockout_wins: u64,
@@ -78,6 +83,31 @@ struct Statistics {
     turn_limits: u64,
     total_turns: u64,
     max_observed_turns: u64,
+}
+
+impl Statistics {
+    fn add(&mut self, other: &Self) {
+        self.games += other.games;
+        self.first_mover_wins += other.first_mover_wins;
+        self.second_mover_wins += other.second_mover_wins;
+        self.knockout_wins += other.knockout_wins;
+        self.immobilization_wins += other.immobilization_wins;
+        self.repetitions += other.repetitions;
+        self.turn_limits += other.turn_limits;
+        self.total_turns += other.total_turns;
+        self.max_observed_turns = self.max_observed_turns.max(other.max_observed_turns);
+    }
+}
+
+fn opening_key(selected_move: Move) -> (u8, &'static str) {
+    let direction = match selected_move.direction() {
+        Direction::Up => "up",
+        Direction::Down => "down",
+        Direction::Left => "left",
+        Direction::Right => "right",
+    };
+
+    (selected_move.piece().0, direction)
 }
 
 fn main() {
@@ -89,7 +119,8 @@ fn main() {
 
 fn run() -> Result<(), String> {
     let options = parse_options(env::args().skip(1))?;
-    let statistics = simulate(&options);
+    let simulation = simulate(&options);
+    let statistics = &simulation.aggregate;
 
     println!("games={}", options.games);
     println!("seed={}", options.seed);
@@ -108,6 +139,10 @@ fn run() -> Result<(), String> {
         "mean_turns={}",
         mean_turns(statistics.total_turns, options.games)
     );
+    println!("board=baseline");
+    for (opening, opening_statistics) in simulation.openings {
+        print_opening_statistics(opening, &opening_statistics);
+    }
 
     Ok(())
 }
@@ -159,11 +194,17 @@ fn parse_positive(flag: &str, value: &str) -> Result<u64, String> {
 fn usage() -> &'static str {
     "usage: simulate --games <positive integer> --seed <u64> \
 [--max-turns <positive integer>] [--first <policy>] [--second <policy>]\n\
-policies: random | greedy | minimax | minimax:<depth>"
+policies: random | greedy | minimax | minimax:<depth> | strategic"
 }
 
-fn simulate(options: &Options) -> Statistics {
-    let mut statistics = Statistics::default();
+struct SimulationStatistics {
+    aggregate: Statistics,
+    openings: BTreeMap<(u8, &'static str), Statistics>,
+}
+
+fn simulate(options: &Options) -> SimulationStatistics {
+    let mut aggregate = Statistics::default();
+    let mut openings: BTreeMap<(u8, &'static str), Statistics> = BTreeMap::new();
 
     for game in 0..options.games {
         // Each game gets its own seed, so a policy's choices vary between
@@ -175,18 +216,20 @@ fn simulate(options: &Options) -> Statistics {
         let mut state = GameState::baseline();
         let mut seen_states = HashSet::new();
         let mut turns = 0;
+        let mut first_move = None;
+        let mut game_statistics = Statistics::default();
 
         loop {
             if let Outcome::Winner(player, reason) = outcome(&state) {
-                record_winner(&mut statistics, player, reason);
+                record_winner(&mut game_statistics, player, reason);
                 break;
             }
             if !seen_states.insert(state.clone()) {
-                statistics.repetitions += 1;
+                game_statistics.repetitions += 1;
                 break;
             }
             if turns == options.max_turns {
-                statistics.turn_limits += 1;
+                game_statistics.turn_limits += 1;
                 break;
             }
 
@@ -198,20 +241,55 @@ fn simulate(options: &Options) -> Statistics {
             let Some(selected_move) = selected_move else {
                 break;
             };
+            if turns == 0 {
+                first_move = Some(opening_key(selected_move));
+            }
             state = apply_move(&state, selected_move).expect("a policy must return a legal move");
             turns += 1;
 
             if let Outcome::Winner(player, reason) = outcome(&state) {
-                record_winner(&mut statistics, player, reason);
+                record_winner(&mut game_statistics, player, reason);
                 break;
             }
         }
 
-        statistics.total_turns += turns;
-        statistics.max_observed_turns = statistics.max_observed_turns.max(turns);
+        game_statistics.games = 1;
+        game_statistics.total_turns = turns;
+        game_statistics.max_observed_turns = turns;
+        aggregate.add(&game_statistics);
+        openings
+            .entry(first_move.expect("the baseline board has a legal opening move"))
+            .or_default()
+            .add(&game_statistics);
     }
 
-    statistics
+    SimulationStatistics {
+        aggregate,
+        openings,
+    }
+}
+
+fn print_opening_statistics(opening: (u8, &'static str), statistics: &Statistics) {
+    let prefix = format!("opening.{}.{}", opening.0, opening.1);
+
+    println!("{prefix}.games={}", statistics.games);
+    println!("{prefix}.first_mover_wins={}", statistics.first_mover_wins);
+    println!(
+        "{prefix}.second_mover_wins={}",
+        statistics.second_mover_wins
+    );
+    println!("{prefix}.knockout_wins={}", statistics.knockout_wins);
+    println!(
+        "{prefix}.immobilization_wins={}",
+        statistics.immobilization_wins
+    );
+    println!("{prefix}.repetitions={}", statistics.repetitions);
+    println!("{prefix}.turn_limits={}", statistics.turn_limits);
+    println!("{prefix}.total_turns={}", statistics.total_turns);
+    println!(
+        "{prefix}.max_observed_turns={}",
+        statistics.max_observed_turns
+    );
 }
 
 fn record_winner(statistics: &mut Statistics, player: Player, reason: WinReason) {
