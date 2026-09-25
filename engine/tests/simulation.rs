@@ -1,17 +1,16 @@
-use std::process::Command;
+use std::process::{Command, Output};
 
 use engine::bot::{Policy, RandomBot, StrategicBot};
-use engine::{GameState, Move};
+use engine::{
+    Direction, GameState, Move, Outcome, PieceId, Player, WinReason, apply_move, outcome,
+};
 
 fn run_simulation() -> String {
     simulate(&["--games", "100", "--seed", "42", "--max-turns", "500"])
 }
 
 fn simulate(args: &[&str]) -> String {
-    let output = Command::new(env!("CARGO_BIN_EXE_simulate"))
-        .args(args)
-        .output()
-        .expect("simulation process starts");
+    let output = run_simulation_command(args);
 
     assert!(
         output.status.success(),
@@ -20,6 +19,13 @@ fn simulate(args: &[&str]) -> String {
     );
 
     String::from_utf8(output.stdout).expect("simulation output is UTF-8")
+}
+
+fn run_simulation_command(args: &[&str]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_simulate"))
+        .args(args)
+        .output()
+        .expect("simulation process starts")
 }
 
 fn value(output: &str, key: &str) -> u64 {
@@ -62,6 +68,58 @@ fn opening_total(output: &str, stat: &str) -> u64 {
         .into_iter()
         .map(|prefix| value(output, &format!("opening.{prefix}.{stat}")))
         .sum()
+}
+
+fn trace_value<'a>(output: &'a str, key: &str) -> &'a str {
+    output
+        .lines()
+        .find_map(|line| line.strip_prefix(&format!("{key}=")))
+        .unwrap_or_else(|| panic!("missing {key} in:\n{output}"))
+}
+
+fn trace_direction(value: &str) -> Direction {
+    match value {
+        "up" => Direction::Up,
+        "down" => Direction::Down,
+        "left" => Direction::Left,
+        "right" => Direction::Right,
+        _ => panic!("unknown trace direction: {value}"),
+    }
+}
+
+fn trace_player(value: &str) -> Player {
+    match value {
+        "first" => Player::First,
+        "second" => Player::Second,
+        _ => panic!("unknown trace player: {value}"),
+    }
+}
+
+fn trace_move(output: &str, number: u64) -> (Player, Move) {
+    let player = trace_player(trace_value(output, &format!("trace.move.{number}.player")));
+    let piece = trace_value(output, &format!("trace.move.{number}.piece"))
+        .parse()
+        .expect("trace piece is numeric");
+    let direction = trace_direction(trace_value(
+        output,
+        &format!("trace.move.{number}.direction"),
+    ));
+
+    (player, Move::new(PieceId(piece), direction))
+}
+
+fn trace_key_count(output: &str, key: &str) -> usize {
+    output
+        .lines()
+        .filter(|line| line.split_once('=').is_some_and(|(found, _)| found == key))
+        .count()
+}
+
+fn trace_move_line_count(output: &str) -> usize {
+    output
+        .lines()
+        .filter(|line| line.starts_with("trace.move."))
+        .count()
 }
 
 #[test]
@@ -338,4 +396,225 @@ fn capped_runs_attribute_every_turn_to_the_opening_that_started_it() {
     assert_eq!(opening_total(&output, "games"), 4, "{output}");
     assert_eq!(opening_total(&output, "turn_limits"), 4, "{output}");
     assert_eq!(opening_total(&output, "total_turns"), 4, "{output}");
+}
+
+#[test]
+fn trace_replays_the_selected_strategic_terminal_round_and_wins_at_its_cap() {
+    // Removing selected-round capture or recording the wrong actor makes this
+    // replay diverge from the same engine that accepts the moves.
+    let output = simulate(&[
+        "--games",
+        "1",
+        "--seed",
+        "19",
+        "--max-turns",
+        "10",
+        "--first",
+        "random",
+        "--second",
+        "strategic",
+        "--trace-game",
+        "0",
+    ]);
+
+    assert_eq!(trace_value(&output, "trace.game_index"), "0");
+    assert_eq!(trace_value(&output, "trace.first_seed"), "19");
+    let expected_second_seed = 19_u64.wrapping_mul(0x9e37_79b9).to_string();
+    assert_eq!(
+        trace_value(&output, "trace.second_seed"),
+        expected_second_seed
+    );
+    assert_eq!(trace_value(&output, "trace.turns"), "10");
+    assert_eq!(trace_value(&output, "trace.termination"), "knockout");
+    assert_eq!(trace_value(&output, "trace.winner"), "second");
+    for key in [
+        "trace.game_index",
+        "trace.first_seed",
+        "trace.second_seed",
+        "trace.turns",
+        "trace.termination",
+        "trace.winner",
+    ] {
+        assert_eq!(trace_key_count(&output, key), 1, "{output}");
+    }
+
+    let mut state = GameState::baseline();
+    for number in 1..=10 {
+        let (player, selected_move) = trace_move(&output, number);
+
+        assert_eq!(player, state.current_player(), "move {number}:\n{output}");
+        for field in ["player", "piece", "direction"] {
+            assert_eq!(
+                trace_key_count(&output, &format!("trace.move.{number}.{field}")),
+                1,
+                "{output}"
+            );
+        }
+        state =
+            apply_move(&state, selected_move).expect("the traced move replays through the engine");
+    }
+    let turns = trace_value(&output, "trace.turns")
+        .parse::<usize>()
+        .expect("trace turns is numeric");
+    assert_eq!(trace_move_line_count(&output), 3 * turns, "{output}");
+    assert_eq!(
+        trace_key_count(&output, "trace.move.11.player"),
+        0,
+        "{output}"
+    );
+
+    assert_eq!(
+        outcome(&state),
+        Outcome::Winner(Player::Second, WinReason::Knockout)
+    );
+}
+
+#[test]
+fn trace_uses_the_selected_nonzero_round_with_wrapping_seeds_and_is_repeatable() {
+    // Reusing the base seed, retaining a prior round's moves, or constructing
+    // the second policy with a non-wrapping seed would fail these comparisons.
+    for (base_seed, expected_first_seed) in [(u64::MAX, 0), (u64::MAX - 1, u64::MAX)] {
+        let seed = base_seed.to_string();
+        let args = [
+            "--games",
+            "2",
+            "--seed",
+            &seed,
+            "--max-turns",
+            "2",
+            "--first",
+            "random",
+            "--second",
+            "random",
+            "--trace-game",
+            "1",
+        ];
+        let first = simulate(&args);
+        let second = simulate(&args);
+        let second_seed = expected_first_seed.wrapping_mul(0x9e37_79b9);
+
+        assert_eq!(first, second);
+        assert_eq!(trace_value(&first, "trace.game_index"), "1");
+        assert_eq!(
+            trace_value(&first, "trace.first_seed"),
+            expected_first_seed.to_string()
+        );
+        assert_eq!(
+            trace_value(&first, "trace.second_seed"),
+            second_seed.to_string()
+        );
+        assert_eq!(trace_value(&first, "trace.turns"), "2");
+        assert_eq!(trace_value(&first, "trace.termination"), "turn_limit");
+        assert_eq!(trace_value(&first, "trace.winner"), "none");
+
+        let mut state = GameState::baseline();
+        let mut first_policy = RandomBot::new(expected_first_seed);
+        let mut second_policy = RandomBot::new(second_seed);
+        for number in 1..=2 {
+            let expected_player = state.current_player();
+            let expected_move = if expected_player == Player::First {
+                first_policy.choose(&state)
+            } else {
+                second_policy.choose(&state)
+            }
+            .expect("the baseline state has a random move");
+            assert_eq!(
+                trace_move(&first, number),
+                (expected_player, expected_move),
+                "move {number}:\n{first}"
+            );
+            for field in ["player", "piece", "direction"] {
+                assert_eq!(
+                    trace_key_count(&first, &format!("trace.move.{number}.{field}")),
+                    1,
+                    "{first}"
+                );
+            }
+            state = apply_move(&state, expected_move).expect("random move replays");
+        }
+        let turns = trace_value(&first, "trace.turns")
+            .parse::<usize>()
+            .expect("trace turns is numeric");
+        assert_eq!(trace_move_line_count(&first), 3 * turns, "{first}");
+        assert_eq!(trace_key_count(&first, "trace.move.3.player"), 0, "{first}");
+    }
+}
+
+#[test]
+fn trace_keeps_statistics_unchanged_and_preserves_a_shorter_cap() {
+    // Emitting a trace must append to, rather than alter, the aggregate and
+    // opening report, while a shorter cap remains a censored result.
+    let base_args = [
+        "--games",
+        "1",
+        "--seed",
+        "19",
+        "--max-turns",
+        "9",
+        "--first",
+        "random",
+        "--second",
+        "strategic",
+    ];
+    let untraced = simulate(&base_args);
+    let traced = simulate(&[
+        "--games",
+        "1",
+        "--seed",
+        "19",
+        "--max-turns",
+        "9",
+        "--first",
+        "random",
+        "--second",
+        "strategic",
+        "--trace-game",
+        "0",
+    ]);
+
+    assert_eq!(
+        traced
+            .split_once("trace.game_index=")
+            .expect("trace is appended after the existing report")
+            .0,
+        untraced
+    );
+    assert_eq!(value(&traced, "total_turns"), 9, "{traced}");
+    assert_eq!(value(&traced, "turn_limits"), 1, "{traced}");
+    assert_eq!(trace_value(&traced, "trace.termination"), "turn_limit");
+    assert_eq!(trace_value(&traced, "trace.winner"), "none");
+}
+
+#[test]
+fn trace_option_rejects_missing_malformed_negative_and_out_of_range_indices() {
+    // Relaxing validation lets a malformed index reach simulation or selects
+    // a nonexistent round instead of returning the CLI's error exit code.
+    let cases = [
+        (
+            ["--games", "1", "--seed", "1", "--trace-game"].as_slice(),
+            "missing value for --trace-game",
+        ),
+        (
+            ["--games", "1", "--seed", "1", "--trace-game", "nope"].as_slice(),
+            "invalid trace game index: nope",
+        ),
+        (
+            ["--games", "1", "--seed", "1", "--trace-game", "-1"].as_slice(),
+            "invalid trace game index: -1",
+        ),
+        (
+            ["--trace-game", "2", "--games", "2", "--seed", "1"].as_slice(),
+            "--trace-game must be less than games: 2",
+        ),
+    ];
+
+    for (args, diagnostic) in cases {
+        let output = run_simulation_command(args);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains(diagnostic),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
 }

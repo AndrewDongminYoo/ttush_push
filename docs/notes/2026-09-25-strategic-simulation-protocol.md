@@ -62,6 +62,34 @@ Neither counter proves a game-theoretic draw.
 Win rates and opening frequencies are conditional on these policies, budgets, board, and seeds.
 A frequent opening or a short winning continuation is not proof of a forced line.
 
+## Inspect one sampled continuation
+
+Use the same clean-checkout and source-provenance checks above before recording a trace.
+Add `--trace-game` to select one zero-based round index within the requested batch.
+For example, this traces the second round and retains statistics for all three rounds:
+
+```sh
+engine/target/release/simulate --games 3 --seed 18 --max-turns 100 --first random --second strategic --trace-game 1
+```
+
+Repeat the command to check the complete output byte for byte.
+The trace is appended after the existing report; omitting `--trace-game` preserves the old output.
+`trace.game_index` identifies the round, and `trace.first_seed` and `trace.second_seed` record the actual policy seeds after unsigned wrapping.
+Moves appear as contiguous one-based `trace.move.<n>.player`, `.piece`, and `.direction` entries.
+They are the moves the simulation applied, not a second policy search performed for reporting.
+Replay them from `GameState::baseline()` through `apply_move`, checking the acting player before each move and `outcome` at the end.
+The CLI integration tests exercise that engine replay contract.
+
+`trace.turns` counts applied moves.
+`trace.termination` distinguishes `knockout`, `immobilization`, `turn_limit`, `repetition`, and the unexpected `policy_none` exit.
+`trace.winner` is `first` or `second` only for an observed win and is `none` otherwise.
+A win on the last allowed move remains a win; a shorter cap may censor the same continuation.
+The parent report's policies, board, and cap and the source revision above remain part of the trace's interpretation.
+
+This is one sampled continuation, not a search tree or a certificate that every reply loses.
+Use it to identify positions for separate analysis; do not label a short trace a forced win or an unfinished trace a draw.
+No trace is emitted for other rounds, and only the selected round's move history is retained.
+
 ## Remaining analysis
 
 The historical 100,000-round random-policy baseline in `docs/specs/2026-08-22-bot-policies.md` remains historical evidence for that engine revision.
