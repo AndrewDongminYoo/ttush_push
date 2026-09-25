@@ -166,7 +166,8 @@ Public store readiness is therefore verification pending under [#70](https://git
 
 The iPad screenshots do not prove that a gameplay match was exercised on iPad.
 That manual verification remains [#69](https://github.com/AndrewDongminYoo/ttush_push/issues/69).
-TalkBack accessibility verification remains [#68](https://github.com/AndrewDongminYoo/ttush_push/issues/68).
+The [2026-09-25 actual TalkBack run](2026-09-25-talkback-gameplay-validation.md) supplies the Android core-move, Push, and complete-match evidence tracked by [#68](https://github.com/AndrewDongminYoo/ttush_push/issues/68).
+Actual TalkBack error/Retry behavior and audio intelligibility remain unobserved; the run does not establish current store readiness.
 Use [#81](https://github.com/AndrewDongminYoo/ttush_push/issues/81) as the single tracker for these remaining verification and release decisions.
 
 ### Historical 2026-09-02 privacy and domain snapshot
