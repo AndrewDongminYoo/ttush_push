@@ -14,6 +14,7 @@ struct Options {
     first: PolicyKind,
     second: PolicyKind,
     trace_game: Option<u64>,
+    swap_seeds: bool,
 }
 
 /// Which way of playing a side uses. Named rather than boxed in the options
@@ -153,6 +154,9 @@ fn run() -> Result<(), String> {
         mean_turns(statistics.total_turns, options.games)
     );
     println!("board=baseline");
+    if options.swap_seeds {
+        println!("seed_assignment=swapped");
+    }
     for (opening, opening_statistics) in simulation.openings {
         print_opening_statistics(opening, &opening_statistics);
     }
@@ -170,9 +174,14 @@ fn parse_options(arguments: impl IntoIterator<Item = String>) -> Result<Options,
     let mut first = PolicyKind::Random;
     let mut second = PolicyKind::Random;
     let mut trace_game = None;
+    let mut swap_seeds = false;
     let mut arguments = arguments.into_iter();
 
     while let Some(flag) = arguments.next() {
+        if flag == "--swap-seeds" {
+            swap_seeds = true;
+            continue;
+        }
         let value = arguments
             .next()
             .ok_or_else(|| format!("missing value for {flag}\n{}", usage()))?;
@@ -213,6 +222,7 @@ fn parse_options(arguments: impl IntoIterator<Item = String>) -> Result<Options,
         first,
         second,
         trace_game,
+        swap_seeds,
     })
 }
 
@@ -225,7 +235,7 @@ fn parse_positive(flag: &str, value: &str) -> Result<u64, String> {
 
 fn usage() -> &'static str {
     "usage: simulate --games <positive integer> --seed <u64> \
-[--max-turns <positive integer>] [--first <policy>] [--second <policy>] [--trace-game <u64>]\n\
+[--max-turns <positive integer>] [--first <policy>] [--second <policy>] [--trace-game <u64>] [--swap-seeds]\n\
 policies: random | greedy | minimax | minimax:<depth> | strategic"
 }
 
@@ -258,8 +268,13 @@ fn simulate(options: &Options) -> SimulationStatistics {
     for game in 0..options.games {
         // Each game gets its own seed, so a policy's choices vary between
         // games while the run as a whole stays reproducible.
-        let first_seed = options.seed.wrapping_add(game);
-        let second_seed = first_seed.wrapping_mul(0x9e37_79b9);
+        let first_stream_seed = options.seed.wrapping_add(game);
+        let second_stream_seed = first_stream_seed.wrapping_mul(0x9e37_79b9);
+        let (first_seed, second_seed) = if options.swap_seeds {
+            (second_stream_seed, first_stream_seed)
+        } else {
+            (first_stream_seed, second_stream_seed)
+        };
         let mut first = options.first.build(first_seed);
         let mut second = options.second.build(second_seed);
         let mut state = GameState::baseline();

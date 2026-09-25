@@ -37,13 +37,36 @@ engine/target/release/simulate --games 4 --seed 42 --max-turns 100 --first strat
 
 Repeat each command and compare its entire output byte for byte.
 Four rounds per configuration are a measurement smoke test, not a balance sample.
-The two seat orders use the existing simulator's seed schedule: First receives `seed + game_index`; Second receives `(seed + game_index) * 0x9e3779b9`, with wrapping unsigned arithmetic.
+The two seat orders above use the default simulator seed schedule: First receives `seed + game_index`; Second receives `(seed + game_index) * 0x9e3779b9`, with wrapping unsigned arithmetic.
 Seat reversal therefore is not an identical random-stream pairing.
 
 Strategic uses its existing deterministic node budget: a base of 18,000 nodes scaled by the current number of tiles and pieces, with one more than the legal root-move count as a lower bound.
 The budget is derived from board state and capped at the base before applying that lower bound; it is not a wall-clock timeout or a fixed search depth.
 The exact implementation is in `engine/src/bot/strategic.rs`; record the source revision with the results instead of assuming this description applies to future revisions.
 The CLI's `--max-turns` caps round length and does not change that per-move budget.
+
+## Control the seat seed assignment
+
+Use `--swap-seeds` to exchange the two already computed streams before constructing the policies for each round.
+First receives the multiplied stream and Second receives the original round seed.
+The flag takes no value, can appear anywhere between complete option pairs, and remains enabled if repeated.
+It changes neither the policy names nor which player moves first.
+Only this mode adds `seed_assignment=swapped` after the board row; omitting the flag preserves the previous full report format.
+If a trace is requested, `trace.first_seed` and `trace.second_seed` identify the actual constructor seeds.
+
+For a paired policy-and-seed reversal, keep the base seed, round count, and turn cap fixed:
+
+```sh
+engine/target/release/simulate --games 4 --seed 42 --max-turns 100 --first strategic --second minimax:2 --trace-game 0
+engine/target/release/simulate --games 4 --seed 42 --max-turns 100 --first minimax:2 --second strategic --trace-game 0 --swap-seeds
+```
+
+Each named policy receives the same initial RNG seed after moving to the other seat, although its encountered states and later RNG consumption can differ.
+For self-play sensitivity, compare the existing Strategic/Strategic command with an otherwise identical command containing `--swap-seeds`.
+Apply the same clean-source provenance guard and complete-output repeat check to every run.
+These commands describe a control protocol, not newly collected balance results.
+Choose additional seed ranges and the workload before collection; repeated or paired executions are not independent extra samples.
+Swapping streams does not transform the board, enumerate alternative replies, or prove a causal rule advantage.
 
 ## Interpret the report
 
