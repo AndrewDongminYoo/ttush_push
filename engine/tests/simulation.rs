@@ -618,3 +618,192 @@ fn trace_option_rejects_missing_malformed_negative_and_out_of_range_indices() {
         );
     }
 }
+
+#[test]
+fn swap_seeds_reverses_wrapping_random_streams_and_labels_only_swapped_reports() {
+    // Giving either policy its pre-swap seed still leaves plausible trace seed
+    // metadata, but makes the independently replayed RandomBot move diverge.
+    let multiplication_wrapping_seed = (u64::MAX - 1).to_string();
+    let swapped_before = simulate(&[
+        "--swap-seeds",
+        "--games",
+        "2",
+        "--seed",
+        &multiplication_wrapping_seed,
+        "--max-turns",
+        "4",
+        "--first",
+        "random",
+        "--second",
+        "random",
+        "--trace-game",
+        "1",
+    ]);
+    let swapped_between = simulate(&[
+        "--games",
+        "2",
+        "--swap-seeds",
+        "--seed",
+        &multiplication_wrapping_seed,
+        "--max-turns",
+        "4",
+        "--first",
+        "random",
+        "--second",
+        "random",
+        "--trace-game",
+        "1",
+    ]);
+    let swapped_after = simulate(&[
+        "--games",
+        "2",
+        "--seed",
+        &multiplication_wrapping_seed,
+        "--max-turns",
+        "4",
+        "--first",
+        "random",
+        "--second",
+        "random",
+        "--trace-game",
+        "1",
+        "--swap-seeds",
+    ]);
+    let swapped_repeated = simulate(&[
+        "--swap-seeds",
+        "--games",
+        "2",
+        "--seed",
+        &multiplication_wrapping_seed,
+        "--max-turns",
+        "4",
+        "--first",
+        "random",
+        "--second",
+        "random",
+        "--trace-game",
+        "1",
+        "--swap-seeds",
+    ]);
+
+    assert_eq!(swapped_before, swapped_between);
+    assert_eq!(swapped_before, swapped_after);
+    assert_eq!(swapped_before, swapped_repeated);
+    assert_eq!(trace_value(&swapped_before, "trace.game_index"), "1");
+    assert_eq!(
+        trace_value(&swapped_before, "trace.first_seed"),
+        "18446744071055115847"
+    );
+    assert_eq!(
+        trace_value(&swapped_before, "trace.second_seed"),
+        u64::MAX.to_string()
+    );
+
+    let mut state = GameState::baseline();
+    let mut first_policy = RandomBot::new(18_446_744_071_055_115_847);
+    let mut second_policy = RandomBot::new(u64::MAX);
+    let mut swapped_moves = Vec::new();
+    for number in 1..=4 {
+        let expected_player = state.current_player();
+        let expected_move = if expected_player == Player::First {
+            first_policy.choose(&state)
+        } else {
+            second_policy.choose(&state)
+        }
+        .expect("the baseline state has a random move");
+
+        assert_eq!(
+            trace_move(&swapped_before, number),
+            (expected_player, expected_move),
+            "move {number}:\n{swapped_before}"
+        );
+        swapped_moves.push((expected_player, expected_move));
+        state = apply_move(&state, expected_move).expect("random move replays");
+    }
+
+    let default = simulate(&[
+        "--games",
+        "2",
+        "--seed",
+        &multiplication_wrapping_seed,
+        "--max-turns",
+        "4",
+        "--first",
+        "random",
+        "--second",
+        "random",
+        "--trace-game",
+        "1",
+    ]);
+    let default_moves = (1..=4)
+        .map(|number| trace_move(&default, number))
+        .collect::<Vec<_>>();
+    assert_ne!(default_moves, swapped_moves);
+    assert!(!default.contains("seed_assignment=swapped"), "{default}");
+
+    let untraced = simulate(&[
+        "--games",
+        "2",
+        "--seed",
+        &multiplication_wrapping_seed,
+        "--max-turns",
+        "4",
+        "--first",
+        "random",
+        "--second",
+        "random",
+        "--swap-seeds",
+    ]);
+    let board_index = untraced
+        .lines()
+        .position(|line| line == "board=baseline")
+        .expect("the board is reported");
+    assert_eq!(
+        untraced.lines().nth(board_index + 1),
+        Some("seed_assignment=swapped")
+    );
+    assert_eq!(
+        swapped_after
+            .split_once("trace.game_index=")
+            .expect("trace is appended after the report")
+            .0,
+        untraced
+    );
+
+    let addition_wrapping_seed = u64::MAX.to_string();
+    let addition_wrapped = simulate(&[
+        "--games",
+        "2",
+        "--seed",
+        &addition_wrapping_seed,
+        "--max-turns",
+        "2",
+        "--first",
+        "random",
+        "--second",
+        "random",
+        "--trace-game",
+        "1",
+        "--swap-seeds",
+    ]);
+    assert_eq!(trace_value(&addition_wrapped, "trace.first_seed"), "0");
+    assert_eq!(trace_value(&addition_wrapped, "trace.second_seed"), "0");
+    let mut state = GameState::baseline();
+    let mut first_policy = RandomBot::new(0);
+    let mut second_policy = RandomBot::new(0);
+    for number in 1..=2 {
+        let expected_player = state.current_player();
+        let expected_move = if expected_player == Player::First {
+            first_policy.choose(&state)
+        } else {
+            second_policy.choose(&state)
+        }
+        .expect("the baseline state has a random move");
+        assert_eq!(
+            trace_move(&addition_wrapped, number),
+            (expected_player, expected_move),
+            "move {number}:\n{addition_wrapped}"
+        );
+        state = apply_move(&state, expected_move).expect("random move replays");
+    }
+}
