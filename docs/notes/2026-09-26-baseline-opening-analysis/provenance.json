@@ -1,0 +1,215 @@
+{
+  "source_sha": "5c31f44f934762d720fe910180549288f470b58c",
+  "source_status_before": "",
+  "observed_at": "2026-09-25T14:47:45.924219+00:00",
+  "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+  "platform": "Darwin arm64",
+  "binary_sha256": "afa41513593a36cf96fd22409f8bfe3280d44a842e6c512664972b450976b0b8",
+  "pilot_runs": [
+    {
+      "label": "expert-hard",
+      "args": [
+        "--games",
+        "4",
+        "--seed",
+        "42",
+        "--max-turns",
+        "100",
+        "--first",
+        "strategic",
+        "--second",
+        "minimax:2"
+      ],
+      "seconds": 21.238,
+      "exit_code": 0
+    },
+    {
+      "label": "hard-expert",
+      "args": [
+        "--games",
+        "4",
+        "--seed",
+        "42",
+        "--max-turns",
+        "100",
+        "--first",
+        "minimax:2",
+        "--second",
+        "strategic"
+      ],
+      "seconds": 17.603,
+      "exit_code": 0
+    },
+    {
+      "label": "expert-expert",
+      "args": [
+        "--games",
+        "4",
+        "--seed",
+        "42",
+        "--max-turns",
+        "100",
+        "--first",
+        "strategic",
+        "--second",
+        "strategic"
+      ],
+      "seconds": 42.723,
+      "exit_code": 0
+    }
+  ],
+  "expanded_runs": [
+    {
+      "label": "expert-hard",
+      "repeat": false,
+      "args": [
+        "--games",
+        "16",
+        "--seed",
+        "42",
+        "--max-turns",
+        "100",
+        "--first",
+        "strategic",
+        "--second",
+        "minimax:2",
+        "--trace-game",
+        "0"
+      ],
+      "started_at": "2026-09-25T14:50:05.891334+00:00",
+      "seconds": 71.67,
+      "exit_code": 0,
+      "stdout_file": "expert-hard.txt",
+      "stdout_sha256": "36c7241933a701aabe9b50f7dbd843fa18bdd34e77ec59d57e183309fd144468",
+      "source_status_after": ""
+    },
+    {
+      "label": "expert-hard",
+      "repeat": true,
+      "args": [
+        "--games",
+        "16",
+        "--seed",
+        "42",
+        "--max-turns",
+        "100",
+        "--first",
+        "strategic",
+        "--second",
+        "minimax:2",
+        "--trace-game",
+        "0"
+      ],
+      "started_at": "2026-09-25T14:53:32.751204+00:00",
+      "seconds": 71.442,
+      "exit_code": 0,
+      "stdout_file": "expert-hard-repeat.txt",
+      "stdout_sha256": "36c7241933a701aabe9b50f7dbd843fa18bdd34e77ec59d57e183309fd144468",
+      "source_status_after": ""
+    },
+    {
+      "label": "hard-expert",
+      "repeat": false,
+      "args": [
+        "--games",
+        "16",
+        "--seed",
+        "42",
+        "--max-turns",
+        "100",
+        "--first",
+        "minimax:2",
+        "--second",
+        "strategic",
+        "--trace-game",
+        "0"
+      ],
+      "started_at": "2026-09-25T14:54:44.280432+00:00",
+      "seconds": 69.768,
+      "exit_code": 0,
+      "stdout_file": "hard-expert.txt",
+      "stdout_sha256": "b836f28ebb3004f31021d8c3cb82fcc0e7d181f1ebd082cc5c507a55db7df0c5",
+      "source_status_after": ""
+    },
+    {
+      "label": "hard-expert",
+      "repeat": true,
+      "args": [
+        "--games",
+        "16",
+        "--seed",
+        "42",
+        "--max-turns",
+        "100",
+        "--first",
+        "minimax:2",
+        "--second",
+        "strategic",
+        "--trace-game",
+        "0"
+      ],
+      "started_at": "2026-09-25T14:55:54.142592+00:00",
+      "seconds": 64.998,
+      "exit_code": 0,
+      "stdout_file": "hard-expert-repeat.txt",
+      "stdout_sha256": "b836f28ebb3004f31021d8c3cb82fcc0e7d181f1ebd082cc5c507a55db7df0c5",
+      "source_status_after": ""
+    },
+    {
+      "label": "expert-expert",
+      "repeat": false,
+      "args": [
+        "--games",
+        "16",
+        "--seed",
+        "42",
+        "--max-turns",
+        "100",
+        "--first",
+        "strategic",
+        "--second",
+        "strategic",
+        "--trace-game",
+        "0"
+      ],
+      "started_at": "2026-09-25T14:56:59.211017+00:00",
+      "seconds": 148.476,
+      "exit_code": 0,
+      "stdout_file": "expert-expert.txt",
+      "stdout_sha256": "ae74953c585855fe42e87fb2eb52f931821d186573b96ce9ec3516e2953d819a",
+      "source_status_after": ""
+    },
+    {
+      "label": "expert-expert",
+      "repeat": true,
+      "args": [
+        "--games",
+        "16",
+        "--seed",
+        "42",
+        "--max-turns",
+        "100",
+        "--first",
+        "strategic",
+        "--second",
+        "strategic",
+        "--trace-game",
+        "0"
+      ],
+      "started_at": "2026-09-25T14:59:57.869243+00:00",
+      "seconds": 167.69,
+      "exit_code": 0,
+      "stdout_file": "expert-expert-repeat.txt",
+      "stdout_sha256": "ae74953c585855fe42e87fb2eb52f931821d186573b96ce9ec3516e2953d819a",
+      "source_status_after": ""
+    }
+  ],
+  "source_status_after": "",
+  "completed_at": "2026-09-25T15:02:45.648771+00:00",
+  "artifact_notes": {
+    "canonical_reports": "The three non-repeat stdout files are retained here unchanged. Duplicate repeat files and pilot stdout remain Git-local; their filenames identify local execution artifacts.",
+    "verification": "All three full outputs matched their repeats byte for byte; each selected trace replayed through the production engine.",
+    "restored_changes": "Original .gitignore and pubspec.lock bytes were restored after clean-source collection."
+  }
+}
