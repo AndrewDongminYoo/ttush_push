@@ -92,6 +92,8 @@ No trace is emitted for other rounds, and only the selected round's move history
 
 ## Remaining analysis
 
+The [2026-09-26 baseline opening analysis](2026-09-26-baseline-opening-analysis.md) records a bounded Expert/Hard seat reversal and Expert self-play experiment, including reproducible outputs and its limitations.
+
 The historical 100,000-round random-policy baseline in `docs/specs/2026-08-22-bot-policies.md` remains historical evidence for that engine revision.
 Do not relabel it as Expert data or compare revisions without noting rule and policy differences.
 Before increasing the workload, choose a specific hypothesis and a sampling budget.
