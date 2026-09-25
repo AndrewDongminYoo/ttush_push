@@ -151,8 +151,26 @@ Google Play remains the authority for a versionCode that was used on another tra
 
 Version 1.1.0, version code 5, was released to the closed Alpha track on 2026-09-11 through Play Console; its AAB was built on 2026-09-10 from `a1f3543`, 27 commits (`git rev-list --count cd4fa14..a1f3543`, 8 of them under `lib/`) after the commit that wrote the version, which was established afterwards from the git reference log and the bundle manifest because nothing recorded it at the time.
 Version 1.1.1, version code 6, was released to the same track on 2026-09-18 through `merry run release alpha publish` from `f145ea8`, tagged `v1.1.1+6`, the first upload made by this automation; its first run failed the live track query with `The caller does not have permission`, and the same command succeeded five minutes later without a code change.
-The next uploaded artifact therefore needs a versionCode greater than 6.
+That 2026-09-18 Alpha record establishes a historical lower bound: a later upload needs a versionCode greater than 6.
+It does not establish which higher values remain unused; check current Play Console uploads across all tracks before choosing the next versionCode.
 
-What remains uncovered is everything a production release needs. The app is still a draft in Play Console, so the store listing, the data safety form and the content rating questionnaire are all outstanding. iOS packaging is not covered here at all; no archive has been produced.
+### Status reconciliation — 2026-09-25
+
+The prior statement that no iOS archive had been produced is superseded.
+The dated [App Review record](app-review-information.md#outcome-111-6-approved) says that a universal 1.1.1 (6) archive was submitted on 2026-09-19 and approved on 2026-09-20, attributed to the operator because the verdict is held in App Store Connect and email rather than this repository.
+That record also documents the universal device-family reversal and four iPad Pro 12.9-inch listing screenshots.
+
+The statement added in [commit a1f10d0 on 2026-09-02](https://github.com/AndrewDongminYoo/ttush_push/commit/a1f10d0) that Play Console still showed a draft, with store listing, data safety, and content rating work outstanding, is historical evidence only.
+Repository files do not establish the current Play Console state.
+Public store readiness is therefore verification pending under [#70](https://github.com/AndrewDongminYoo/ttush_push/issues/70), rather than an asserted current status.
+
+The iPad screenshots do not prove that a gameplay match was exercised on iPad.
+That manual verification remains [#69](https://github.com/AndrewDongminYoo/ttush_push/issues/69).
+TalkBack accessibility verification remains [#68](https://github.com/AndrewDongminYoo/ttush_push/issues/68).
+Use [#81](https://github.com/AndrewDongminYoo/ttush_push/issues/81) as the single tracker for these remaining verification and release decisions.
+
+### Historical 2026-09-02 privacy and domain snapshot
+
+The following privacy URL and DNS statements were recorded in [commit 2cb3668 on 2026-09-02](https://github.com/AndrewDongminYoo/ttush_push/commit/2cb3668) and are retained as historical release evidence.
 
 The privacy policy is no longer among them. The landing site is deployed and `https://ttush-push-landing.vercel.app/ko/privacy` answers, which is the URL Play asks for. Expect it to move: the site is bound for `ttush-push.donminzzi.kr`, which has no DNS record yet, so whatever URL is given to Play now has to be updated when the domain is attached.
