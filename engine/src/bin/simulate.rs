@@ -13,6 +13,7 @@ struct Options {
     max_turns: u64,
     first: PolicyKind,
     second: PolicyKind,
+    trace_game: Option<u64>,
 }
 
 /// Which way of playing a side uses. Named rather than boxed in the options
@@ -100,14 +101,26 @@ impl Statistics {
 }
 
 fn opening_key(selected_move: Move) -> (u8, &'static str) {
-    let direction = match selected_move.direction() {
+    (
+        selected_move.piece().0,
+        direction_name(selected_move.direction()),
+    )
+}
+
+fn direction_name(direction: Direction) -> &'static str {
+    match direction {
         Direction::Up => "up",
         Direction::Down => "down",
         Direction::Left => "left",
         Direction::Right => "right",
-    };
+    }
+}
 
-    (selected_move.piece().0, direction)
+fn player_name(player: Player) -> &'static str {
+    match player {
+        Player::First => "first",
+        Player::Second => "second",
+    }
 }
 
 fn main() {
@@ -143,6 +156,9 @@ fn run() -> Result<(), String> {
     for (opening, opening_statistics) in simulation.openings {
         print_opening_statistics(opening, &opening_statistics);
     }
+    if let Some(trace) = simulation.trace {
+        print_trace(&trace);
+    }
 
     Ok(())
 }
@@ -153,6 +169,7 @@ fn parse_options(arguments: impl IntoIterator<Item = String>) -> Result<Options,
     let mut max_turns = 10_000;
     let mut first = PolicyKind::Random;
     let mut second = PolicyKind::Random;
+    let mut trace_game = None;
     let mut arguments = arguments.into_iter();
 
     while let Some(flag) = arguments.next() {
@@ -171,16 +188,31 @@ fn parse_options(arguments: impl IntoIterator<Item = String>) -> Result<Options,
             "--max-turns" => max_turns = parse_positive(&flag, &value)?,
             "--first" => first = PolicyKind::parse(&value)?,
             "--second" => second = PolicyKind::parse(&value)?,
+            "--trace-game" => {
+                trace_game = Some(
+                    value
+                        .parse()
+                        .map_err(|_| format!("invalid trace game index: {value}"))?,
+                )
+            }
             _ => return Err(format!("unknown argument: {flag}\n{}", usage())),
         }
     }
 
+    let games = games.ok_or_else(|| format!("--games is required\n{}", usage()))?;
+    if let Some(index) = trace_game
+        && index >= games
+    {
+        return Err(format!("--trace-game must be less than games: {index}"));
+    }
+
     Ok(Options {
-        games: games.ok_or_else(|| format!("--games is required\n{}", usage()))?,
+        games,
         seed: seed.ok_or_else(|| format!("--seed is required\n{}", usage()))?,
         max_turns,
         first,
         second,
+        trace_game,
     })
 }
 
@@ -193,62 +225,108 @@ fn parse_positive(flag: &str, value: &str) -> Result<u64, String> {
 
 fn usage() -> &'static str {
     "usage: simulate --games <positive integer> --seed <u64> \
-[--max-turns <positive integer>] [--first <policy>] [--second <policy>]\n\
+[--max-turns <positive integer>] [--first <policy>] [--second <policy>] [--trace-game <u64>]\n\
 policies: random | greedy | minimax | minimax:<depth> | strategic"
 }
 
 struct SimulationStatistics {
     aggregate: Statistics,
     openings: BTreeMap<(u8, &'static str), Statistics>,
+    trace: Option<RoundTrace>,
+}
+
+struct RoundTrace {
+    game_index: u64,
+    first_seed: u64,
+    second_seed: u64,
+    moves: Vec<(Player, Move)>,
+    termination: TraceTermination,
+}
+
+enum TraceTermination {
+    Winner(Player, WinReason),
+    Repetition,
+    TurnLimit,
+    PolicyNone,
 }
 
 fn simulate(options: &Options) -> SimulationStatistics {
     let mut aggregate = Statistics::default();
     let mut openings: BTreeMap<(u8, &'static str), Statistics> = BTreeMap::new();
+    let mut selected_trace = None;
 
     for game in 0..options.games {
         // Each game gets its own seed, so a policy's choices vary between
         // games while the run as a whole stays reproducible.
-        let mut first = options.first.build(options.seed.wrapping_add(game));
-        let mut second = options
-            .second
-            .build(options.seed.wrapping_add(game).wrapping_mul(0x9e37_79b9));
+        let first_seed = options.seed.wrapping_add(game);
+        let second_seed = first_seed.wrapping_mul(0x9e37_79b9);
+        let mut first = options.first.build(first_seed);
+        let mut second = options.second.build(second_seed);
         let mut state = GameState::baseline();
         let mut seen_states = HashSet::new();
         let mut turns = 0;
         let mut first_move = None;
         let mut game_statistics = Statistics::default();
+        let mut trace = options
+            .trace_game
+            .filter(|index| *index == game)
+            .map(|_| RoundTrace {
+                game_index: game,
+                first_seed,
+                second_seed,
+                moves: Vec::new(),
+                termination: TraceTermination::PolicyNone,
+            });
 
         loop {
             if let Outcome::Winner(player, reason) = outcome(&state) {
                 record_winner(&mut game_statistics, player, reason);
+                if let Some(trace) = &mut trace {
+                    trace.termination = TraceTermination::Winner(player, reason);
+                }
                 break;
             }
             if !seen_states.insert(state.clone()) {
                 game_statistics.repetitions += 1;
+                if let Some(trace) = &mut trace {
+                    trace.termination = TraceTermination::Repetition;
+                }
                 break;
             }
             if turns == options.max_turns {
                 game_statistics.turn_limits += 1;
+                if let Some(trace) = &mut trace {
+                    trace.termination = TraceTermination::TurnLimit;
+                }
                 break;
             }
 
-            let selected_move = if state.current_player() == Player::First {
+            let player = state.current_player();
+            let selected_move = if player == Player::First {
                 first.choose(&state)
             } else {
                 second.choose(&state)
             };
             let Some(selected_move) = selected_move else {
+                if let Some(trace) = &mut trace {
+                    trace.termination = TraceTermination::PolicyNone;
+                }
                 break;
             };
             if turns == 0 {
                 first_move = Some(opening_key(selected_move));
+            }
+            if let Some(trace) = &mut trace {
+                trace.moves.push((player, selected_move));
             }
             state = apply_move(&state, selected_move).expect("a policy must return a legal move");
             turns += 1;
 
             if let Outcome::Winner(player, reason) = outcome(&state) {
                 record_winner(&mut game_statistics, player, reason);
+                if let Some(trace) = &mut trace {
+                    trace.termination = TraceTermination::Winner(player, reason);
+                }
                 break;
             }
         }
@@ -261,11 +339,15 @@ fn simulate(options: &Options) -> SimulationStatistics {
             .entry(first_move.expect("the baseline board has a legal opening move"))
             .or_default()
             .add(&game_statistics);
+        if trace.is_some() {
+            selected_trace = trace;
+        }
     }
 
     SimulationStatistics {
         aggregate,
         openings,
+        trace: selected_trace,
     }
 }
 
@@ -290,6 +372,44 @@ fn print_opening_statistics(opening: (u8, &'static str), statistics: &Statistics
         "{prefix}.max_observed_turns={}",
         statistics.max_observed_turns
     );
+}
+
+fn print_trace(trace: &RoundTrace) {
+    println!("trace.game_index={}", trace.game_index);
+    println!("trace.first_seed={}", trace.first_seed);
+    println!("trace.second_seed={}", trace.second_seed);
+    for (index, (player, selected_move)) in trace.moves.iter().enumerate() {
+        let number = index + 1;
+        println!("trace.move.{number}.player={}", player_name(*player));
+        println!("trace.move.{number}.piece={}", selected_move.piece().0);
+        println!(
+            "trace.move.{number}.direction={}",
+            direction_name(selected_move.direction())
+        );
+    }
+    println!("trace.turns={}", trace.moves.len());
+    match trace.termination {
+        TraceTermination::Winner(player, WinReason::Knockout) => {
+            println!("trace.termination=knockout");
+            println!("trace.winner={}", player_name(player));
+        }
+        TraceTermination::Winner(player, WinReason::Immobilization) => {
+            println!("trace.termination=immobilization");
+            println!("trace.winner={}", player_name(player));
+        }
+        TraceTermination::Repetition => {
+            println!("trace.termination=repetition");
+            println!("trace.winner=none");
+        }
+        TraceTermination::TurnLimit => {
+            println!("trace.termination=turn_limit");
+            println!("trace.winner=none");
+        }
+        TraceTermination::PolicyNone => {
+            println!("trace.termination=policy_none");
+            println!("trace.winner=none");
+        }
+    }
 }
 
 fn record_winner(statistics: &mut Statistics, player: Player, reason: WinReason) {
