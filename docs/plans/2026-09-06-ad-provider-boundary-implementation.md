@@ -1,5 +1,19 @@
 # Ad Provider Boundary Implementation Plan
 
+## Reconciliation — 2026-09-25
+
+| Task                          | Status                                 | Current source or dated evidence                                                                                                                                                                                                                                                                                                           |
+| ----------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1. Gateway and no-op default  | Implemented.                           | [AdGateway and NoAdGateway](../../lib/game/ads/ad_gateway.dart) and [gateway tests](../../test/game/ads/ad_gateway_test.dart) define the shipped no-op behavior.                                                                                                                                                                           |
+| 2. GamePage moments           | Implemented with reviewed corrections. | [GamePage](../../lib/game/view/game_page.dart) uses `Future<void>.sync`, captures the gateway active when the match ended before its post-frame report, and bounds restart with `_adInterruptionBudget`; [page tests](../../test/game/view/game_page_test.dart) cover identity capture, gateway failures, and an over-budget interruption. |
+| 3. Composition-root threading | Implemented.                           | [AppView](../../lib/app/view/app.dart), [StartPage](../../lib/game/start/start_page.dart), and [start-page tests](../../test/game/start/start_page_test.dart) carry the gateway to GamePage.                                                                                                                                               |
+| Real provider                 | Deliberately deferred.                 | The shipped default remains `NoAdGateway`; adapter, SDK, consent, privacy, store, and provider-selection work belongs to [issue #78](https://github.com/AndrewDongminYoo/ttush_push/issues/78).                                                                                                                                            |
+
+The review addendum below remains the historical correction for its outdated snippets.
+The original unchecked boxes retain a historical provenance gap because source presence does not establish its prescribed TDD commands, manual checks, commit execution, or aggregate-gate sequence.
+That gap is not an open request to reconstruct old execution records.
+Current manual and product decisions remain in [tracker #81](https://github.com/AndrewDongminYoo/ttush_push/issues/81).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Place a game-shaped seam in front of any future ad provider, so adopting or replacing one touches the flavor entry points and one adapter rather than the match screen.

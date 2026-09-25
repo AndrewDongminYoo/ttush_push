@@ -1,5 +1,20 @@
 # Authoritative Move Resolution Implementation Plan
 
+## Reconciliation — 2026-09-25
+
+| Task                             | Status                                      | Current source or dated evidence                                                                                                                                                                                                  |
+| -------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Rust move-result contract     | Implemented.                                | [The engine API](../../engine/src/api.rs) exposes the boundary, and [bridge API tests](../../engine/tests/bridge_api.rs) read its values.                                                                                         |
+| 2. Bridge consumer boundary      | Implemented.                                | [RulesEngine](../../lib/game/rules/rules_engine.dart) and [MatchController](../../lib/game/match/match_controller.dart) use prepared, pending results, with [controller tests](../../test/game/match/match_controller_test.dart). |
+| 3. Snapshot geometry             | Implemented.                                | [RoundBoard](../../lib/game/view/round_board.dart) and [board tests](../../test/game/view/round_board_test.dart) own geometry and hit testing.                                                                                    |
+| 4. Replay before commit          | Implemented.                                | [GamePage](../../lib/game/view/game_page.dart) owns playback, and [page tests](../../test/game/view/game_page_test.dart) cover the page behavior.                                                                                 |
+| 5. Generated and native contract | Implemented; current verification recorded. | [PR #82](https://github.com/AndrewDongminYoo/ttush_push/pull/82) recorded three Android and three iOS parity tests on `e369835` before merge `6da4099`, with CI passing.                                                          |
+
+The original unchecked boxes remain historical because source presence does not establish that its prescribed TDD sequence, generator invocation, per-step commits, or final command sequence ran.
+That is a historical provenance gap, not an open request to rerun those commands.
+Remaining manual device, external-play, and product decisions belong to [tracker #81](https://github.com/AndrewDongminYoo/ttush_push/issues/81).
+The repository now has [Web bridge configuration](../../flutter_rust_bridge.yaml) and [a Web CI build](../../.github/workflows/main.yaml), but that does not decide whether Web ships.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Return Rust-authored move effects with each applied match move, defer Flutter state adoption until a short replay completes, and derive every board dimension from snapshot tiles.
