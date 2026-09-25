@@ -27,6 +27,7 @@ Fastfile
 felixangelov
 FMWK
 fzyzcjy
+gphone
 HIDPI
 iconcomposer
 INFOPLIST
@@ -63,6 +64,7 @@ shellcheck
 sonification
 SRCROOT
 Subviews
+TalkBack
 Testables
 Ttush
 undercount
