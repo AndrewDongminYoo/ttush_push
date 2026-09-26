@@ -141,3 +141,6 @@ lib/l10n/gen/
 
 # Subagent-driven development scratch (ledger, briefs, review packages)
 .superpowers/
+
+# Test Optimizer
+test/.test_optimizer.dart
