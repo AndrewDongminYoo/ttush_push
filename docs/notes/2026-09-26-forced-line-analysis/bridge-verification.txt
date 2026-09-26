@@ -1,0 +1,16 @@
+Running build hooks...Running build hooks...baseline prefix=0: replay and alternatives verified; independent proof nodes=0
+baseline prefix=34: replay and alternatives verified; independent proof nodes=32
+baseline prefix=30: replay and alternatives verified; independent proof nodes=651
+baseline prefix=38: replay and alternatives verified; independent proof nodes=0
+clipped-corners prefix=0: replay and alternatives verified; independent proof nodes=0
+clipped-corners prefix=26: replay and alternatives verified; independent proof nodes=23
+clipped-corners prefix=22: replay and alternatives verified; independent proof nodes=4098
+clipped-corners prefix=30: replay and alternatives verified; independent proof nodes=0
+large-holes prefix=0: replay and alternatives verified; independent proof nodes=0
+large-holes prefix=67: replay and alternatives verified; independent proof nodes=692
+large-holes prefix=63: replay and alternatives verified; independent proof nodes=5325
+large-holes prefix=71: replay and alternatives verified; independent proof nodes=0
+large prefix=0: replay and alternatives verified; independent proof nodes=0
+large prefix=80: replay and alternatives verified; independent proof nodes=98
+large prefix=76: replay and alternatives verified; independent proof nodes=5909
+large prefix=84: replay and alternatives verified; independent proof nodes=0

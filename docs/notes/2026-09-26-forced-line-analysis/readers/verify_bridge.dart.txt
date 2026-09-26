@@ -1,0 +1,77 @@
+import 'dart:io';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:ttush_push/game/board/board_definition.dart';
+import 'package:ttush_push/game/rules/rules_engine.dart';
+import 'package:ttush_push/src/rust/api.dart' as rust;
+import 'package:ttush_push/src/rust/frb_generated.dart';
+
+void require(bool ok, String message) { if (!ok) throw StateError(message); }
+const engine = FrbRulesEngine();
+var inspected = 0;
+
+rust.GamePlayer? exhaustive(rust.MatchSnapshot state, int depth) {
+  if (++inspected > 1000000) throw StateError('Independent reader node limit');
+  if (state.roundWinner != null) return state.roundWinner;
+  if (depth == 0) return null;
+  final children = engine.legalMoves(state).map((move) => exhaustive(engine.applyMove(state, move).snapshot, depth - 1)).toList();
+  require(children.isNotEmpty, 'Nonterminal state without replies');
+  final mover = state.round.currentPlayer;
+  if (children.contains(mover)) return mover;
+  final opponent = mover == rust.GamePlayer.first ? rust.GamePlayer.second : rust.GamePlayer.first;
+  if (children.every((winner) => winner == opponent)) return opponent;
+  return null;
+}
+
+Future<void> main(List<String> args) async {
+  require(args.isNotEmpty, 'Missing reports');
+  await RustLib.init(externalLibrary: ExternalLibrary.open('engine/target/release/libengine.dylib'));
+  try {
+    for (final filename in args) {
+      final report = <String,String>{};
+      for (final line in File(filename).readAsLinesSync()) {
+        final at = line.indexOf('='); require(at > 0, 'Malformed report');
+        require(!report.containsKey(line.substring(0,at)), 'Duplicate key');
+        report[line.substring(0,at)] = line.substring(at+1);
+      }
+      final board = BuiltInBoard.values.singleWhere((board) => board.id == report['board']);
+      var state = engine.initialMatch(board.definition.rules);
+      require(report['initial_tiles']!.split(';').toSet().containsAll(state.round.tiles.map((t) => '${t.x},${t.y},${t.kind.name}')) && report['initial_tiles']!.split(';').length == state.round.tiles.length, 'Terrain mismatch');
+      require(report['initial_pieces']!.split(';').toSet().containsAll(state.round.pieces.map((p) => '${p.id},${p.owner.name},${p.x},${p.y}')) && report['initial_pieces']!.split(';').length == state.round.pieces.length, 'Pieces mismatch');
+      final prefix = int.parse(report['path_length']!);
+      for (var i=1; i<=prefix; i++) {
+        final fields = report['path.$i']!.split(',');
+        require(fields[0] == state.round.currentPlayer.name, 'Actor mismatch');
+        final move = rust.GameMove(pieceId:int.parse(fields[1]), direction:rust.GameDirection.values.byName(fields[2]));
+        require(engine.legalMoves(state).contains(move), 'Illegal path');
+        state = engine.applyMove(state,move).snapshot;
+      }
+      require(report['player'] == state.round.currentPlayer.name, 'Mover mismatch');
+      final moves = engine.legalMoves(state);
+      require(int.parse(report['alternatives']!) == moves.length, 'Alternative count mismatch');
+      inspected=0;
+      final proved = <rust.GamePlayer?>[];
+      for(var i=0;i<moves.length;i++) {
+        final move=moves[i];
+        require(report['reply.$i.move'] == '${move.pieceId},${move.direction.name}', 'Alternative mismatch');
+        if(prefix > 0) {
+          final winner=exhaustive(engine.applyMove(state,move).snapshot,int.parse(report['depth']!)-1);
+          require(report['reply.$i.result'] == (winner?.name ?? 'unknown'), 'Proof result mismatch');
+          proved.add(winner);
+        }
+      }
+      if(state.roundWinner != null) {
+        require(report['terminal'] == '${state.roundWinner!.name},${state.roundWinReason!.name}', 'Terminal mismatch');
+        require(report['result'] == state.roundWinner!.name, 'Terminal result mismatch');
+      } else {
+        require(report['terminal'] == 'none', 'Unexpected terminal');
+        if(prefix > 0) {
+          final mover=state.round.currentPlayer;
+          final other=mover==rust.GamePlayer.first ? rust.GamePlayer.second : rust.GamePlayer.first;
+          final winner=proved.contains(mover) ? mover : proved.every((p)=>p==other) ? other : null;
+          require(report['result'] == (winner?.name ?? 'unknown'), 'Position result mismatch');
+        }
+      }
+      stdout.writeln('${board.id} prefix=$prefix: replay and alternatives verified; independent proof nodes=$inspected');
+    }
+  } finally { RustLib.dispose(); }
+}

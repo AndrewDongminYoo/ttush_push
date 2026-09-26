@@ -1,0 +1,613 @@
+{
+  "source": "bdc8b67a1e1d0df90fcb765d9a6d2cbf6f16bc61",
+  "binary_sha256": "22101ad018f71a45404c6344542dce9e8b9edc8718af90e1373c82732f374583",
+  "contract_sha256": "dbcaf172c3ebbbe303581fc4e34bdc6368d695fee3a8dbf3fdd5ef2b5e13b3a3",
+  "collector_sha256": "3657eb727d5ca52e098291f11236589c835757a7fa7b8b83c80b2baa13d6c066",
+  "runs": [
+    {
+      "name": "baseline-terminal-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/baseline.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/baseline-terminal.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:21.101554+00:00",
+      "seconds": 0.3321757909943699,
+      "exit_code": 0,
+      "stdout_sha256": "5e29953a5822482de11c55a27f064c913ef7546623259982b2111e5592ce491b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "baseline-initial-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/baseline.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/baseline-initial.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:21.496727+00:00",
+      "seconds": 0.32898049999494106,
+      "exit_code": 0,
+      "stdout_sha256": "a562152a00ad9aa02d1b7d39c0bbbf90f66be02527be8de6b9e2d099dd5d50a4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "baseline-initial-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/baseline.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/baseline-initial.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:21.886637+00:00",
+      "seconds": 0.32986966599855805,
+      "exit_code": 0,
+      "stdout_sha256": "a562152a00ad9aa02d1b7d39c0bbbf90f66be02527be8de6b9e2d099dd5d50a4",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "baseline-last8-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/baseline.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/baseline-last8.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:22.271936+00:00",
+      "seconds": 0.0028305000014370307,
+      "exit_code": 0,
+      "stdout_sha256": "08146137d0413e95c335823be4f92cf200beed5787a7db55f2face5b475e6863",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "baseline-last8-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/baseline.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/baseline-last8.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:22.328319+00:00",
+      "seconds": 0.0028984590026084334,
+      "exit_code": 0,
+      "stdout_sha256": "08146137d0413e95c335823be4f92cf200beed5787a7db55f2face5b475e6863",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "baseline-last4-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/baseline.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/baseline-last4.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:22.383524+00:00",
+      "seconds": 0.002556916995672509,
+      "exit_code": 0,
+      "stdout_sha256": "a022e4d51bd0c7c8ad0e39624f8e952e6a17ce9ced4df4af73f08e31afd51768",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "baseline-last4-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/baseline.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/baseline-last4.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:22.439334+00:00",
+      "seconds": 0.0027182920021004975,
+      "exit_code": 0,
+      "stdout_sha256": "a022e4d51bd0c7c8ad0e39624f8e952e6a17ce9ced4df4af73f08e31afd51768",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "clipped-corners-terminal-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/clipped-corners.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/clipped-corners-terminal.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:22.498249+00:00",
+      "seconds": 0.002756832996965386,
+      "exit_code": 0,
+      "stdout_sha256": "21f4769319287d65c1573d59fbe001c25024f9067d571666abc84330c0464d00",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "clipped-corners-initial-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/clipped-corners.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/clipped-corners-initial.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:22.568448+00:00",
+      "seconds": 0.16974004200164927,
+      "exit_code": 0,
+      "stdout_sha256": "06eade6e2d31906c4ae7ff583a70cb5b99e016ede8da0fb7c8516c28bea0d103",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "clipped-corners-initial-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/clipped-corners.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/clipped-corners-initial.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:22.800239+00:00",
+      "seconds": 0.16325316599977668,
+      "exit_code": 0,
+      "stdout_sha256": "06eade6e2d31906c4ae7ff583a70cb5b99e016ede8da0fb7c8516c28bea0d103",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "clipped-corners-last8-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/clipped-corners.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/clipped-corners-last8.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:23.028389+00:00",
+      "seconds": 0.0032222500012721866,
+      "exit_code": 0,
+      "stdout_sha256": "fbdeadc52b7fa2cb7fec0781b3040acd70c621af86edaf1be58e6681ff9fa747",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "clipped-corners-last8-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/clipped-corners.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/clipped-corners-last8.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:23.092588+00:00",
+      "seconds": 0.002701458004594315,
+      "exit_code": 0,
+      "stdout_sha256": "fbdeadc52b7fa2cb7fec0781b3040acd70c621af86edaf1be58e6681ff9fa747",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "clipped-corners-last4-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/clipped-corners.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/clipped-corners-last4.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:23.153831+00:00",
+      "seconds": 0.0027453329967102036,
+      "exit_code": 0,
+      "stdout_sha256": "54e8a9413199cbed052913f606344c74c37c7e26b709477e5e1257eee59af4bc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "clipped-corners-last4-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/clipped-corners.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/clipped-corners-last4.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:23.211099+00:00",
+      "seconds": 0.0028597499986062758,
+      "exit_code": 0,
+      "stdout_sha256": "54e8a9413199cbed052913f606344c74c37c7e26b709477e5e1257eee59af4bc",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-terminal-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-terminal.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:23.273707+00:00",
+      "seconds": 0.0031390840013045818,
+      "exit_code": 0,
+      "stdout_sha256": "e2d7b3cc7128d6c5a4442bb19512712ee1946ccad086d47d149b8ab841a84391",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-initial-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-initial.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:23.333496+00:00",
+      "seconds": 1.0147530829999596,
+      "exit_code": 0,
+      "stdout_sha256": "c8bdc82e1ba16b705ee5ac8fe45b1f6d31f5902e8eafe9cfdf59c40d09a8e6ef",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-initial-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-initial.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:24.403727+00:00",
+      "seconds": 0.9943052499947953,
+      "exit_code": 0,
+      "stdout_sha256": "c8bdc82e1ba16b705ee5ac8fe45b1f6d31f5902e8eafe9cfdf59c40d09a8e6ef",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-last8-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-last8.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:25.454200+00:00",
+      "seconds": 0.004057208003359847,
+      "exit_code": 0,
+      "stdout_sha256": "357d04d24164934eefad42250509bd5433d7eab3d56329733651aba90c5bbe12",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-last8-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-last8.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:25.513840+00:00",
+      "seconds": 0.003499167003610637,
+      "exit_code": 0,
+      "stdout_sha256": "357d04d24164934eefad42250509bd5433d7eab3d56329733651aba90c5bbe12",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-last4-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-last4.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:25.571675+00:00",
+      "seconds": 0.0029064170012134127,
+      "exit_code": 0,
+      "stdout_sha256": "3e7b40acc4afe30f7f2911b25fc3c6652f24e118d02a70c576a8f51ef872e067",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-last4-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-last4.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:25.628470+00:00",
+      "seconds": 0.0031437500001629815,
+      "exit_code": 0,
+      "stdout_sha256": "3e7b40acc4afe30f7f2911b25fc3c6652f24e118d02a70c576a8f51ef872e067",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-holes-terminal-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large-holes.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-holes-terminal.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:25.690726+00:00",
+      "seconds": 0.0035530000022845343,
+      "exit_code": 0,
+      "stdout_sha256": "cea0c01e4c5668dbb372c6714a2e22690d1554c1d821603f279597d416ec38e0",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-holes-initial-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large-holes.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-holes-initial.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:25.751791+00:00",
+      "seconds": 0.9799882500010426,
+      "exit_code": 0,
+      "stdout_sha256": "f53ec4f586bd2c2730781147eaca1300e1a46147c189f63498cb11b3e89f745e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-holes-initial-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large-holes.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-holes-initial.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:26.789205+00:00",
+      "seconds": 0.9744605000014417,
+      "exit_code": 0,
+      "stdout_sha256": "f53ec4f586bd2c2730781147eaca1300e1a46147c189f63498cb11b3e89f745e",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-holes-last8-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large-holes.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-holes-last8.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:27.820353+00:00",
+      "seconds": 0.0036929580019204877,
+      "exit_code": 0,
+      "stdout_sha256": "de2e56724b53df6a0ca59ce8793fc1821d4673388ab75f167006fa53dd22ab9d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-holes-last8-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large-holes.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-holes-last8.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:27.878116+00:00",
+      "seconds": 0.0038854999947943725,
+      "exit_code": 0,
+      "stdout_sha256": "de2e56724b53df6a0ca59ce8793fc1821d4673388ab75f167006fa53dd22ab9d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-holes-last4-canonical",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large-holes.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-holes-last4.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:27.937967+00:00",
+      "seconds": 0.0027612920021056198,
+      "exit_code": 0,
+      "stdout_sha256": "e763242dab3042f133d8f3b4fb0ad689f81e6d3d0d973b5fd1b5b0d9e9576b3b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    },
+    {
+      "name": "large-holes-last4-repeat",
+      "command": [
+        "/Users/dongminyu/Development/01_personal/ttush_push/engine/target/release/analyze",
+        "--board-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/docs/notes/2026-09-26-board-comparison-control/boards/large-holes.board",
+        "--moves-file",
+        "/Users/dongminyu/Development/01_personal/ttush_push/build/forced-line-analysis/inputs/large-holes-last4.moves",
+        "--depth",
+        "8",
+        "--nodes",
+        "100000"
+      ],
+      "started_at": "2026-09-26T10:55:27.997238+00:00",
+      "seconds": 0.0027997919969493523,
+      "exit_code": 0,
+      "stdout_sha256": "e763242dab3042f133d8f3b4fb0ad689f81e6d3d0d973b5fd1b5b0d9e9576b3b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_clean": true
+    }
+  ],
+  "inputs": {
+    "docs/notes/2026-09-26-board-comparison-control/boards/baseline.board": "293af0c8196b7b8db1afd83e53cc90b99fbaf19547ddc8343407e5b683172758",
+    "docs/notes/2026-09-26-board-comparison-control/baseline-seed-42-default-canonical.txt": "4d5efdb16e0c10035b7b46aa6bf06b4fe6e24730fe84a5589e38bc5f0f2f1928",
+    "inputs/baseline-terminal.moves": "427be438327808c44a0d1585cfb20124fe9e901bdf18d0e68cf7295382ac152f",
+    "inputs/baseline-initial.moves": "93e341f37a7e68731c99c843dee3e155eabf2657270461fbfc02b7b2a7660bb9",
+    "inputs/baseline-last8.moves": "6f653ba865d78d76c9e1281c984dc45bdc6746ea8c302a66177b82428415637b",
+    "inputs/baseline-last4.moves": "91d4318fd3611b7b3b3ba8e8fc51a9bdf893b0b032384aef981b16cc64f83733",
+    "docs/notes/2026-09-26-board-comparison-control/boards/clipped-corners.board": "2f122c110a066d89c27771a960726d18543c13136d21fd4cb23d5b90af7681c8",
+    "docs/notes/2026-09-26-board-comparison-control/clipped-corners-seed-42-default-canonical.txt": "306159d93bdc349d4d4a58645107eae930fbc0bbe92fad7fa63230abff93c254",
+    "inputs/clipped-corners-terminal.moves": "7f3b22794089c93a9a75048d3662387ec5aae0466808fc01cf8eb8f1b2a11bbc",
+    "inputs/clipped-corners-initial.moves": "93e341f37a7e68731c99c843dee3e155eabf2657270461fbfc02b7b2a7660bb9",
+    "inputs/clipped-corners-last8.moves": "ec8eceba121edd2126a1c332683ddb81ea1f2cc123d3f721a822e3746cd6441c",
+    "inputs/clipped-corners-last4.moves": "f0ab04b8f403a8809427c6aa09c0bbb1ef57b236179a6f86873f23730d94d560",
+    "docs/notes/2026-09-26-board-comparison-control/boards/large.board": "24830cd31a426a6fb99ea99fcdc7f3841d8c66020525f19a538f31496923c7cd",
+    "docs/notes/2026-09-26-board-comparison-control/large-seed-42-default-canonical.txt": "90171093b054009a30bd2d244def1e20b025341a9c9aae85e9b08c806335381e",
+    "inputs/large-terminal.moves": "fd08a1e3a9202d6c3463af3e1adba4ba38937a68269b4afad64b1c4c6828c194",
+    "inputs/large-initial.moves": "93e341f37a7e68731c99c843dee3e155eabf2657270461fbfc02b7b2a7660bb9",
+    "inputs/large-last8.moves": "09f2c3417e57036471fa8cc7e8a756c6db4807023e8f61694fc610012ea0d486",
+    "inputs/large-last4.moves": "28ad0168c54653b12ba3768b330429cd4b233a6f0557ecfe8a4f97aee302a3bf",
+    "docs/notes/2026-09-26-board-comparison-control/boards/large-holes.board": "99c81d7b6dc141e0b9a9d4fd7bd93aed12c123ada131159750e826fa22c35a2d",
+    "docs/notes/2026-09-26-board-comparison-control/large-holes-seed-42-default-canonical.txt": "73d1787f983309ad4375b13959d0bf66f5cf1994db272212a800082848a3a254",
+    "inputs/large-holes-terminal.moves": "95ee82f7d1cb87e99652d0120980fbc2df73870b53395a5ac8595299d3769bf0",
+    "inputs/large-holes-initial.moves": "93e341f37a7e68731c99c843dee3e155eabf2657270461fbfc02b7b2a7660bb9",
+    "inputs/large-holes-last8.moves": "ebf3739b0e1a7b2e6ca42ae628f1e37dc009861416650898c8b97eee001e4e61",
+    "inputs/large-holes-last4.moves": "3d9e5d610c705c337ffb651e049bf93321389190efb98955d3c7766a6a7c1728"
+  },
+  "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "verification": {
+    "reader_sha256": "e5a068a251ddc2764f84ed67b95e0b19ac24d98ed4e20dbe5b8064a79e2a8110",
+    "host_library_sha256": "40f33879a6c6cc802b3dd2ba57e24484c3e34a2d22d911380a6bf95ecad6603b",
+    "output_sha256": "c1d1692785f0fec1927a7a7b2fbd9dd49a1d536bee1b0ae47e315d6b03c08b18",
+    "negative_control": "Forged reply.0.result on baseline-last4 rejected with Proof result mismatch",
+    "scope": "All16 canonical reports replayed through app bridge; all8 nonterminal suffixes independently evaluated over every legal branch to depth8 without short-circuiting; initial results only checked for transport and root enumeration",
+    "reader_path": "readers/verify_bridge.dart.txt"
+  },
+  "retention": "Canonical reports (including four terminal replay checks), move inputs and bridge verification retained in this directory; raw repeat and empty stderr files retained locally under build/forced-line-analysis, with hashes here.",
+  "collector_path": "readers/collector.py.txt",
+  "local_gate": {
+    "command": "CARGO_BUILD_JOBS=2 merry run check",
+    "exit_code": 0,
+    "log_path": "local-gate.log",
+    "log_sha256": "dfe747d56d10b23c1591a5377ad86db82826ca94dc0d63200525caec299ccab6",
+    "source_context": "Candidate implementation content before committing bdc8b67; subsequent change before commit only replaced one spelling in specification prose",
+    "scope": "Flutter220, Rust105, host bridge7; native parity SKIPPED"
+  }
+}

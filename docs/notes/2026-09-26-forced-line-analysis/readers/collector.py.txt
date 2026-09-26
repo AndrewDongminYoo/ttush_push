@@ -1,0 +1,116 @@
+import datetime
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import time
+
+ROOT = Path('/Users/dongminyu/Development/01_personal/ttush_push')
+INPUT = ROOT / 'docs/notes/2026-09-26-board-comparison-control'
+OUT = ROOT / 'build/forced-line-analysis'
+BINARY = ROOT / 'engine/target/release/analyze'
+BOARDS = ['baseline', 'clipped-corners', 'large', 'large-holes']
+
+def git(*args):
+    return subprocess.check_output(['git', '-C', str(ROOT), *args], text=True).strip()
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def clean(expected):
+    if git('status', '--porcelain') or git('rev-parse', 'HEAD') != expected:
+        raise RuntimeError('Source is not clean at the declared revision')
+
+def parse(text):
+    result = {}
+    for line in text.splitlines():
+        key, value = line.split('=', 1)
+        if key in result:
+            raise ValueError('Duplicate report key')
+        result[key] = value
+    return result
+
+def validate(report, trace, prefix, board_id):
+    if report['board'] != board_id or report['path_length'] != str(prefix):
+        raise ValueError('Position mismatch')
+    for key in ['initial_tiles', 'initial_pieces']:
+        if report[key] != trace[key]:
+            raise ValueError('Initial configuration mismatch')
+    for index in range(1, prefix + 1):
+        expected = ','.join(trace[f'trace.move.{index}.{field}'] for field in ['player', 'piece', 'direction'])
+        if report[f'path.{index}'] != expected:
+            raise ValueError('Replayed path mismatch')
+    count = int(report['alternatives'])
+    outcomes = [report[f'reply.{i}.result'] for i in range(count)]
+    if any(value not in ['first', 'second', 'unknown'] for value in outcomes):
+        raise ValueError('Invalid reply result')
+    if report['terminal'] == 'none':
+        mover = report['player']
+        opponent = 'second' if mover == 'first' else 'first'
+        expected = mover if mover in outcomes else opponent if outcomes and all(x == opponent for x in outcomes) else 'unknown'
+        if report['result'] != expected:
+            raise ValueError('Root result mismatch')
+    elif count or report['result'] != report['terminal'].split(',')[0]:
+        raise ValueError('Terminal mismatch')
+    for index in range(count):
+        if not 1 <= int(report[f'reply.{index}.nodes']) <= 100000:
+            raise ValueError('Node accounting mismatch')
+
+def main():
+    source = git('rev-parse', 'HEAD')
+    clean(source)
+    if OUT.exists():
+        raise RuntimeError('Refusing existing collection directory')
+    OUT.mkdir(parents=True)
+    (OUT / 'inputs').mkdir()
+    binary_hash = digest(BINARY)
+    provenance = {'source': source, 'binary_sha256': binary_hash,
+                  'contract_sha256': digest(ROOT / 'docs/specs/2026-09-26-forced-line-analysis.md'),
+                  'collector_sha256': digest(Path(__file__)), 'runs': [], 'inputs': {},
+                  'toolchain': subprocess.check_output(['rustc', '--version'], text=True).strip()}
+    for board in BOARDS:
+        original = INPUT / f'{board}-seed-42-default-canonical.txt'
+        trace = parse(original.read_text())
+        turns = int(trace['trace.turns'])
+        board_file = INPUT / 'boards' / f'{board}.board'
+        provenance['inputs'][str(board_file.relative_to(ROOT))] = digest(board_file)
+        provenance['inputs'][str(original.relative_to(ROOT))] = digest(original)
+        prefixes = [('terminal', turns), ('initial', 0), ('last8', turns - 8), ('last4', turns - 4)]
+        for label, prefix in prefixes:
+            move_file = OUT / 'inputs' / f'{board}-{label}.moves'
+            move_file.write_text('ttush-moves-v1\n' + ''.join(
+                'move ' + ' '.join(trace[f'trace.move.{index}.{field}'] for field in ['player', 'piece', 'direction']) + '\n'
+                for index in range(1, prefix + 1)))
+            provenance['inputs'][str(move_file.relative_to(OUT))] = digest(move_file)
+            previous = None
+            for repeat in range(1 if label == 'terminal' else 2):
+                clean(source)
+                if digest(BINARY) != binary_hash:
+                    raise RuntimeError('Binary changed')
+                args = [str(BINARY), '--board-file', str(board_file), '--moves-file', str(move_file), '--depth', '8', '--nodes', '100000']
+                started = datetime.datetime.now(datetime.timezone.utc).isoformat()
+                begin = time.monotonic()
+                execution = subprocess.run(args, capture_output=True, timeout=120, cwd=ROOT)
+                elapsed = time.monotonic() - begin
+                name = f'{board}-{label}-' + ('canonical' if repeat == 0 else 'repeat')
+                stdout = OUT / f'{name}.txt'
+                stdout.write_bytes(execution.stdout)
+                (OUT / f'{name}.stderr').write_bytes(execution.stderr)
+                if execution.returncode != 0 or execution.stderr:
+                    raise RuntimeError(f'Execution failed: {name}')
+                report = parse(execution.stdout.decode())
+                validate(report, trace, prefix, board)
+                if label == 'terminal' and report['terminal'] != trace['trace.winner'] + ',' + trace['trace.termination']:
+                    raise RuntimeError('Source trace terminal mismatch')
+                if previous is not None and execution.stdout != previous:
+                    raise RuntimeError('Repeat differs')
+                previous = execution.stdout
+                clean(source)
+                provenance['runs'].append({'name':name, 'command':args,'started_at':started,'seconds':elapsed,'exit_code':execution.returncode,'stdout_sha256':digest(stdout),'stderr_sha256':digest(OUT / f'{name}.stderr'),'source_clean':True})
+                (OUT / 'provenance.json').write_text(json.dumps(provenance, indent=2) + '\n')
+                print(name, report['result'], 'replies', report['alternatives'], f'{elapsed:.3f}s', flush=True)
+    print('All declared positions and repeats completed', flush=True)
+
+if __name__ == '__main__':
+    main()
