@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use engine::api::{
     BotPolicy, GameBoardCell, GameBoardDefinition, GameDirection, GameMatchPhase, GameMove,
-    GamePiece, GamePlayer, GameTileKind, GameWinReason, MatchSnapshot, MoveActionKind,
+    GamePiece, GamePlayer, GameTile, GameTileKind, GameWinReason, MatchSnapshot, MoveActionKind,
     PieceDisplacement, PieceTravel, TileTransition, advance_round, choose_bot_move,
     initial_match as initial_match_from_definition, match_apply_move, match_legal_moves,
 };
@@ -53,6 +53,70 @@ fn baseline_definition() -> GameBoardDefinition {
                 y: 4,
             },
         ],
+        initial_tiles: None,
+    }
+}
+
+fn large_holes_definition() -> GameBoardDefinition {
+    GameBoardDefinition {
+        playable_cells: (0..7)
+            .flat_map(|x| (0..7).map(move |y| GameBoardCell { x, y }))
+            .collect(),
+        starting_pieces: vec![
+            GamePiece {
+                id: 0,
+                owner: GamePlayer::First,
+                x: 1,
+                y: 1,
+            },
+            GamePiece {
+                id: 1,
+                owner: GamePlayer::First,
+                x: 3,
+                y: 1,
+            },
+            GamePiece {
+                id: 2,
+                owner: GamePlayer::First,
+                x: 5,
+                y: 1,
+            },
+            GamePiece {
+                id: 3,
+                owner: GamePlayer::Second,
+                x: 1,
+                y: 5,
+            },
+            GamePiece {
+                id: 4,
+                owner: GamePlayer::Second,
+                x: 3,
+                y: 5,
+            },
+            GamePiece {
+                id: 5,
+                owner: GamePlayer::Second,
+                x: 5,
+                y: 5,
+            },
+        ],
+        initial_tiles: Some(vec![
+            GameTile {
+                x: 1,
+                y: 3,
+                kind: GameTileKind::Hole,
+            },
+            GameTile {
+                x: 3,
+                y: 3,
+                kind: GameTileKind::Hole,
+            },
+            GameTile {
+                x: 5,
+                y: 3,
+                kind: GameTileKind::Hole,
+            },
+        ]),
     }
 }
 
@@ -83,6 +147,7 @@ fn value_api_accepts_an_irregular_board_definition() {
                 y: 8,
             },
         ],
+        initial_tiles: None,
     };
 
     let snapshot = initial_match_from_definition(definition).unwrap();
@@ -117,11 +182,93 @@ fn value_api_accepts_an_irregular_board_definition() {
 }
 
 #[test]
+fn value_api_expands_sparse_initial_tiles_and_preserves_the_large_opening() {
+    let snapshot = initial_match_from_definition(large_holes_definition()).unwrap();
+
+    assert_eq!(snapshot.round.tiles.len(), 49);
+    assert_eq!(snapshot.initial_tiles.len(), 49);
+    assert_eq!(snapshot.round.tiles, snapshot.initial_tiles);
+    assert_eq!(
+        snapshot
+            .initial_tiles
+            .iter()
+            .filter(|tile| tile.kind == GameTileKind::Hole)
+            .map(|tile| (tile.x, tile.y))
+            .collect::<BTreeSet<_>>(),
+        BTreeSet::from([(1, 3), (3, 3), (5, 3)]),
+    );
+    assert!(snapshot.initial_tiles.iter().all(|tile| {
+        let is_initial_hole = [(1, 3), (3, 3), (5, 3)].contains(&(tile.x, tile.y));
+        tile.kind
+            == if is_initial_hole {
+                GameTileKind::Hole
+            } else {
+                GameTileKind::Normal
+            }
+    }));
+    assert_eq!(
+        snapshot.starting_pieces,
+        vec![
+            GamePiece {
+                id: 0,
+                owner: GamePlayer::First,
+                x: 1,
+                y: 1,
+            },
+            GamePiece {
+                id: 1,
+                owner: GamePlayer::First,
+                x: 3,
+                y: 1,
+            },
+            GamePiece {
+                id: 2,
+                owner: GamePlayer::First,
+                x: 5,
+                y: 1,
+            },
+            GamePiece {
+                id: 3,
+                owner: GamePlayer::Second,
+                x: 1,
+                y: 5,
+            },
+            GamePiece {
+                id: 4,
+                owner: GamePlayer::Second,
+                x: 3,
+                y: 5,
+            },
+            GamePiece {
+                id: 5,
+                owner: GamePlayer::Second,
+                x: 5,
+                y: 5,
+            },
+        ],
+    );
+}
+
+#[test]
+fn value_api_defaults_omitted_initial_tiles_to_normal() {
+    let snapshot = initial_match();
+
+    assert_eq!(snapshot.initial_tiles, snapshot.round.tiles);
+    assert!(
+        snapshot
+            .initial_tiles
+            .iter()
+            .all(|tile| tile.kind == GameTileKind::Normal),
+    );
+}
+
+#[test]
 fn value_api_rejects_invalid_board_definitions() {
     assert_eq!(
         initial_match_from_definition(GameBoardDefinition {
             playable_cells: vec![GameBoardCell { x: 1, y: 1 }, GameBoardCell { x: 1, y: 1 },],
             starting_pieces: vec![],
+            initial_tiles: None,
         })
         .unwrap_err(),
         "invalid board definition: duplicate playable cell",
@@ -130,6 +277,7 @@ fn value_api_rejects_invalid_board_definitions() {
         initial_match_from_definition(GameBoardDefinition {
             playable_cells: vec![],
             starting_pieces: vec![],
+            initial_tiles: None,
         })
         .unwrap_err(),
         "invalid board definition: EmptyBoard",
@@ -151,6 +299,7 @@ fn value_api_rejects_invalid_board_definitions() {
                     y: 1,
                 },
             ],
+            initial_tiles: None,
         })
         .unwrap_err(),
         "invalid board definition: OverlappingPieces",
@@ -172,6 +321,7 @@ fn value_api_rejects_invalid_board_definitions() {
                     y: 1,
                 },
             ],
+            initial_tiles: None,
         })
         .unwrap_err(),
         "invalid board definition: DuplicatePieceId(PieceId(7))",
@@ -185,9 +335,57 @@ fn value_api_rejects_invalid_board_definitions() {
                 x: 2,
                 y: 1,
             }],
+            initial_tiles: None,
         })
         .unwrap_err(),
         "invalid board definition: PieceOutsideBoard(PieceId(7))",
+    );
+
+    let one_piece_board = |initial_tiles| GameBoardDefinition {
+        playable_cells: (0..3)
+            .flat_map(|x| (0..3).map(move |y| GameBoardCell { x, y }))
+            .collect(),
+        starting_pieces: vec![GamePiece {
+            id: 0,
+            owner: GamePlayer::First,
+            x: 1,
+            y: 1,
+        }],
+        initial_tiles: Some(initial_tiles),
+    };
+    assert_eq!(
+        initial_match_from_definition(one_piece_board(vec![
+            GameTile {
+                x: 0,
+                y: 0,
+                kind: GameTileKind::Damaged,
+            },
+            GameTile {
+                x: 0,
+                y: 0,
+                kind: GameTileKind::Hole,
+            },
+        ]))
+        .unwrap_err(),
+        "invalid board definition: DuplicateInitialTile(Position { x: 0, y: 0 })",
+    );
+    assert_eq!(
+        initial_match_from_definition(one_piece_board(vec![GameTile {
+            x: 4,
+            y: 4,
+            kind: GameTileKind::Hole,
+        }]))
+        .unwrap_err(),
+        "invalid board definition: InitialTileOutsideBoard(Position { x: 4, y: 4 })",
+    );
+    assert_eq!(
+        initial_match_from_definition(one_piece_board(vec![GameTile {
+            x: 1,
+            y: 1,
+            kind: GameTileKind::Hole,
+        }]))
+        .unwrap_err(),
+        "invalid board definition: PieceOnHole",
     );
 }
 
@@ -432,6 +630,22 @@ fn value_api_rejects_an_edited_score() {
 }
 
 #[test]
+fn value_api_rejects_edited_initial_tile_metadata() {
+    let mut snapshot = initial_match_from_definition(large_holes_definition()).unwrap();
+    snapshot
+        .initial_tiles
+        .iter_mut()
+        .find(|tile| tile.x == 3 && tile.y == 3)
+        .unwrap()
+        .kind = GameTileKind::Normal;
+
+    assert_eq!(
+        match_legal_moves(snapshot).unwrap_err(),
+        "match snapshot hash does not match its value fields",
+    );
+}
+
+#[test]
 fn value_api_holds_a_finished_round_until_it_is_advanced() {
     // Both of the second player's pieces are pushed off the board, one per
     // round, so the match runs to its end through the value API alone.
@@ -471,6 +685,77 @@ fn value_api_holds_a_finished_round_until_it_is_advanced() {
         advance_round(next_round).unwrap_err(),
         "illegal move: RoundInProgress",
     );
+}
+
+#[test]
+fn value_api_restores_initial_tiles_instead_of_the_damaged_round() {
+    let definition = GameBoardDefinition {
+        playable_cells: (0..4)
+            .flat_map(|x| (0..2).map(move |y| GameBoardCell { x, y }))
+            .collect(),
+        starting_pieces: vec![
+            GamePiece {
+                id: 0,
+                owner: GamePlayer::First,
+                x: 1,
+                y: 0,
+            },
+            GamePiece {
+                id: 1,
+                owner: GamePlayer::Second,
+                x: 2,
+                y: 0,
+            },
+            GamePiece {
+                id: 2,
+                owner: GamePlayer::Second,
+                x: 0,
+                y: 1,
+            },
+        ],
+        initial_tiles: Some(vec![
+            GameTile {
+                x: 0,
+                y: 1,
+                kind: GameTileKind::Damaged,
+            },
+            GameTile {
+                x: 3,
+                y: 0,
+                kind: GameTileKind::Hole,
+            },
+        ]),
+    };
+    let initial = initial_match_from_definition(definition).unwrap();
+    let round_over = match_apply_move(initial, game_move(0, GameDirection::Right))
+        .unwrap()
+        .snapshot;
+
+    assert_eq!(round_over.phase, GameMatchPhase::RoundOver);
+    assert!(round_over.round.tiles.contains(&GameTile {
+        x: 1,
+        y: 0,
+        kind: GameTileKind::Damaged,
+    }));
+
+    let next_round = advance_round(round_over).unwrap();
+
+    assert!(next_round.round.tiles.contains(&GameTile {
+        x: 0,
+        y: 1,
+        kind: GameTileKind::Damaged,
+    }));
+    assert!(next_round.round.tiles.contains(&GameTile {
+        x: 3,
+        y: 0,
+        kind: GameTileKind::Hole,
+    }));
+    assert!(next_round.round.tiles.contains(&GameTile {
+        x: 1,
+        y: 0,
+        kind: GameTileKind::Normal,
+    }));
+    assert_eq!(next_round.round.tiles, next_round.initial_tiles);
 }
 
 #[test]

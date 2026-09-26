@@ -8,6 +8,15 @@ import '../test/support/rules_engine_parity.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('RulesEngine preserves initial tile states across rounds', (
+    _,
+  ) async {
+    await RustLib.init();
+    addTearDown(RustLib.dispose);
+
+    expectInitialTileStates(const FrbRulesEngine());
+  });
+
   testWidgets('RulesEngine returns the cross-platform push fixture', (_) async {
     await RustLib.init();
     addTearDown(RustLib.dispose);

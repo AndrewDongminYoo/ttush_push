@@ -254,9 +254,11 @@ impl SseDecode for crate::api::GameBoardDefinition {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_playableCells = <Vec<crate::api::GameBoardCell>>::sse_decode(deserializer);
         let mut var_startingPieces = <Vec<crate::api::GamePiece>>::sse_decode(deserializer);
+        let mut var_initialTiles = <Option<Vec<crate::api::GameTile>>>::sse_decode(deserializer);
         return crate::api::GameBoardDefinition {
             playable_cells: var_playableCells,
             starting_pieces: var_startingPieces,
+            initial_tiles: var_initialTiles,
         };
     }
 }
@@ -462,6 +464,7 @@ impl SseDecode for crate::api::MatchSnapshot {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_round = <crate::api::GameSnapshot>::sse_decode(deserializer);
         let mut var_startingPieces = <Vec<crate::api::GamePiece>>::sse_decode(deserializer);
+        let mut var_initialTiles = <Vec<crate::api::GameTile>>::sse_decode(deserializer);
         let mut var_firstPlayerWins = <u8>::sse_decode(deserializer);
         let mut var_secondPlayerWins = <u8>::sse_decode(deserializer);
         let mut var_phase = <crate::api::GameMatchPhase>::sse_decode(deserializer);
@@ -472,6 +475,7 @@ impl SseDecode for crate::api::MatchSnapshot {
         return crate::api::MatchSnapshot {
             round: var_round,
             starting_pieces: var_startingPieces,
+            initial_tiles: var_initialTiles,
             first_player_wins: var_firstPlayerWins,
             second_player_wins: var_secondPlayerWins,
             phase: var_phase,
@@ -596,6 +600,17 @@ impl SseDecode for Option<u8> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<u8>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<Vec<crate::api::GameTile>> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<Vec<crate::api::GameTile>>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -763,6 +778,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::GameBoardDefinition {
         [
             self.playable_cells.into_into_dart().into_dart(),
             self.starting_pieces.into_into_dart().into_dart(),
+            self.initial_tiles.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -940,6 +956,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::MatchSnapshot {
         [
             self.round.into_into_dart().into_dart(),
             self.starting_pieces.into_into_dart().into_dart(),
+            self.initial_tiles.into_into_dart().into_dart(),
             self.first_player_wins.into_into_dart().into_dart(),
             self.second_player_wins.into_into_dart().into_dart(),
             self.phase.into_into_dart().into_dart(),
@@ -1113,6 +1130,7 @@ impl SseEncode for crate::api::GameBoardDefinition {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<crate::api::GameBoardCell>>::sse_encode(self.playable_cells, serializer);
         <Vec<crate::api::GamePiece>>::sse_encode(self.starting_pieces, serializer);
+        <Option<Vec<crate::api::GameTile>>>::sse_encode(self.initial_tiles, serializer);
     }
 }
 
@@ -1302,6 +1320,7 @@ impl SseEncode for crate::api::MatchSnapshot {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::api::GameSnapshot>::sse_encode(self.round, serializer);
         <Vec<crate::api::GamePiece>>::sse_encode(self.starting_pieces, serializer);
+        <Vec<crate::api::GameTile>>::sse_encode(self.initial_tiles, serializer);
         <u8>::sse_encode(self.first_player_wins, serializer);
         <u8>::sse_encode(self.second_player_wins, serializer);
         <crate::api::GameMatchPhase>::sse_encode(self.phase, serializer);
@@ -1412,6 +1431,16 @@ impl SseEncode for Option<u8> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <u8>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<Vec<crate::api::GameTile>> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <Vec<crate::api::GameTile>>::sse_encode(value, serializer);
         }
     }
 }

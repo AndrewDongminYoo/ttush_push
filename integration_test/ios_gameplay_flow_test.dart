@@ -13,8 +13,68 @@ import 'package:ttush_push/src/rust/api.dart' as rust;
 import 'package:ttush_push/src/rust/frb_generated.dart';
 
 const _expectedEngine = FrbRulesEngine();
-const _maxMovesPerMatch = 240;
 const _maxFramesPerMove = 400;
+
+const _largePlayableCells = <(int, int)>[
+  (0, 0),
+  (0, 1),
+  (0, 2),
+  (0, 3),
+  (0, 4),
+  (0, 5),
+  (0, 6),
+  (1, 0),
+  (1, 1),
+  (1, 2),
+  (1, 3),
+  (1, 4),
+  (1, 5),
+  (1, 6),
+  (2, 0),
+  (2, 1),
+  (2, 2),
+  (2, 3),
+  (2, 4),
+  (2, 5),
+  (2, 6),
+  (3, 0),
+  (3, 1),
+  (3, 2),
+  (3, 3),
+  (3, 4),
+  (3, 5),
+  (3, 6),
+  (4, 0),
+  (4, 1),
+  (4, 2),
+  (4, 3),
+  (4, 4),
+  (4, 5),
+  (4, 6),
+  (5, 0),
+  (5, 1),
+  (5, 2),
+  (5, 3),
+  (5, 4),
+  (5, 5),
+  (5, 6),
+  (6, 0),
+  (6, 1),
+  (6, 2),
+  (6, 3),
+  (6, 4),
+  (6, 5),
+  (6, 6),
+];
+
+const _largeStartingPieces = <rust.GamePiece>[
+  rust.GamePiece(id: 0, owner: rust.GamePlayer.first, x: 1, y: 1),
+  rust.GamePiece(id: 1, owner: rust.GamePlayer.first, x: 3, y: 1),
+  rust.GamePiece(id: 2, owner: rust.GamePlayer.first, x: 5, y: 1),
+  rust.GamePiece(id: 3, owner: rust.GamePlayer.second, x: 1, y: 5),
+  rust.GamePiece(id: 4, owner: rust.GamePlayer.second, x: 3, y: 5),
+  rust.GamePiece(id: 5, owner: rust.GamePlayer.second, x: 5, y: 5),
+];
 
 const _expectedStartingPieces = <rust.GamePiece>[
   rust.GamePiece(id: 0, owner: rust.GamePlayer.first, x: 1, y: 0),
@@ -77,6 +137,11 @@ const _clippedCornersPlayableCells = <(int, int)>[
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  const selectedBoard = String.fromEnvironment('GAMEPLAY_BOARD');
+  if (selectedBoard.isNotEmpty &&
+      !BuiltInBoard.values.any((board) => board.id == selectedBoard)) {
+    throw ArgumentError.value(selectedBoard, 'GAMEPLAY_BOARD', 'unknown board');
+  }
   final previousHitTestPolicy = WidgetController.hitTestWarningShouldBeFatal;
   WidgetController.hitTestWarningShouldBeFatal = true;
 
@@ -87,6 +152,9 @@ void main() {
   });
 
   for (final board in BuiltInBoard.values) {
+    if (selectedBoard.isNotEmpty && board.id != selectedBoard) {
+      continue;
+    }
     testWidgets(
       'English local ${board.id} match uses real board taps through a result',
       (tester) => _runEnglishLocalScenario(tester, binding, board),
@@ -129,6 +197,9 @@ Future<void> _runEnglishLocalScenario(
   await _exerciseCoachAndHelp(tester, binding, prefix: prefix);
   if (board == BuiltInBoard.clippedCorners) {
     await _expectMissingCornerTapIsIgnored(tester);
+  }
+  if (board == BuiltInBoard.largeHoles) {
+    await _expectInitialHoleTapDoesNotMove(tester);
   }
 
   await _playMatch(
@@ -217,7 +288,11 @@ Future<void> _playMatch(
   var capturedRound = false;
 
   while (expected.phase != rust.GameMatchPhase.matchOver) {
-    expect(moves, lessThan(_maxMovesPerMatch), reason: '$prefix move limit');
+    expect(
+      moves,
+      lessThan(initial.round.tiles.length * 2 * 3),
+      reason: '$prefix move limit',
+    );
     if (expected.phase == rust.GameMatchPhase.roundOver) {
       expect(find.byKey(const Key('result-scope-round')), findsOneWidget);
       if (!capturedRound) {
@@ -386,6 +461,7 @@ Future<void> _prepareScreenshotCapture(
 List<(int, int)> _expectedPlayableCells(BuiltInBoard board) => switch (board) {
   BuiltInBoard.baseline => _baselinePlayableCells,
   BuiltInBoard.clippedCorners => _clippedCornersPlayableCells,
+  BuiltInBoard.large || BuiltInBoard.largeHoles => _largePlayableCells,
 };
 
 void _expectOpeningBoard(
@@ -400,21 +476,60 @@ void _expectOpeningBoard(
     unorderedEquals(_expectedPlayableCells(board)),
     reason: '${board.id} must keep its complete topology',
   );
+  final expectedTiles = [
+    for (final (x, y) in _expectedPlayableCells(board))
+      rust.GameTile(
+        x: x,
+        y: y,
+        kind:
+            board == BuiltInBoard.largeHoles && y == 3 && [1, 3, 5].contains(x)
+            ? rust.GameTileKind.hole
+            : rust.GameTileKind.normal,
+      ),
+  ];
   expect(
-    visible.snapshot.tiles.map((tile) => tile.kind),
-    everyElement(rust.GameTileKind.normal),
-    reason: '${board.id} must reset every tile for a new round',
+    visible.snapshot.tiles,
+    unorderedEquals(expectedTiles),
+    reason: '${board.id} must restore its initial tile states',
   );
+  expect(expected.initialTiles, unorderedEquals(expectedTiles));
+  final expectedPieces = switch (board) {
+    BuiltInBoard.large || BuiltInBoard.largeHoles => _largeStartingPieces,
+    _ => _expectedStartingPieces,
+  };
   expect(
     visible.snapshot.pieces,
-    unorderedEquals(_expectedStartingPieces),
+    unorderedEquals(expectedPieces),
     reason: '${board.id} must reset its starting pieces',
   );
   expect(
     expected.startingPieces,
-    unorderedEquals(_expectedStartingPieces),
+    unorderedEquals(expectedPieces),
     reason: 'the independent engine must retain ${board.id} starting pieces',
   );
+}
+
+Future<void> _expectInitialHoleTapDoesNotMove(WidgetTester tester) async {
+  final before = tester.widget<RoundBoard>(find.byType(RoundBoard));
+  final piece = before.snapshot.pieces.singleWhere((piece) => piece.id == 0);
+  for (final x in [1, 3, 5]) {
+    await _tapCell(tester, before.snapshot, piece.x, piece.y);
+    expect(
+      tester.widget<RoundBoard>(find.byType(RoundBoard)).selectedPieceId,
+      piece.id,
+    );
+    expect(
+      before.snapshot.tiles
+          .singleWhere((tile) => tile.x == x && tile.y == 3)
+          .kind,
+      rust.GameTileKind.hole,
+    );
+    await _tapCell(tester, before.snapshot, x, 3);
+    await tester.pumpAndSettle();
+    final after = tester.widget<RoundBoard>(find.byType(RoundBoard));
+    expect(after.snapshot.snapshotHash, before.snapshot.snapshotHash);
+    expect(after.selectedPieceId, isNull);
+  }
 }
 
 Future<void> _expectMissingCornerTapIsIgnored(WidgetTester tester) async {

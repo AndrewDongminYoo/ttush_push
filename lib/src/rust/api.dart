@@ -86,13 +86,18 @@ class GameBoardDefinition {
   final List<GameBoardCell> playableCells;
   final List<GamePiece> startingPieces;
 
+  /// Sparse overrides for the opening terrain; omitted cells start normal.
+  final List<GameTile>? initialTiles;
+
   const GameBoardDefinition({
     required this.playableCells,
     required this.startingPieces,
+    this.initialTiles,
   });
 
   @override
-  int get hashCode => playableCells.hashCode ^ startingPieces.hashCode;
+  int get hashCode =>
+      playableCells.hashCode ^ startingPieces.hashCode ^ initialTiles.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -100,7 +105,8 @@ class GameBoardDefinition {
       other is GameBoardDefinition &&
           runtimeType == other.runtimeType &&
           playableCells == other.playableCells &&
-          startingPieces == other.startingPieces;
+          startingPieces == other.startingPieces &&
+          initialTiles == other.initialTiles;
 }
 
 enum GameDirection { up, down, left, right }
@@ -223,12 +229,13 @@ enum GameWinReason { knockout, immobilization }
 
 /// A best-of-three match, carried across the bridge by value.
 ///
-/// `starting_pieces` is the layout each round resets to. The round's own
-/// tiles cannot stand in for it: they carry the damage taken since, not the
-/// board a reset restores.
+/// `starting_pieces` and `initial_tiles` are the layout each round resets to.
+/// The round's own tiles carry damage taken during play, so they cannot
+/// replace the initial terrain when restoring a round.
 class MatchSnapshot {
   final GameSnapshot round;
   final List<GamePiece> startingPieces;
+  final List<GameTile> initialTiles;
   final int firstPlayerWins;
   final int secondPlayerWins;
   final GameMatchPhase phase;
@@ -240,6 +247,7 @@ class MatchSnapshot {
   const MatchSnapshot({
     required this.round,
     required this.startingPieces,
+    required this.initialTiles,
     required this.firstPlayerWins,
     required this.secondPlayerWins,
     required this.phase,
@@ -253,6 +261,7 @@ class MatchSnapshot {
   int get hashCode =>
       round.hashCode ^
       startingPieces.hashCode ^
+      initialTiles.hashCode ^
       firstPlayerWins.hashCode ^
       secondPlayerWins.hashCode ^
       phase.hashCode ^
@@ -268,6 +277,7 @@ class MatchSnapshot {
           runtimeType == other.runtimeType &&
           round == other.round &&
           startingPieces == other.startingPieces &&
+          initialTiles == other.initialTiles &&
           firstPlayerWins == other.firstPlayerWins &&
           secondPlayerWins == other.secondPlayerWins &&
           phase == other.phase &&

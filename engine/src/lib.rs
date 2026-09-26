@@ -1,5 +1,6 @@
 mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be accurate, and you can change it according to your needs. */
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 pub mod api;
 pub mod bot;
@@ -108,12 +109,18 @@ pub enum MatchPhase {
 pub struct BoardConfig {
     playable_cells: BTreeSet<Position>,
     initial_pieces: Vec<Piece>,
+    initial_tiles: Arc<BTreeMap<Position, Tile>>,
 }
 
 impl BoardConfig {
     /// The pieces every round resets to.
     pub fn initial_pieces(&self) -> &[Piece] {
         &self.initial_pieces
+    }
+
+    /// The complete tile map every round resets to.
+    pub fn initial_tiles(&self) -> &BTreeMap<Position, Tile> {
+        &self.initial_tiles
     }
 
     /// The symmetric five-by-five layout the app starts from.
@@ -165,10 +172,43 @@ impl BoardConfig {
             }
         }
 
+        let initial_tiles = playable_cells
+            .iter()
+            .copied()
+            .map(|position| (position, Tile::Normal))
+            .collect();
+
         Ok(Self {
             playable_cells,
             initial_pieces,
+            initial_tiles: Arc::new(initial_tiles),
         })
+    }
+
+    pub fn with_initial_tiles(
+        mut self,
+        initial_tiles: Vec<(Position, Tile)>,
+    ) -> Result<Self, StateError> {
+        let mut overridden = BTreeSet::new();
+        let tiles = Arc::make_mut(&mut self.initial_tiles);
+        for (position, tile) in initial_tiles {
+            if !overridden.insert(position) {
+                return Err(StateError::DuplicateInitialTile(position));
+            }
+            let Some(initial_tile) = tiles.get_mut(&position) else {
+                return Err(StateError::InitialTileOutsideBoard(position));
+            };
+            *initial_tile = tile;
+        }
+        if self
+            .initial_pieces
+            .iter()
+            .any(|piece| self.initial_tiles[&piece.position] == Tile::Hole)
+        {
+            return Err(StateError::PieceOnHole);
+        }
+
+        Ok(self)
     }
 
     fn contains(&self, position: Position) -> bool {
@@ -199,12 +239,7 @@ impl GameState {
     }
 
     pub fn new(board: BoardConfig, current_player: Player) -> Result<Self, StateError> {
-        let tiles = board
-            .playable_cells
-            .iter()
-            .copied()
-            .map(|position| (position, Tile::Normal))
-            .collect();
+        let tiles = board.initial_tiles().clone();
 
         Self::from_parts(board, tiles, current_player)
     }
@@ -294,6 +329,8 @@ pub enum StateError {
     PieceOutsideBoard(PieceId),
     OverlappingPieces,
     DuplicatePieceId(PieceId),
+    DuplicateInitialTile(Position),
+    InitialTileOutsideBoard(Position),
     TilesDoNotMatchBoard,
     PieceOnHole,
 }

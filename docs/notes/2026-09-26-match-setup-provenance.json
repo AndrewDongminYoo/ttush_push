@@ -1,0 +1,109 @@
+{
+  "recorded_at": "2026-09-26T07:21:21.815375+00:00",
+  "source_sha256": {
+    "lib/game/start/start_page.dart": "a51bd0fd3cc653f31559e535f9ef9be19bdb27a6f7d3271b6d0fd3795cdbddce",
+    "lib/game/start/board_preview.dart": "c60ebccdd04c0231d57b50860134900763fa66faaa6d39a087069730592d9af2",
+    "lib/l10n/arb/app_ko.arb": "e5791497e5691ed31210f4f6d79bee68b763b8e5f7d48c7ea4f2221c710bb492",
+    "integration_test/start_page_flow_test.dart": "2425b48fe9a976eb673a608bc765bf7ab0687492d301e70951d0e6f540cc8d12"
+  },
+  "base_commit": "b58c6c62ba4effc5f646932cccc646d4a51cb7ea",
+  "captured_at": "2026-09-26T07:36:55.366153+00:00",
+  "captures": {
+    "build/screenshots/setup-refresh-android/setup-refresh-en-2-boards.png": {
+      "sha256": "42c1f1c334b20e7b68ddc2820a4aee7f7b965d3f85dd853ddee594d780cc0704",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-ko-1-ai.png": {
+      "sha256": "5ff619c3778a5c32a41088ba70c75ad937b4473d430965d8b3964ed2ef315f4a",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-en-2-top.png": {
+      "sha256": "8139e1bfd76b1030bae01f1f83d040a6d2931c166fe2de25ef3316c780b96ca0",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-ko-2-boards.png": {
+      "sha256": "074c0710a64714639f681a1f08983bb8aeae1783d9b9839f721b1cd383eaa3ac",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-en-1-top.png": {
+      "sha256": "fbb1060bccd98010f41df1707d99ce1131b0aaf44635578847069988a1e5ac44",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-en-2-ai.png": {
+      "sha256": "267e8c6f0f3e6645b53b16f0b6d5769b83e2e4cbc5fef8cc771ca2571370eb94",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-ko-2-ai.png": {
+      "sha256": "85ef0e71bbc56cd17a3df7d78396a5839d731250608cfa2f4affb94fa0e3631e",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-ko-1-boards.png": {
+      "sha256": "32e0691b383e3d8ddc537c7d34af19d8935963767aca4782d0b5d034469e460a",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-ko-2-top.png": {
+      "sha256": "e6d6df464bcad08b6bcdd23378f47ccfabd030f6f20b95b3ec868bb2273c68ed",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-en-1-ai.png": {
+      "sha256": "bce8048240e0895dcac5dfb817a077617260dac7203654fcfe4bb3cb052bc494",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-ko-1-top.png": {
+      "sha256": "72e2c8d43e7a91d4015a9b080857b8b413fad9c821f7462fcb3df6ed70673b09",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-android/setup-refresh-en-1-boards.png": {
+      "sha256": "53b97ec5432812b9a17f2de5aeca879a36f4b4c06a55da9460d65aa2dc831400",
+      "dimensions": [1080, 2424]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-en-2-boards.png": {
+      "sha256": "044936b71e8ffac72da7ea799a01998784997cb01ef90ae4b48a8eb5c3b504cc",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-ko-1-ai.png": {
+      "sha256": "7a9750856fd131434b44f3cf0a4f38c8a2a0e953c7be2d4f139768077386be63",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-en-2-top.png": {
+      "sha256": "3908735e2d63a7311e8b6a676a30f038bd78a0ba2622efd7371558e22851f03e",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-ko-2-boards.png": {
+      "sha256": "dafaabf292ca531f5ab6712d1ea2b6fe7793056e015dc3525edbf93b32187771",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-en-1-top.png": {
+      "sha256": "c1a374041d68f57e0942a82ff66e551e46091e9e79b6e2150028030daeac8fc8",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-en-2-ai.png": {
+      "sha256": "1264fb41466111201fea3f9038abfaaa281ad77e31f3662209eecbca80fd0232",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-ko-2-ai.png": {
+      "sha256": "15aa119905e65d3cffca48dd7f026ba2224034a7108df2ee3360c34d8cf3476d",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-ko-1-boards.png": {
+      "sha256": "d17f4ce0543a21ff43d7a6ef5b07fdf0b4af5d1cc549916ad232da16901c6721",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-ko-2-top.png": {
+      "sha256": "8a932796ecab7968a82ddeac0d5816e66c0ff9739826f4eb4b50ea77880305d4",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-en-1-ai.png": {
+      "sha256": "2f01ca5dce589ab3c57ad5fada23020270f7e9d81253428c5ce67cc33d924bcd",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-ko-1-top.png": {
+      "sha256": "be5367c4ad4b772a988388780934a88bb2c727924b160a59dc5bffabce836c66",
+      "dimensions": [1668, 2420]
+    },
+    "build/screenshots/setup-refresh-ios/setup-refresh-en-1-boards.png": {
+      "sha256": "cd1a0771f7b3044a9cadc21099a8b659825f677ba47e15a8c8dec55c982372fb",
+      "dimensions": [1668, 2420]
+    }
+  }
+}

@@ -22,6 +22,7 @@ MatchSnapshot matchOf(
   return MatchSnapshot(
     round: round,
     startingPieces: startingPieces ?? round.pieces,
+    initialTiles: round.tiles,
     firstPlayerWins: firstWins,
     secondPlayerWins: secondWins,
     phase: phase,
@@ -221,6 +222,7 @@ MatchSnapshot _withFixtureTiles(MatchSnapshot snapshot) {
       snapshotHash: round.snapshotHash,
     ),
     startingPieces: snapshot.startingPieces,
+    initialTiles: snapshot.initialTiles,
     firstPlayerWins: snapshot.firstPlayerWins,
     secondPlayerWins: snapshot.secondPlayerWins,
     phase: snapshot.phase,

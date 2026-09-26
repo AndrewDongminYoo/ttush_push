@@ -35,6 +35,8 @@ void main() {
     expect(find.text('매치 시작'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
+    await tester.ensureVisible(find.byKey(const Key('start-match')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('start-match')));
     await tester.pumpAndSettle();
 
@@ -60,6 +62,8 @@ void main() {
     expect(find.byType(StartPage), findsOneWidget);
     expect(find.byType(GamePage), findsNothing);
 
+    await tester.ensureVisible(find.byKey(const Key('start-match')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('start-match')));
     await tester.pumpAndSettle();
 

@@ -1,0 +1,504 @@
+{
+  "base_commit": "c97f5747135df5a264aefc75333345153070a75b",
+  "recorded_at": "2026-09-26T06:35:30.401309+00:00",
+  "source_sha256": {
+    "engine/Cargo.lock": "9d951f12e8f089e5dc8cc6e8cce3a34e15f75926956d1a18f18c89f28915617e",
+    "engine/Cargo.toml": "422750005883e30e03d2b497006550f131f02a8d1cf06627967b72587e79cd2d",
+    "engine/src/api.rs": "fad063cd8550dc5ea0dea3ec2a69221e935ab2e19c5af988b6bec6d6fb5f9a3e",
+    "engine/src/bin/simulate.rs": "ff0180c478f16f523502207a9386421ec1c63659413c50f1e1c74e1340cc5105",
+    "engine/src/bot.rs": "4f8f65bd6e7a2d189b5d1933adbf13b1851587297082781308382afb6e453e7d",
+    "engine/src/bot/strategic.rs": "37aeccf4030667b98b4a68da003c0ce0f303e56d17db168107237077188e9d78",
+    "engine/src/frb_generated.rs": "14f6b8b3f0c77f0a8685d8db62094da9e0bae1391b64a8bc2202095b050b946f",
+    "engine/src/lib.rs": "0d4cf5d4e856c9d20034b721ba64318466910df17b469c5907658ff03d94f689",
+    "integration_test/ios_gameplay_flow_test.dart": "b12761002a896790b92fdc9f5bec97b9d1fc5c3951fb176dc6d521cba9b36920",
+    "integration_test/production_sprite_scene_test.dart": "cf489c1165144cc4cfd9c34d4967557e1e7a7fdaa10b62182817861ae0aa3195",
+    "integration_test/rules_engine_parity_test.dart": "7c01bd266645700bf0924f5ae3143cfef54d7191994893c9422edb03b8da2d37",
+    "integration_test/store_listing_screenshot_test.dart": "aa003b925e25e75a2c4e66c67103f6a720d9a085d4c8e759408045971fcdc714",
+    "lib/app/app.dart": "49dfaf053a2a0cda8b933277ecfbcddae996c263b79514269371eeffd62f2010",
+    "lib/app/view/app.dart": "8a30aa4364ff49bdc038705a628ce7f078948978bd5d0bae25bffe2c6a95001e",
+    "lib/bootstrap.dart": "95c6352272b2790e310e636e61cf3e2d698d8f1c73cb97f8b0e0917f75e13e1f",
+    "lib/game/ads/ad_gateway.dart": "2933c9e1d00fce3c866918a24929b68f41576f608d9e881dd000bbd43e5f0d9c",
+    "lib/game/board/board_definition.dart": "70d486b814b6b01b2856fadc5ee7ee7f6191f6836812baeedc615f6ad86338ad",
+    "lib/game/coach/first_play_coach_store.dart": "a65036ca8b16917d51a9195691a4daff8f9b6f0a12294b3836098bf370c3ed52",
+    "lib/game/feedback/round_feedback.dart": "b7e338b9890b04c8843f8f8911d2af1f9d5d950e9118b4a3e3d92ebb6f242ad5",
+    "lib/game/game.dart": "50cd29ec9e5cc23ab9362a0303fb0a94965d2833c5fa07b39f5d327e4802cf0d",
+    "lib/game/match/match_controller.dart": "10673f7815ab5fc76434bac7776b3c130f9001848bb4cadef74edd861c041788",
+    "lib/game/rules/rules_engine.dart": "94d73c30d63dd02dd2d6b52b7262c760aaf0a9e7593fb35da51f7fad76000b6c",
+    "lib/game/start/start_page.dart": "63a2eabecf0f47687268ba8b078763d98f910b91a7d8d609798569ad174cddfd",
+    "lib/game/view/game_page.dart": "2c03125cd33fed099ce0b81ed90d83175c3e35d8837ad5e67f76e6d9821353eb",
+    "lib/game/view/opponent_label.dart": "0317dd0ba7995b7452a07293b59734480d2c5d4a8a2aa6e48ae90e1862b6660b",
+    "lib/game/view/production_sprite_set.dart": "65380914817f7dd0d94eace43fd993a5f40f3696276efe108abe375e2336f88f",
+    "lib/game/view/round_board.dart": "057642414179162d3fa2cffe520898190fb3d85aacc672731ca8f80df04a7749",
+    "lib/game/view/view.dart": "975fd9e8b1bc2f9471cde9239b05fba0ad6c8e506ef2f6be86412a24a42d228a",
+    "lib/gen/assets.gen.dart": "88d0984307530d9e70bdd40a463d296ca97152db6e83681efdc75183aa837f60",
+    "lib/l10n/arb/app_en.arb": "3c19e93a8f91c385706162f624c79995422a8e3de5f9e2b96679fdf741f0f536",
+    "lib/l10n/arb/app_ko.arb": "a4eb3c683793b9ae60d420dfaacc8c0cb687d733ac55a3f83d7821740f980d8f",
+    "lib/l10n/l10n.dart": "71cff04f7fe74e89ee0baccf4788a947784c2a4faf12027e3c682af0426bba8f",
+    "lib/main_development.dart": "afea9d55465c9e7bdc8c3c1d7b7565a2cad49a0f85768a57c0d88d20089db657",
+    "lib/main_production.dart": "afea9d55465c9e7bdc8c3c1d7b7565a2cad49a0f85768a57c0d88d20089db657",
+    "lib/main_staging.dart": "afea9d55465c9e7bdc8c3c1d7b7565a2cad49a0f85768a57c0d88d20089db657",
+    "lib/src/rust/api.dart": "fc4bc95b62c1cca5d56dbc71d222a4a034ded0271d54d58cdd227b8af7695c63",
+    "lib/src/rust/frb_generated.dart": "560ecd3effb43c6158a4dffea91e367c804b08cf12d42de505d6e310502d4000",
+    "lib/src/rust/frb_generated.io.dart": "e28cf39d2b3399ffb3093a7301a184be6d6cedb24d1b556294b6fbb0f2d47396",
+    "lib/src/rust/frb_generated.web.dart": "24ad22fde7d2f2622eba251c2b5f82cff98409bc33262fcb11efd856ee121e1a",
+    "pubspec.lock": "807e68e16a078c021551e924c6db611dc9bccb4750330a08ee9292532d2cd371",
+    "pubspec.yaml": "355373a547c3d8b50b98036311d165a573b08ba9a210b5656f4ee198438236dd",
+    "test_driver/integration_test.dart": "2f80a384a6d27eaff7c355e92644a0ab171504857103a4d53579236e8ecdb05f",
+    "test_driver/ios_gameplay_flow_driver.dart": "70363ec2e58cb1bfee9599578bccbd0435c669ff5df2d48adf056272e04eae9a",
+    "test_driver/production_sprite_scene_driver.dart": "586137355059b9454202b4755206714737c314b9d7e4ff77c79cfc0e742682e4",
+    "test_driver/store_listing_screenshot_driver.dart": "27a61f9b3037cb52e7465a575828f5206a16d3ab647d060f4328335e9ba88e6e"
+  },
+  "android_parity_earlier_harness_sha256": "f6f7571845bb6b96ef1d1fa3403e5fa07816246d6c9bafbe3b5f28ef0446cd84",
+  "android_parity_source_note": "Only the unused gameplay harness differed from the final source map. Parity inputs were unchanged.",
+  "local_log_sha256": {
+    "check-final.log": "4e124db20e01cc471fc2fc84f8d79786af6f817812c28095e57df5160a8210fc",
+    "android-parity.log": "d3d6e5a6190135ac188f8e8bddb7803a8bedb87d98090514e7ee925f9392cda4",
+    "ios-parity.log": "b6d5e6ddfe641b917114f26542d1b2b1f7ec843a28b6c368a979cb0ee5aff628",
+    "filter-negative.log": "27d62fea593b0c5a0b7e875d0be68fd439baaa594667a33095bc219fd9f2506d",
+    "android-gameplay.log": "af3245816e4ea6f3c9e52d0104eaea569ee5195094312fda7d8539968b1e167b"
+  },
+  "native_runs": [
+    {
+      "platform": "android",
+      "board": "large",
+      "exit_code": 0,
+      "gameplay_scenarios": 2,
+      "log_sha256": "b96231df55b701278c26115302764f6284c036ff505e338188126be0ef5daf38",
+      "log_local_path": ".git/codex-pr-loop/codex/large-board-initial-tiles/android-large.log",
+      "captures_local_directory": "build/screenshots/large-board-android",
+      "expert_response_wait_ms": [
+        2679, 2567, 2331, 2448, 2367, 2204, 1983, 1750, 1054, 2802, 2449, 2346, 2339, 2216, 2098,
+        1866, 1750, 1053
+      ],
+      "captures": {
+        "large-en-local-board.png": {
+          "sha256": "ea1330a5c61c8c298c02b392324bae895ebb227261dc61cd27191d16a81d04cc",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-en-local-coach-step-1.png": {
+          "sha256": "ea1330a5c61c8c298c02b392324bae895ebb227261dc61cd27191d16a81d04cc",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-en-local-gameplay.png": {
+          "sha256": "e9a8cf541480e8aab8361b4de1e092a09c10fad2df887630848d31d3941b0038",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-en-local-help-reopened.png": {
+          "sha256": "ea1330a5c61c8c298c02b392324bae895ebb227261dc61cd27191d16a81d04cc",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-en-local-leave-dialog.png": {
+          "sha256": "9ec27b21a9c699bbf2bc61974e9655464427b9021a6dcd186994f615ef6eb8cf",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-en-local-match-result.png": {
+          "sha256": "4edecd196400a1e736062fd7efd2a6d30df50318f6e681bdde93fa8c87c226d1",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-en-local-restart.png": {
+          "sha256": "4f30be8d66c8f69dcebd189de25b2d58265110f0e41f5c3a0900ced6171d0d00",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-en-local-round-result.png": {
+          "sha256": "1ddc2a00079d73f6f132153b9d2de397780296b0b0a81a7671f5ccb084da0ed5",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-en-local-selection.png": {
+          "sha256": "64b0fbfdbc7227b582697dbdfd2932ef8120e63ce6ae894b112f478db24c43af",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-en-local-setup.png": {
+          "sha256": "e6ba1a247cc2777e5b723b8d16f620db4a81e6c2aed4aadcccbb793720bba4ff",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-ko-expert-flutter-text-scale-2p0-board-choice.png": {
+          "sha256": "838889a67a6af4ae2d33d900e46d0a7d4371eeac04400aac8e468ee61f230ad1",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-ko-expert-flutter-text-scale-2p0-board.png": {
+          "sha256": "7ac8734a24e65060174b23b7d5b9ffc8f27c3b621b674494e3e157276162630f",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-ko-expert-flutter-text-scale-2p0-gameplay.png": {
+          "sha256": "a26df7950fc3fc2afc8d4f45ecb5aa74394a9aa017a7ae329d17d7c1330ffa9f",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-ko-expert-flutter-text-scale-2p0-match-result.png": {
+          "sha256": "5b1a0aa98cb125473249ee56a01bffc2edde11c163554231f2403fc3752dc94f",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-ko-expert-flutter-text-scale-2p0-round-result.png": {
+          "sha256": "d8a331c710e52d78babb4b08d3e51fcf35164586118894b49bed579f13ad1162",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-ko-expert-flutter-text-scale-2p0-selection.png": {
+          "sha256": "aa3bedb3c3fb80a1e978f81034c35c7d21f38c817d45daa3ac1861d40cd91220",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-ko-expert-flutter-text-scale-2p0-setup.png": {
+          "sha256": "3208cad04198903c77053b31bf259ff67b929a75843232dfab47cba89d41aeba",
+          "width": 1080,
+          "height": 2424
+        }
+      }
+    },
+    {
+      "platform": "android",
+      "board": "large-holes",
+      "exit_code": 0,
+      "gameplay_scenarios": 2,
+      "log_sha256": "976c74e051dadf4823a89bd594f43e932855401343f8b954d6f6991c1d3f0fd4",
+      "log_local_path": ".git/codex-pr-loop/codex/large-board-initial-tiles/android-large-holes.log",
+      "captures_local_directory": "build/screenshots/large-board-android",
+      "expert_response_wait_ms": [
+        2447, 2333, 2216, 2098, 1750, 1851, 1516, 1398, 1398, 1282, 1517, 1377, 1517, 1628, 1398,
+        1264, 1167, 1063, 2468, 2333, 2215, 2099, 1750, 1749, 1517, 1515, 1399, 1399, 1400, 1266,
+        1398, 1516, 1412, 1283, 1164, 1053
+      ],
+      "captures": {
+        "large-holes-en-local-board.png": {
+          "sha256": "c866cef167b639972fde60e279744b36739b5bac9cdf8c946a116413e664aae4",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-en-local-coach-step-1.png": {
+          "sha256": "c866cef167b639972fde60e279744b36739b5bac9cdf8c946a116413e664aae4",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-en-local-gameplay.png": {
+          "sha256": "59f9dd66702d3999691c8768a8256fc0880281ce86a36ae7f5bbd6f8c847459a",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-en-local-help-reopened.png": {
+          "sha256": "c866cef167b639972fde60e279744b36739b5bac9cdf8c946a116413e664aae4",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-en-local-leave-dialog.png": {
+          "sha256": "9ec27b21a9c699bbf2bc61974e9655464427b9021a6dcd186994f615ef6eb8cf",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-en-local-match-result.png": {
+          "sha256": "d2d3c52b30f52fac905a51ca4fc71383cdb18f54318f27b1e032307d9e2c6305",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-en-local-restart.png": {
+          "sha256": "7c1d73f10eea41fa4d541cdf5b96aa034478c9d8470f11b3c61b8f049ed3128f",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-en-local-round-result.png": {
+          "sha256": "a49f2363d4bf3084cbb79c6fca56f15c765948c833b10d46db79adf0ed82e3ef",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-en-local-selection.png": {
+          "sha256": "94b93d04611e1eb8b4fd4459a47bcdaf4397e5c870d690df8fe569057879df71",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-en-local-setup.png": {
+          "sha256": "40362a7cece63ed487246dde012e4fdd9a1e47cd506f6abe9173f84ba95f911e",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-board-choice.png": {
+          "sha256": "a2222235e8c14cac64d0909472da93fdfb8a5fbc5b5d2af110d1d6250e89e6df",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-board.png": {
+          "sha256": "1b618458b3aaab00794c7a9ff5248ca4d0f723cc71a68cdb628405b6e198f1f5",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-gameplay.png": {
+          "sha256": "a149a991eb4535162071ac00051d23f67b1684d2578cb6451b8aaa3bee5ccc17",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-match-result.png": {
+          "sha256": "6afa734b8f5e96e0fb864375e1efe9c1705db1840113fb6e110eb710fdf1edde",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-round-result.png": {
+          "sha256": "a23077a56756a854275a311e80fa0211764850b7c8bf86e48e76b68d96f87225",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-selection.png": {
+          "sha256": "c8a84f2b84cad33c2fc5f28e3096921b52163945c1776c28022afe9545ec4116",
+          "width": 1080,
+          "height": 2424
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-setup.png": {
+          "sha256": "0800a7ed83a8d275a160a7f431593b5dba6eea2572a4d972ba4aef2a99aca4db",
+          "width": 1080,
+          "height": 2424
+        }
+      }
+    },
+    {
+      "platform": "ios",
+      "board": "large",
+      "exit_code": 0,
+      "gameplay_scenarios": 2,
+      "log_sha256": "8fd3a4dfb387ba38423a77bf8221dedad982289c98b8e86ea3095e5b5bbe3f87",
+      "log_local_path": ".git/codex-pr-loop/codex/large-board-initial-tiles/ios-large.log",
+      "captures_local_directory": "build/screenshots/large-board-ios",
+      "expert_response_wait_ms": [
+        2365, 2245, 2100, 2112, 1859, 1989, 1647, 1633, 1075, 2446, 2217, 2098, 2102, 1876, 1993,
+        1633, 1665, 1062
+      ],
+      "captures": {
+        "large-en-local-board.png": {
+          "sha256": "6b56d0932ea772316f957311d21691b87f1e3d32f61f1024de73e968de489718",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-en-local-coach-step-1.png": {
+          "sha256": "6b56d0932ea772316f957311d21691b87f1e3d32f61f1024de73e968de489718",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-en-local-gameplay.png": {
+          "sha256": "8746ff521cc5ab5df6566e009deca6416eb4c79b70c65e7d291abfe83f93407d",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-en-local-help-reopened.png": {
+          "sha256": "6b56d0932ea772316f957311d21691b87f1e3d32f61f1024de73e968de489718",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-en-local-leave-dialog.png": {
+          "sha256": "62336c2f3c3e4c1f2c2005385b86655e32ad2afec395dd49aff06dbb8597a3af",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-en-local-match-result.png": {
+          "sha256": "7fd310ce2283db6072263df21387a7b7fd2384266ef11fb00ee1508f50d7a507",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-en-local-restart.png": {
+          "sha256": "78e862895a599c70bc050a911bab4872fd89427755caa1138aa14e17e17a3d64",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-en-local-round-result.png": {
+          "sha256": "53013bec6752fed9a9f4a7a7d3cce6a13ceca98bea8aae29f9a5485b1c7b5263",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-en-local-selection.png": {
+          "sha256": "a42760b414e048d9eb9c97e38c40279828e9a65ccc4747a022b3cefcf2f7f581",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-en-local-setup.png": {
+          "sha256": "0678ddcea07daee3d24337e69f27e7d9ffea9d654976c0ae49c8321cf6b77200",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-ko-expert-flutter-text-scale-2p0-board-choice.png": {
+          "sha256": "5bd903821f328e75df83c5c0f4b866d343133e3ea936c5ab2a79e189af69bb38",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-ko-expert-flutter-text-scale-2p0-board.png": {
+          "sha256": "e11bf268f0685788394f5493540bfa973232ec1b3f4601ebf627524958b808dd",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-ko-expert-flutter-text-scale-2p0-gameplay.png": {
+          "sha256": "4db3dc0200254b050af599728057f5e8de82b4e49d94e7b11ee45ec76aab77ca",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-ko-expert-flutter-text-scale-2p0-match-result.png": {
+          "sha256": "940c015d1bd66b6e8732d00f341fb7d32e0ca7194c5ab117e01802d19a79e297",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-ko-expert-flutter-text-scale-2p0-round-result.png": {
+          "sha256": "4b00091dafeffdeadd2e0d6267b96b11346b88f42f5aebd91ae70066b77d8152",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-ko-expert-flutter-text-scale-2p0-selection.png": {
+          "sha256": "e4430abe354eb085b8272c443c8266e4e3905460ff4d4c8e53a46ff3dbfe1e75",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-ko-expert-flutter-text-scale-2p0-setup.png": {
+          "sha256": "fba6d450c66d3cfc6e90c6ab684f2ec33ad8b6aebb8611935c15c80e49685ab5",
+          "width": 1668,
+          "height": 2420
+        }
+      }
+    },
+    {
+      "platform": "ios",
+      "board": "large-holes",
+      "exit_code": 0,
+      "gameplay_scenarios": 2,
+      "log_sha256": "86dbfd2e0b39f3d746e2ba2e147acd41f5d6aafe02157b63429c833e81e7c026",
+      "log_local_path": ".git/codex-pr-loop/codex/large-board-initial-tiles/ios-large-holes.log",
+      "captures_local_directory": "build/screenshots/large-board-ios",
+      "expert_response_wait_ms": [
+        2220, 2099, 2355, 1865, 1511, 1519, 1412, 1288, 1175, 1283, 1278, 1160, 1285, 1283, 1292,
+        1167, 1043, 1115, 2216, 2098, 1982, 1862, 1519, 1633, 1396, 1277, 1282, 1282, 1399, 1312,
+        1284, 1276, 1281, 1161, 1166, 1067
+      ],
+      "captures": {
+        "large-holes-en-local-board.png": {
+          "sha256": "889a2362140c7efdfb7bfcb5c08337d371a91a79176de9b3e1c320dc51d639da",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-en-local-coach-step-1.png": {
+          "sha256": "889a2362140c7efdfb7bfcb5c08337d371a91a79176de9b3e1c320dc51d639da",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-en-local-gameplay.png": {
+          "sha256": "d858a9a613249f679fd9b120bd8c1b46f1c9a096dcfa35e931f871ebd470aebe",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-en-local-help-reopened.png": {
+          "sha256": "889a2362140c7efdfb7bfcb5c08337d371a91a79176de9b3e1c320dc51d639da",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-en-local-leave-dialog.png": {
+          "sha256": "d8e050e006f41c498408c38680f71e0373e24c832a6d7959b59b19c9621458a3",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-en-local-match-result.png": {
+          "sha256": "f7688dd2fd105ef94c4af22002cfe7e49e78a498ac0b53ea86a3f68da1c84cc9",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-en-local-restart.png": {
+          "sha256": "8413949f3309284fc2590c4985f07cc5482790816b1ac60673920a8285641899",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-en-local-round-result.png": {
+          "sha256": "5072d6d78eb13d06ebe50ba33847376529234b7d6b9454ed486bc38803bc14db",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-en-local-selection.png": {
+          "sha256": "bbc85091ce96ca035e558da92a9f3a2417b97f91567f6bd0c0381cc4546efda0",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-en-local-setup.png": {
+          "sha256": "ea879a8dfab1119d0ac6dd39add0c73f6dfb840b539ad3dfc3398d1063f225a5",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-board-choice.png": {
+          "sha256": "aece12eab1d6aaefe09d93ef9a9903ac4518cf0011869c2371c99ab477b807f9",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-board.png": {
+          "sha256": "86837c4c30dd35ee6b32a8a072344511ddb852410260b24a029efb2c0741365b",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-gameplay.png": {
+          "sha256": "b319325ea2ceec56291a44e751b27a2d6ebbeb03c745da35435cbc52ebfd8bd2",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-match-result.png": {
+          "sha256": "37f15cf1698df9bcc336f66b34fd610a8c4fa4c5e9ea8947a6b0119bc6a51d57",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-round-result.png": {
+          "sha256": "b122f6e567c153ab45da5994d56fc6e8c5e194a52a2f59a9a426dcbf6d63ce29",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-selection.png": {
+          "sha256": "ba91cdfcef808b162a02ec7f9ece6cb914acb854590ae0262f1553e34b622e4f",
+          "width": 1668,
+          "height": 2420
+        },
+        "large-holes-ko-expert-flutter-text-scale-2p0-setup.png": {
+          "sha256": "665c6d05a62d6670ab08e8e0b61086931f28204a6db3dcf5c5b786cbffe00c4c",
+          "width": 1668,
+          "height": 2420
+        }
+      }
+    }
+  ],
+  "limits": [
+    "Captures and raw logs are local artifacts, not tracked files.",
+    "Initial combined Android gameplay failed an incorrect selection expectation; driver was stopped with exit130 and its captures are excluded.",
+    "Flutter text scale override, not OS accessibility settings.",
+    "UI wall-clock waits, not physical-device CPU benchmarks.",
+    "No balance or human playtest conclusion."
+  ],
+  "performance_correction": {
+    "reason": "Initial CI large Expert response2.051970s exceeded unchanged2s host limit.",
+    "source_sha256": {
+      "engine/src/lib.rs": "b9b29a369a60c49e79da48496b9c5c22a9c3e7fc79d0390a1d7d705cbb451b5a",
+      "engine/tests/rules.rs": "f75ebca938cd51568c4d9b5b0e476857b559836b6970dc4e5e267946d5a4ab90"
+    },
+    "log_sha256": {
+      "check-performance.log": "5ee8a5a025f0ab706792b5d07a237b24b442252f8c013a1266878b729eb0eab7",
+      "performance-before.log": "42bbf0c078ab527977aab7a6b9e0032559718f1622a8176fb9d5504472c52ec6",
+      "performance-after.log": "0dc74df1de3efc1f6f31f2cd8eb536256266754ed1543512e65309072fb6dc7c",
+      "android-parity-performance.log": "70fa39a704078d49f822f3717060c0fdb92c3883d767cbc05283cd554aa9113f",
+      "ios-parity-performance.log": "cc650744b60f5afb2c9a8ffed034920d39e952f2ebe3d143f7d2fe686574cff6",
+      "ci-bridge-failed.log": "86d1b68920ca046bd97bb853a25b438f76380049498150edd00c978045b70a3b"
+    },
+    "native_parity": {
+      "android": {
+        "exit_code": 0,
+        "tests_passed": 4
+      },
+      "ios": {
+        "exit_code": 0,
+        "tests_passed": 4
+      }
+    },
+    "local_gate": {
+      "exit_code": 0,
+      "flutter_tests": 212,
+      "rust_tests": 88,
+      "host_tests": 6,
+      "aggregate_native_parity": "SKIPPED with runtimes stopped"
+    },
+    "capture_equivalence": "Only engine/src/lib.rs differs among captured native source inputs. The private Arc map preserves values, equality and hashing. Catalog, localized copy, presentation and bridge API are unchanged. Existing full-game screenshots remain evidence of layout, not post-optimization timing."
+  }
+}

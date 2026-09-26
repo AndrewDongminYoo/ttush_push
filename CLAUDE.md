@@ -42,7 +42,7 @@ Connect the iOS device over USB before running it that way. `flutter test` does 
 `engine/src/lib.rs` holds the entire rules model: board topology, push resolution, tile damage, counter-push restrictions, and win detection.
 `engine/src/api.rs` exposes synchronous bridge functions over that model, and the `RulesEngine` interface in `lib/game/rules/rules_engine.dart` is the Dart-side boundary that wraps them; grep `^pub fn` in `api.rs` for the current set rather than trusting a list here.
 
-- `initial_match` accepts a `GameBoardDefinition`, validates its cells and starting pieces in Rust, and returns the starting `MatchSnapshot`.
+- `initial_match` accepts a `GameBoardDefinition`, validates its cells, starting pieces, and optional initial tile states in Rust, and returns the starting `MatchSnapshot`.
 - `match_legal_moves` returns every move the current player may make.
 - `match_apply_move` returns a `MoveResult` containing the next snapshot and Rust-authored resolution.
 - `advance_round` starts the next round of a match.
@@ -51,7 +51,8 @@ Connect the iOS device over USB before running it that way. `flutter test` does 
 The bridge passes values, not handles, so no game state lives across the boundary between calls.
 `lib/game/board/board_definition.dart` owns the typed built-in board catalog, board definitions, and their background asset paths.
 It sends only `GameBoardDefinition` to Rust.
-Rust validates the cells and starting pieces before it creates a match.
+Rust validates the cells, starting pieces, and initial tile states before it creates a match.
+The match snapshot retains the initial tile map separately from current round damage so the next round restores the configured holes and damaged tiles.
 Every round and match snapshot carries a `snapshotHash`: `state_from_snapshot` validates the round value fields, while `match_state_from_snapshot` validates the match fields and its inner round.
 That check is what makes it impossible for Dart to fabricate or edit a position, and it is invisible from the Dart side, so a Dart-side "fix" that rebuilds a snapshot by hand fails at the bridge rather than in Flutter.
 

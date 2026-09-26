@@ -55,5 +55,9 @@
   "newMatch": "새 매치 시작",
   "unableToStartRound": "라운드를 시작할 수 없습니다",
   "unableToUpdateRound": "라운드를 업데이트할 수 없습니다: {error}",
+  "boardLarge": "넓은 보드",
+  "boardLargeDescription": "7 × 7 · 말 3개씩",
+  "boardLargeHoles": "구멍 있는 넓은 보드",
+  "boardLargeHolesDescription": "7 × 7 · 구멍 3개",
   "retry": "다시 시도"
 }
