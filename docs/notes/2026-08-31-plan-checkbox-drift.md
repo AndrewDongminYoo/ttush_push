@@ -33,7 +33,8 @@ It does not include completion of the original blueprint's strategic analysis or
   The simulator also supports selected-game traces, swapped seed assignments, and exported app board definitions through `--board-file`.
   The [board-comparison contract](../specs/2026-09-26-board-comparison-control.md) preserves the baseline default and defines the bounded variant experiment.
   Its [bounded protocol](2026-09-25-strategic-simulation-protocol.md) separates smoke runs from balance evidence.
-  [#67](https://github.com/AndrewDongminYoo/ttush_push/issues/67) remains open for board-variant experiments, representative forced lines, and initial-position conclusions.
+  The [first four-board comparison](2026-09-26-board-comparison-control.md) records the declared conditions and complete repeats without claiming a balanced board or a solved opening.
+  [#67](https://github.com/AndrewDongminYoo/ttush_push/issues/67) remains open for justified broader controls, representative forced lines, initial-position conclusions, and synthesis with human play.
   The historical 100,000-round Random baseline in the bot-policy specification is neither Expert evidence nor exhaustive proof.
 - **Verification pending: human play and delivery.** #42 retains external tester, match-record, and Play-delivered device acceptance.
   Its earlier pre-upload and no-iOS-attempt narrative must be read with the dated release checklist and review history above, not as the current release state.
