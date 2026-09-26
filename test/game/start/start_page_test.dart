@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/app/app.dart';
+import 'package:ttush_push/game/board/board_definition.dart';
+import 'package:ttush_push/game/start/start_page.dart';
 import 'package:ttush_push/game/view/game_page.dart';
 import 'package:ttush_push/game/view/round_board.dart';
+import 'package:ttush_push/l10n/l10n.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
 import '../../support/match_fixtures.dart';
@@ -16,10 +19,32 @@ void main() {
     snapshotHash: 'initial',
   );
 
-  Future<void> pumpApp(WidgetTester tester) async {
+  Future<void> pumpApp(
+    WidgetTester tester, {
+    FakeRulesEngine? engine,
+    Key? key,
+  }) async {
     await tester.pumpWidget(
-      App(rulesEngine: FakeRulesEngine.playing(initial: matchOf(snapshot))),
+      App(
+        key: key,
+        rulesEngine:
+            engine ?? FakeRulesEngine.playing(initial: matchOf(snapshot)),
+      ),
     );
+  }
+
+  Future<void> startMatch(WidgetTester tester) async {
+    final start = find.byKey(const Key('start-match'));
+    await tester.ensureVisible(start);
+    await tester.tap(start);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> leaveMatch(WidgetTester tester) async {
+    await tester.tap(find.byKey(const Key('leave-match')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('leave-match-confirm')));
+    await tester.pumpAndSettle();
   }
 
   /// Reads the seat back off the match, which is the only place the choice
@@ -31,6 +56,186 @@ void main() {
     );
   }
 
+  testWidgets('forwards the selected clipped-corners board to the match', (
+    tester,
+  ) async {
+    final engine = FakeRulesEngine.playing(initial: matchOf(snapshot));
+
+    await tester.pumpWidget(App(rulesEngine: engine));
+
+    final boardChoice = find.byKey(const Key('start-board-clipped-corners'));
+    expect(boardChoice, findsOneWidget);
+
+    await tester.tap(boardChoice);
+    await tester.pumpAndSettle();
+    await startMatch(tester);
+
+    expect(engine.initialDefinitions, hasLength(1));
+    expect(
+      engine.initialDefinitions.single,
+      same(BuiltInBoard.clippedCorners.definition.rules),
+    );
+  });
+
+  testWidgets('keeps the selected board when the setup page stays mounted', (
+    tester,
+  ) async {
+    final engine = FakeRulesEngine.playing(initial: matchOf(snapshot));
+
+    await pumpApp(tester, engine: engine);
+    await tester.tap(find.byKey(const Key('start-board-clipped-corners')));
+    await tester.pumpAndSettle();
+    await startMatch(tester);
+    await leaveMatch(tester);
+
+    expect(find.byKey(const Key('start-match')), findsOneWidget);
+
+    await startMatch(tester);
+
+    expect(engine.initialDefinitions, hasLength(2));
+    expect(
+      engine.initialDefinitions,
+      everyElement(same(BuiltInBoard.clippedCorners.definition.rules)),
+    );
+  });
+
+  testWidgets('resets the board when a fresh App key creates setup state', (
+    tester,
+  ) async {
+    final engine = FakeRulesEngine.playing(initial: matchOf(snapshot));
+
+    await pumpApp(
+      tester,
+      engine: engine,
+      key: const ValueKey('first-app-state'),
+    );
+    await tester.tap(find.byKey(const Key('start-board-clipped-corners')));
+    await tester.pumpAndSettle();
+    await startMatch(tester);
+
+    await pumpApp(
+      tester,
+      engine: engine,
+      key: const ValueKey('fresh-app-state'),
+    );
+    await startMatch(tester);
+
+    expect(engine.initialDefinitions, hasLength(2));
+    expect(
+      engine.initialDefinitions.first,
+      same(BuiltInBoard.clippedCorners.definition.rules),
+    );
+    expect(
+      engine.initialDefinitions.last,
+      same(BuiltInBoard.baseline.definition.rules),
+    );
+  });
+
+  testWidgets('ignores a null board radio value', (tester) async {
+    final engine = FakeRulesEngine.playing(initial: matchOf(snapshot));
+
+    await pumpApp(tester, engine: engine);
+    final boardChoice = find.byKey(const Key('start-board-clipped-corners'));
+    await tester.tap(boardChoice);
+    await tester.pumpAndSettle();
+
+    final group = tester.widget<RadioGroup<BuiltInBoard>>(
+      find.ancestor(
+        of: boardChoice,
+        matching: find.byType(RadioGroup<BuiltInBoard>),
+      ),
+    );
+    group.onChanged(null);
+    await tester.pump();
+
+    await startMatch(tester);
+
+    expect(
+      engine.initialDefinitions.single,
+      same(BuiltInBoard.clippedCorners.definition.rules),
+    );
+  });
+
+  testWidgets('keeps board choices and Start reachable at 200% text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    for (final setup in [
+      (
+        locale: const Locale('en'),
+        heading: 'Board',
+        baseline: 'Classic',
+        baselineDescription: '25 playable cells',
+        clippedCorners: 'Clipped corners',
+        clippedCornersDescription:
+            '21 playable cells with the four corners removed',
+      ),
+      (
+        locale: const Locale('ko'),
+        heading: '보드',
+        baseline: '기본 보드',
+        baselineDescription: '25칸 보드',
+        clippedCorners: '모서리 없는 보드',
+        clippedCornersDescription: '네 모서리를 뺀 21칸',
+      ),
+    ]) {
+      final engine = FakeRulesEngine.playing(initial: matchOf(snapshot));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          key: ValueKey('start-page-${setup.locale.languageCode}'),
+          locale: setup.locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: const TextScaler.linear(2)),
+            child: child!,
+          ),
+          home: StartPage(rulesEngine: engine),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(setup.heading), findsOneWidget);
+      expect(find.text(setup.baseline), findsOneWidget);
+      expect(find.text(setup.baselineDescription), findsOneWidget);
+      expect(find.text(setup.clippedCorners), findsOneWidget);
+      expect(find.text(setup.clippedCornersDescription), findsOneWidget);
+
+      final baselineChoice = find.byKey(const Key('start-board-baseline'));
+      await tester.ensureVisible(baselineChoice);
+      await tester.pumpAndSettle();
+      expect(_isWithinViewport(tester.getRect(baselineChoice)), isTrue);
+
+      final boardChoice = find.byKey(const Key('start-board-clipped-corners'));
+      await tester.ensureVisible(boardChoice);
+      await tester.pumpAndSettle();
+      expect(_isWithinViewport(tester.getRect(boardChoice)), isTrue);
+
+      await tester.tap(boardChoice);
+      await tester.pump();
+
+      final start = find.byKey(const Key('start-match'));
+      await tester.ensureVisible(start);
+      await tester.pumpAndSettle();
+      expect(_isWithinViewport(tester.getRect(start)), isTrue);
+
+      await tester.tap(start);
+      await tester.pumpAndSettle();
+      expect(
+        engine.initialDefinitions.single,
+        same(BuiltInBoard.clippedCorners.definition.rules),
+      );
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('starts a two-player match without offering a difficulty', (
     tester,
   ) async {
@@ -38,8 +243,7 @@ void main() {
 
     expect(find.byKey(const Key('start-difficulty-greedy')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('start-match')));
-    await tester.pumpAndSettle();
+    await startMatch(tester);
 
     expect(opponentValue('Human'), findsOneWidget);
   });
@@ -52,8 +256,7 @@ void main() {
 
     // A player who picks the mode and nothing else still gets a considered
     // opponent rather than the random one.
-    await tester.tap(find.byKey(const Key('start-match')));
-    await tester.pumpAndSettle();
+    await startMatch(tester);
 
     expect(opponentValue('Normal'), findsOneWidget);
   });
@@ -67,8 +270,7 @@ void main() {
     await tester.tap(find.byKey(const Key('start-difficulty-random')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('start-match')));
-    await tester.pumpAndSettle();
+    await startMatch(tester);
 
     expect(opponentValue('Easy'), findsOneWidget);
   });
@@ -80,8 +282,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('start-difficulty-strategic')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('start-match')));
-    await tester.pumpAndSettle();
+    await startMatch(tester);
 
     expect(opponentValue('Expert'), findsOneWidget);
   });
@@ -139,8 +340,7 @@ void main() {
     // so a tappable control is the only exit that exists on both platforms.
     await pumpApp(tester);
 
-    await tester.tap(find.byKey(const Key('start-match')));
-    await tester.pumpAndSettle();
+    await startMatch(tester);
 
     await tester.tap(find.byKey(const Key('leave-match')));
     await tester.pumpAndSettle();
@@ -165,8 +365,7 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    await tester.tap(find.byKey(const Key('start-match')));
-    await tester.pumpAndSettle();
+    await startMatch(tester);
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
@@ -250,8 +449,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(const Key('start-match')));
-    await tester.pumpAndSettle();
+    await startMatch(tester);
 
     final cellCenter = _cellCenterOf(tester);
     await tester.tapAt(cellCenter(2, 2));
@@ -262,6 +460,9 @@ void main() {
     expect(ads.events, ['match-decided']);
   });
 }
+
+bool _isWithinViewport(Rect rect) =>
+    rect.left >= 0 && rect.top >= 0 && rect.right <= 320 && rect.bottom <= 568;
 
 Offset Function(int x, int y) _cellCenterOf(WidgetTester tester) {
   final boardRect = tester.getRect(find.byKey(const Key('round-board-canvas')));

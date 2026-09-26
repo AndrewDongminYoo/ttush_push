@@ -49,7 +49,7 @@ Connect the iOS device over USB before running it that way. `flutter test` does 
 - `choose_bot_move` returns the move a policy would play, and never applies it.
 
 The bridge passes values, not handles, so no game state lives across the boundary between calls.
-`lib/game/board/board_definition.dart` owns the one built-in board definition and its background asset path.
+`lib/game/board/board_definition.dart` owns the typed built-in board catalog, board definitions, and their background asset paths.
 It sends only `GameBoardDefinition` to Rust.
 Rust validates the cells and starting pieces before it creates a match.
 Every round and match snapshot carries a `snapshotHash`: `state_from_snapshot` validates the round value fields, while `match_state_from_snapshot` validates the match fields and its inner round.
