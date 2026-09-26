@@ -1,0 +1,224 @@
+> ttush_push@1.1.1+6 check
+$ dart format --output=none --set-exit-if-changed lib test integration_test test_driver
+
+Formatted 57 files (0 changed) in 0.20 seconds.
+$ flutter analyze
+
+Analyzing ttush_push...                                         
+No issues found! (ran in 3.9s)
+$ very_good test -j 4 --optimization --coverage --min-coverage 100 --exclude-coverage 'lib/src/rust/** lib/game/rules/rules_engine.dart' --report-on lib
+
+Running "flutter test" in . ...
+⠋ Optimizing tests...✓ Optimizing tests (0.1s)
+[2K00:00 ...[2K00:01 ...[2K00:01 +1: loads and maps the complete production sprite set[2K00:01 +2: disposes images decoded before a later production asset fails[2K00:02 +3: keeps each team color prominent on its side at 48 pixels[2K00:02 +4: keeps both team colors in the Apple launch mark[2K00:02 +5: keeps Android adaptive artwork opaque[2K00:02 +6: keeps Android adaptive backgrounds flavor-neutral[2K00:02 +7: keeps Android flavor badges in the upper-right safe zone[2K00:02 +8: keeps canonical and platform image dimensions stable[2K00:02 +9: keeps the icon opaque and the launch mark transparent[2K00:02 +10: connects every platform consumer to branded assets[2K00:02 +11: preserves distinct production, development, and staging icons[2K00:02 +12: preserves Apple development and staging badges[2K00:02 +13: uses Korean strings for the Korean system locale[2K00:02 +14: opens on match setup rather than on the board[2K00:02 +15: the shipped default completes both moments[2K00:02 +16: the shipped default is a compile-time constant[2K00:02 +17: BuiltInBoard uses stable catalog IDs and their definitions[2K00:02 +18: BuiltInBoard large has the exact seven-by-seven six-piece opening[2K00:02 +19: ...uiltInBoard large-holes has the exact seven-by-seven six-piece opening[2K00:02 +20: BuiltInBoard keeps the complete baseline board and starting pieces[2K00:02 +21: ...ard clips only the four corners and keeps the baseline starting pieces[2K00:02 +22: ...ntroller initializes from RulesEngine and exposes only its legal moves[2K00:02 +23: MatchController forwards its board definition to RulesEngine[2K00:02 +24: MatchController rejects a snapshot with only one terminal field[2K00:02 +25: MatchController rejects a match winner without a round winner[2K00:02 +26: MatchController rejects a match winner who has not won two rounds[2K00:02 +27: MatchController rejects result fields that contradict the phase[2K00:02 +28: MatchController cycles the opponent and reports whose turn a bot has[2K00:02 +29: MatchController changes the opponent before the first move[2K00:02 +30: MatchController maps the Expert opponent to the Strategic policy[2K00:02 +31: MatchController locks opponent selection after the first applied move[2K00:02 +32: ...oller does not read a bot turn from the first seat or a finished round[2K00:02 +33: MatchController plays the move the engine chose for the policy[2K00:02 +34: MatchController refuses a move applied on the bot's behalf[2K00:02 +35: MatchController ignores a bot move outside the bot's turn[2K00:02 +36: ...hController treats a policy with no move on a playing round as a fault[2K00:02 +37: MatchController keeps the board and retries when a bot move fails[2K00:02 +38: MatchController maps a selected legal move to its adjacent destination[2K00:02 +39: ...ntroller maps selected horizontal legal moves to distinct destinations[2K00:02 +40: MatchController ignores a selection that has no legal move[2K00:02 +41: ...atchController replaces the snapshot only with what applyMove returned[2K00:02 +42: MatchController prepares a move without publishing its snapshot[2K00:02 +43: MatchController prepares a bot move without publishing its snapshot[2K00:02 +44: ...chController prepares at most one asynchronous bot move for a snapshot[2K00:02 +45: MatchController ignores an asynchronous bot result after cancellation[2K00:02 +46: MatchController ignores an asynchronous bot failure after cancellation[2K00:02 +47: MatchController rejects controls while a move is pending[2K00:02 +48: ...roller retries a failed preparation without changing the visible match[2K00:02 +49: ...ntroller retries a failed pending legal-move refresh before committing[2K00:02 +50: ...Controller restart initializes a controller without a current snapshot[2K00:02 +51: MatchController retries initialization after a bridge failure[2K00:02 +52: MatchController retries initialization with the same board definition[2K00:02 +53: MatchController keeps the finished match visible when restart fails[2K00:02 +54: MatchController keeps the valid snapshot when applying a move fails[2K00:02 +55: ...Controller keeps the snapshot atomic when the legal move refresh fails[2K00:02 +56: MatchController refuses moves once the round is over[2K00:02 +57: MatchController advances only from a finished round[2K00:02 +58: MatchController refuses to advance a won match[2K00:02 +59: MatchController keeps the finished round visible when advancing fails[2K00:03 +60: keeps Start visible while AI board choices scroll[2K00:03 +61: forwards the selected large board to the match[2K00:03 +62: forwards the selected large-holes board to the match[2K00:03 +63: forwards the selected clipped-corners board to the match[2K00:03 +64: keeps the selected board when the setup page stays mounted[2K00:04 +65: resets the board when a fresh App key creates setup state[2K00:04 +66: announces selection and activates a board with the keyboard[2K00:04 +67: keeps board choices and Start reachable at 200% text[2K00:04 +68: starts a two-player match without offering a difficulty[2K00:04 +69: returns from AI to local play and hides difficulty[2K00:04 +70: opens a match against AI on Normal[2K00:04 +71: hands the second seat to the chosen difficulty[2K00:05 +72: hands the second seat to Expert[2K00:05 +73: never shows a policy name to a player[2K00:05 +74: shows distinct high-contrast selected and unselected indicators[2K00:05 +75: leaves the match from a control, not only a gesture[2K00:05 +76: confirms before a back gesture discards the match[2K00:05 +77: carries the ad gateway from the app down to the match[2K00:05 +78: previews holes, six pieces and the match orientation[2K00:05 +79: omits clipped corners instead of depicting holes[2K00:05 +80: renders a damaged initial tile from the definition[2K00:05 +81: pairs each event with its own vibration and effect[2K00:05 +82: reuses one player per effect and releases them on dispose[2K00:05 +83: places Ember above Azure around the playable board[2K00:05 +84: uses a shared panel surface with a board-facing turn accent[2K00:05 +85: renders the air-ruins environment behind the match[2K00:05 +86: uses its BoardDefinition for rules and background[2K00:05 +87: restarts the retained page when its BoardDefinition changes[2K00:05 +88: ignores an opponent choice opened before board replacement[2K00:05 +89: stops the previous board replay when its definition changes[2K00:05 +90: keeps ruins inside the portrait background crop[2K00:05 +91: offers a way out of an initial bridge failure[2K00:05 +92: retries an initial bridge failure[2K00:05 +93: blocks terminal board input and restarts the round[2K00:05 +94: reports no ad moment while a round is being played[2K00:05 +95: reports the decided match exactly once[2K00:05 +96: paints the decided result before it reports the match[2K00:05 +97: reports the decided match to the gateway active when it ended[2K00:05 +98: reports the decided match even when the page goes with the frame[2K00:05 +99: holds the new match until the interruption is over[2K00:05 +100: finishes a decided match even when the gateway fails to report it[2K00:05 +101: ...eels the won match when the gateway throws before it returns a future[2K00:06 +102: restarts the match even when the gateway fails before it[2K00:06 +103: ...tarts the new match when the interruption outlives the restart budget[2K00:06 +104: ...pplies only the selected legal destination without shifting the board[2K00:06 +105: keeps the current snapshot visible until replay completes[2K00:06 +106: uses the same commit path with reduced motion[2K00:06 +107: locks board and opponent controls while replaying[2K00:06 +108: does not commit a replay after the page is disposed[2K00:06 +109: clears selection after a tap outside the current player pieces[2K00:06 +110: pushes an opposing piece standing on a legal destination[2K00:06 +111: resets presentation facing after round advance[2K00:06 +112: shows an immobilization result over the final board[2K00:06 +113: keeps the board paint region within a small and a large screen[2K00:06 +114: keeps a panel at its own height when space is short[2K00:06 +115: feels a selection and then an ordinary move[2K00:06 +116: feels the won round rather than the push that won it[2K00:06 +117: feels a push that leaves the round ongoing[2K00:06 +118: stays silent when a tap changes nothing[2K00:06 +119: stays silent when applying a move fails[2K00:06 +120: says nothing when the same piece is tapped again[2K00:06 +121: feels a move that lands on retry[2K00:06 +122: says nothing when retrying initialization[2K00:06 +123: shows a finished round and advances past it[2K00:06 +124: shows each player their round wins[2K00:06 +125: states the result without truncating it[2K00:06 +126: opens opponent choices before the first move[2K00:06 +127: keeps opponent sheet labels legible against its dark background[2K00:06 +128: keeps opponent choices locked after the first move[2K00:06 +129: selects an opponent from the explicit bottom sheet[2K00:06 +130: reschedules a bot after dismissing opponent selection[2K00:06 +131: starts the bot search immediately but waits for the pause[2K00:06 +132: applies a slow bot result without a second pacing delay[2K00:06 +133: ignores a bot search completed after board replacement[2K00:06 +134: starts only one bot search across rebuilds and disposal[2K00:07 +135: cancels a pending bot move when the opponent changes[2K00:07 +136: refuses a tap on the seat a bot is about to play[2K00:07 +137: stops repeating a bot move that failed until Retry[2K00:07 +138: drops a stranded bot error when the seat turns human[2K00:07 +139: feels a round the bot won as a win, not as a move[2K00:07 +140: fits the longest opponent label on a narrow screen[2K00:07 +141: keeps a valid board visible and retries a failed move[2K00:07 +142: derives rectangular non-zero-origin geometry from tiles[2K00:07 +143: forwards the tapped board cell to its callback[2K00:07 +144: maps only present irregular tiles from their Rust coordinates[2K00:07 +145: does not dispatch a cell when a tap is canceled[2K00:07 +146: renders nothing without usable space[2K00:07 +147: keeps fallback unresolved and switches the complete set once[2K00:07 +148: keeps fallback and reports a controlled load failure once[2K00:07 +149: paints the requested directional explorer sprite[2K00:07 +150: disposes a stale complete set without updating the board[2K00:07 +151: keeps one loader session across board and playback updates[2K00:07 +152: distinguishes each tile kind by shape, not only by color[2K00:07 +153: lets the environment show through a hole[2K00:07 +154: paints production sprites below destinations and playback[2K00:07 +155: draws a crack across a damaged foothold[2K00:07 +156: gives intact footholds a lower stone facet[2K00:07 +157: gives each player a distinct silhouette[2K00:07 +158: uses explorer bodies instead of prototype piece tokens[2K00:07 +159: marks the selected piece[2K00:07 +160: separates a move destination from a push destination[2K00:07 +161: replays Rust-authored Push, fall, and collapse frames in order[2K00:07 +162: renders a directional contact brace behind a horizontal Push[2K00:07 +163: keeps the contact brace static when reduced motion is enabled[2K00:07 +164: marks no destination without a resolvable selection[2K00:07 +165: repaints only when its inputs change[2K00:07 +166: bundles eleven transparent 512 pixel production sprites[2K00:07 +167: keeps the approved turnaround outside the asset bundle[2K00:07 +168: explorer directions share one scale and foot anchor[2K00:07 +169: hole sprite contains no detached alpha debris[2K00:07 +170: foothold sprites share matched square alpha footprints[2K00:07 +171: damaged foothold remains fractured and solid at board scale[2K00:07 +172: rejects a fully transparent alpha footprint[2K00:07 +173: shows the first coach step for the current incomplete version[2K00:07 +174: completes all coach steps and persists the current version[2K00:07 +175: dismisses the coach and persists the current version[2K00:07 +176: reopens a completed coach from HUD help without resetting it[2K00:07 +177: renders HUD help visibly on the dark player panel[2K00:07 +178: opens help with guidance for the current human player[2K00:07 +179: announces coach steps as live regions when opened and advanced[2K00:07 +180: shows a new coach version after an older version completed[2K00:08 +181: shows the coach to a player who completed the 1.0.0 version[2K00:08 +182: shows the coach when completion cannot be read[2K00:08 +183: keeps the coach dismissed when completion cannot be written[2K00:08 +184: does not reopen a coach dismissed during a pending read[2K00:08 +185: does not close a coach opened during a pending read[2K00:08 +186: keeps visual board actions available while the coach is open[2K00:08 +187: announces vertical destinations in visual board direction[2K00:08 +188: omits actionable board semantics while a bot owns the turn[2K00:08 +189: applies and announces a normal semantic move after replay[2K00:08 +190: replaces the live region for repeated move announcements[2K00:08 +191: applies and announces a semantic Push after replay[2K00:08 +192: announces that board controls are disabled during playback[2K00:08 +193: omits inert board cells and immovable explorers from semantics[2K00:08 +194: keeps the match board and controls usable at 200% text[2K00:08 +195: keeps coach actions visible at 200% text[2K00:08 +196: keeps match result actions visible at 200% text[2K00:08 +197: announces a semantic explorer selection in a live region[2K00:08 +198: announces a recoverable move error in a live region[2K00:08 +199: announces an initial bridge error in a live region[2K00:08 +200: disables result continuation while Retry owns an error[2K00:08 +201: announces a round result after the winning replay commits[2K00:08 +202: announces a match result after the winning replay commits[2K00:08 +203: reads the release version from pubspec.yaml[2K00:08 +204: accepts release inputs with a non-empty AAB and both changelogs[2K00:08 +205: rejects the latest published Alpha versionCode[2K00:08 +206: rejects a release without the Korean changelog[2K00:08 +207: reads the package and version from a decoded AAB manifest[2K00:08 +208: rejects an AAB version that differs from pubspec.yaml[2K00:08 +209: accepts only the registered upload certificate[2K00:08 +210: rejects publish when the Play service-account key is missing[2K00:08 +211: returns an absolute Play service-account key path[2K00:08 +212: exports sparse terrain and both owners without losing coordinates[2K00:08 +213: writes the current app catalog into the requested directory[2K00:10 +214: CLI rejects missing output and reports unwritable destinations[2K00:10 +215: accepts a complete Play Store listing with ImageMagick 6[2K00:11 +216: rejects Play Store copy that exceeds its character limit[2K00:11 +217: rejects a feature graphic with the wrong dimensions[2K00:11 +218: rejects a Play Store icon with the wrong dimensions[2K00:12 +219: rejects a phone screenshot with the wrong dimensions[2K00:13 +220: frames a raw capture with ImageMagick 6[2K00:13 +220: All tests passed!
+$ cargo fmt --manifest-path engine/Cargo.toml -- --check
+
+$ cargo clippy --manifest-path engine/Cargo.toml --all-targets -- -D warnings
+
+    Finished `dev` profile [optimized + debuginfo] target(s) in 0.11s
+$ cargo test --manifest-path engine/Cargo.toml
+
+   Compiling engine v0.1.0 (/Users/dongminyu/Development/01_personal/ttush_push/engine)
+    Finished `test` profile [optimized + debuginfo] target(s) in 4.64s
+     Running unittests src/lib.rs (engine/target/debug/deps/engine-c6362ebff154ae34)
+
+running 8 tests
+test bot::strategic::tests::scaled_budget_is_bounded_and_completes_the_root ... ok
+test bot::strategic::tests::terminal_scores_keep_the_required_ordering ... ok
+test api::tests::value_api_reports_a_push_falling_into_a_sinkhole ... ok
+test api::tests::value_api_reports_a_damaged_foothold_collapsing ... ok
+test bot::strategic::tests::a_proven_fastest_win_stops_the_search ... ok
+test bot::strategic::tests::exhaustion_returns_the_last_completed_depth ... ok
+test bot::strategic::tests::cached_narrow_bounds_do_not_change_a_wide_window_result ... ok
+test bot::strategic::tests::transposition_table_does_not_change_the_move ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src/bin/analyze.rs (engine/target/debug/deps/analyze-60328bf687ac3bee)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/simulate.rs (engine/target/debug/deps/simulate-6e78588bff394c68)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bot.rs (engine/target/debug/deps/bot-634e04a26dffce3a)
+
+running 16 tests
+test a_faster_finish_outranks_a_slower_one ... ok
+test greedy_still_moves_when_every_move_loses ... ok
+test direction_coverage_is_not_assumed ... ok
+test greedy_takes_the_win_that_is_there ... ok
+test a_depth_of_zero_still_searches_one_ply ... ok
+test minimax_prefers_the_faster_win ... ok
+test simple_policies_decline_a_round_with_no_moves ... ok
+test a_policy_can_play_a_round_to_its_end ... ok
+test greedy_declines_a_move_that_hands_over_the_win ... ok
+test minimax_does_not_walk_into_an_immediate_loss ... ok
+test strategic_declines_a_round_with_no_moves ... ok
+test simple_policies_return_a_legal_move_or_none ... ok
+test strategic_returns_the_same_legal_move_for_the_same_state ... ok
+test simple_policies_repeat_themselves_for_the_same_seed ... ok
+test greedy_outplays_random_from_both_seats ... ok
+test minimax_outplays_greedy_from_both_seats ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/bridge_api.rs (engine/target/debug/deps/bridge_api-df934f3a84eb5852)
+
+running 18 tests
+test value_api_expands_sparse_initial_tiles_and_preserves_the_large_opening ... ok
+test value_api_refuses_to_choose_from_an_edited_snapshot ... ok
+test value_api_defaults_omitted_initial_tiles_to_normal ... ok
+test value_api_accepts_an_irregular_board_definition ... ok
+test value_api_preserves_a_snapshot_across_move_calls ... ok
+test value_api_offers_no_bot_move_once_the_round_is_over ... ok
+test value_api_rejects_a_snapshot_with_a_mismatched_hash ... ok
+test value_api_rejects_an_edited_score ... ok
+test value_api_rejects_edited_initial_tile_metadata ... ok
+test value_api_holds_a_finished_round_until_it_is_advanced ... ok
+test value_api_rejects_invalid_board_definitions ... ok
+test value_api_restores_initial_tiles_instead_of_the_damaged_round ... ok
+test value_api_returns_a_normal_move_resolution ... ok
+test value_api_returns_a_push_resolution ... ok
+test value_api_carries_a_won_match_back_without_reopening_it ... ok
+test value_api_returns_an_exit_direction_for_a_knockout ... ok
+test value_api_pins_the_parity_fixture_bot_moves ... ok
+test value_api_chooses_a_bot_move_from_the_position_alone ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.36s
+
+     Running tests/position_analysis.rs (engine/target/debug/deps/position_analysis-ddd557b656ab16fe)
+
+running 6 tests
+test exhausted_node_budget_cannot_be_reported_as_a_loss ... ok
+test terminal_path_reports_winner_without_fabricating_replies ... ok
+test reports_a_forced_knockout_and_every_root_alternative ... ok
+test replays_the_path_before_enumerating_replies_and_repeats_exactly ... ok
+test rejects_invalid_limits_duplicate_flags_and_invalid_boards ... ok
+test rejects_malformed_illegal_and_post_terminal_paths_before_reporting ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/position_search.rs (engine/target/debug/deps/position_search-12a1c0244121ef4e)
+
+running 8 tests
+test depth_exhaustion_is_unknown_instead_of_a_loss ... ok
+test each_root_alternative_receives_a_fresh_node_budget ... ok
+test terminal_child_is_inspected_before_the_depth_cutoff ... ok
+test terminal_root_reports_its_winner_without_alternatives ... ok
+test exhausted_node_budget_does_not_inspect_a_terminal_child ... ok
+test unknown_opponent_replies_prevent_a_false_root_win ... ok
+test reports_every_root_alternative_with_the_exhaustive_winner ... ok
+test a_loss_requires_every_legal_alternative_to_lose ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rules.rs (engine/target/debug/deps/rules-47047cd61cd15d1b)
+
+running 27 tests
+test a_finished_round_rejects_additional_moves ... ok
+test a_prohibited_only_counter_push_causes_immobilization ... ok
+test baseline_is_a_symmetric_five_by_five_experiment_configuration ... ok
+test board_config_accepts_a_non_rectangular_topology ... ok
+test board_config_applies_sparse_initial_tiles_to_the_full_opening_map ... ok
+test board_config_rejects_invalid_initial_tile_overrides ... ok
+test configured_damaged_departure_and_hole_entry_apply_from_the_opening_state ... ok
+test configured_initial_hole_knocks_out_a_pushed_piece ... ok
+test counter_push_restriction_expires_after_any_legal_response ... ok
+test customizing_initial_tiles_preserves_cloned_board_configs ... ok
+test initially_immobilized_player_loses_the_round ... ok
+test leaving_a_damaged_tile_turns_it_into_a_hole ... ok
+test leaving_the_next_player_without_any_legal_move_wins_by_immobilization ... ok
+test legal_moves_lists_only_one_step_empty_destinations_for_the_current_player ... ok
+test match_rejects_a_round_played_after_the_match_was_decided ... ok
+test match_rejects_a_score_that_no_play_could_reach ... ok
+test match_resets_the_board_with_the_loser_starting_and_ends_after_two_round_wins ... ok
+test match_settles_an_initially_immobilized_round ... ok
+test next_round_restores_configured_initial_tiles_after_round_damage ... ok
+test normal_move_changes_position_and_damages_only_departure_tile ... ok
+test normal_move_rejects_outside_hole_and_friendly_destinations ... ok
+test normal_move_supports_every_orthogonal_direction ... ok
+test push_is_rejected_when_a_piece_blocks_the_displaced_piece_regardless_of_owner ... ok
+test push_moves_one_adjacent_opponent_without_damaging_passive_tiles ... ok
+test push_outside_the_playable_topology_wins_the_round ... ok
+test pushed_piece_cannot_immediately_push_its_specific_pusher_back ... ok
+test pushing_an_opponent_into_a_hole_wins_the_round_immediately ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/simulation.rs (engine/target/debug/deps/simulation-f41ad16f5f5562c0)
+
+running 14 tests
+test board_file_controls_the_round_and_reports_the_complete_initial_configuration ... ok
+test completed_runs_assign_wins_and_reasons_to_their_opening_rows ... ok
+test trace_option_rejects_missing_malformed_negative_and_out_of_range_indices ... ok
+test swap_seeds_reverses_wrapping_random_streams_and_labels_only_swapped_reports ... ok
+test fixed_seed_produces_identical_complete_statistics ... ok
+test trace_uses_the_selected_nonzero_round_with_wrapping_seeds_and_is_repeatable ... ok
+test board_file_rejects_invalid_input_without_running_the_baseline ... ok
+test a_saved_run_names_the_search_depth_that_produced_it ... ok
+test strategic_first_move_is_reported_from_the_real_strategic_policy ... ok
+test trace_replays_the_selected_strategic_terminal_round_and_wins_at_its_cap ... ok
+test capped_runs_attribute_every_turn_to_the_opening_that_started_it ... ok
+test trace_keeps_statistics_unchanged_and_preserves_a_shorter_cap ... ok
+test strategic_second_seat_and_self_play_produce_complete_repeatable_opening_reports ... ok
+test board_file_baseline_keeps_outcomes_and_reports_deterministically ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.67s
+
+     Running tests/strategic_bot.rs (engine/target/debug/deps/strategic_bot-b5974253bf82ddb6)
+
+running 8 tests
+test strategic_uses_irregular_non_zero_origin_topology ... ok
+test strategic_takes_knockout_and_immobilization_wins ... ok
+test strategic_returns_a_legal_move_on_a_larger_board ... ok
+test strategic_finds_a_forced_win_beyond_two_plies ... ok
+test strategic_matches_the_exact_solver_on_small_late_round_states ... ok
+test strategic_matches_the_exact_solver_on_variant_topologies ... ok
+test strategic_searches_meet_the_host_turn_limit ... ok
+test strategic_beats_hard_from_both_seats_in_each_topology_group ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.12s
+
+   Doc-tests engine
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+$ cargo build --release --manifest-path engine/Cargo.toml --lib --bin simulate
+
+   Compiling engine v0.1.0 (/Users/dongminyu/Development/01_personal/ttush_push/engine)
+    Finished `release` profile [optimized] target(s) in 1.10s
+$ flutter test tool/rules_engine_host_test.dart
+
+00:00 +0: loading /Users/dongminyu/Development/01_personal/ttush_push/tool/rules_engine_host_test.dart
+00:00 +0: simulates the exported app boards and replays their traces
+00:01 +1: preserves initial tile states through the host bridge
+00:01 +2: loads the host bridge and returns the parity fixture
+00:01 +3: returns the complete topology for every offered board
+00:01 +4: keeps Expert turns for offered boards under the host limit
+Shell: Expert baseline host response: 452 ms wall-clock wait, including the 450 ms pacing delay; this is not a CPU benchmark.
+Shell: Expert clipped-corners host response: 452 ms wall-clock wait, including the 450 ms pacing delay; this is not a CPU benchmark.
+Shell: Expert large host response: 1156 ms wall-clock wait, including the 450 ms pacing delay; this is not a CPU benchmark.
+Shell: Expert large-holes host response: 1013 ms wall-clock wait, including the 450 ms pacing delay; this is not a CPU benchmark.
+00:04 +5: accepts an irregular board definition through the host bridge
+00:04 +6: rejects an invalid board definition through the host bridge
+00:04 +7: All tests passed!
+$ cd android && BUNDLE_PATH=vendor/bundle bundle exec ruby fastlane/version_guard_test.rb
+
+Alpha version guard tests passed.
+$ trunk check --no-progress
+
+
+Checked 8 modified files
+[1m[92m✔ No issues[0m
+$ bash tool/run_parity.sh
+
+parity: this run covered no native packaging. Start a runtime and re-run to cover it.
+parity: SKIPPED, no simulator or emulator is running.
