@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -10,9 +12,68 @@ import 'package:ttush_push/l10n/l10n.dart';
 import 'package:ttush_push/src/rust/api.dart' as rust;
 import 'package:ttush_push/src/rust/frb_generated.dart';
 
-const _engine = FrbRulesEngine();
+const _expectedEngine = FrbRulesEngine();
 const _maxMovesPerMatch = 240;
 const _maxFramesPerMove = 400;
+
+const _expectedStartingPieces = <rust.GamePiece>[
+  rust.GamePiece(id: 0, owner: rust.GamePlayer.first, x: 1, y: 0),
+  rust.GamePiece(id: 1, owner: rust.GamePlayer.first, x: 3, y: 0),
+  rust.GamePiece(id: 2, owner: rust.GamePlayer.second, x: 1, y: 4),
+  rust.GamePiece(id: 3, owner: rust.GamePlayer.second, x: 3, y: 4),
+];
+
+const _baselinePlayableCells = <(int, int)>[
+  (0, 0),
+  (0, 1),
+  (0, 2),
+  (0, 3),
+  (0, 4),
+  (1, 0),
+  (1, 1),
+  (1, 2),
+  (1, 3),
+  (1, 4),
+  (2, 0),
+  (2, 1),
+  (2, 2),
+  (2, 3),
+  (2, 4),
+  (3, 0),
+  (3, 1),
+  (3, 2),
+  (3, 3),
+  (3, 4),
+  (4, 0),
+  (4, 1),
+  (4, 2),
+  (4, 3),
+  (4, 4),
+];
+
+const _clippedCornersPlayableCells = <(int, int)>[
+  (0, 1),
+  (0, 2),
+  (0, 3),
+  (1, 0),
+  (1, 1),
+  (1, 2),
+  (1, 3),
+  (1, 4),
+  (2, 0),
+  (2, 1),
+  (2, 2),
+  (2, 3),
+  (2, 4),
+  (3, 0),
+  (3, 1),
+  (3, 2),
+  (3, 3),
+  (3, 4),
+  (4, 1),
+  (4, 2),
+  (4, 3),
+];
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -25,101 +86,131 @@ void main() {
     WidgetController.hitTestWarningShouldBeFatal = previousHitTestPolicy;
   });
 
-  testWidgets('English local match uses real board taps through a result', (
+  for (final board in BuiltInBoard.values) {
+    testWidgets(
+      'English local ${board.id} match uses real board taps through a result',
+      (tester) => _runEnglishLocalScenario(tester, binding, board),
+      timeout: const Timeout(Duration(minutes: 20)),
+    );
+
+    testWidgets(
+      'Korean Expert ${board.id} match keeps Flutter text scale usable',
+      (tester) => _runKoreanExpertScenario(tester, binding, board),
+      timeout: const Timeout(Duration(minutes: 20)),
+    );
+  }
+}
+
+Future<void> _runEnglishLocalScenario(
+  WidgetTester tester,
+  IntegrationTestWidgetsFlutterBinding binding,
+  BuiltInBoard board,
+) async {
+  tester.binding.platformDispatcher.localesTestValue = const [Locale('en')];
+  addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
+
+  final prefix = '${board.id}-en-local';
+  await tester.pumpWidget(App(key: ValueKey('$prefix-app')));
+  await tester.pumpAndSettle();
+  await _tapSetupControl(
     tester,
-  ) async {
-    tester.binding.platformDispatcher.localesTestValue = const [Locale('en')];
-    addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
+    find.byKey(const Key('start-mode-two-players')),
+  );
+  await _selectBoard(tester, board);
+  await _prepareScreenshotCapture(tester, binding);
+  await _capture(tester, binding, '$prefix-setup');
+  await _tapSetupControl(tester, find.byKey(const Key('start-match')));
+  await _waitForBoard(tester);
 
-    await tester.pumpWidget(const App(key: ValueKey('en-local-app')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('start-mode-two-players')), findsOneWidget);
-    await _capture(tester, binding, '01-en-local-setup');
-    await tester.tap(find.byKey(const Key('start-match')));
-    await _waitForBoard(tester);
+  final initial = _expectedEngine.initialMatch(board.definition.rules);
+  await _waitForBoardHash(tester, initial.round.snapshotHash);
+  _expectOpeningBoard(tester, initial, board);
+  await _capture(tester, binding, '$prefix-board');
+  await _exerciseCoachAndHelp(tester, binding, prefix: prefix);
+  if (board == BuiltInBoard.clippedCorners) {
+    await _expectMissingCornerTapIsIgnored(tester);
+  }
 
-    await _exerciseCoachAndHelp(tester, binding);
-    await _playMatch(
-      tester,
-      binding,
-      prefix: 'en-local',
-      expertOpponent: false,
-    );
-
-    final l10n = localizationsOf(tester.element(find.byType(GamePage)));
-    await tester.tap(find.text(l10n.newMatch));
-    final fresh = _engine.initialMatch(baselineBoardDefinition.rules);
-    await _waitForBoardHash(tester, fresh.round.snapshotHash);
-    _expectVisibleSnapshot(tester, fresh);
-    await _capture(tester, binding, '08-en-local-restart');
-
-    await tester.tap(find.byKey(const Key('leave-match')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('leave-match-dialog')), findsOneWidget);
-    await _capture(tester, binding, '09-en-local-leave-dialog');
-    await tester.tap(find.byKey(const Key('leave-match-cancel')));
-    await tester.pumpAndSettle();
-    expect(find.byType(GamePage), findsOneWidget);
-    await tester.tap(find.byKey(const Key('leave-match')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('leave-match-confirm')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('start-title')), findsOneWidget);
-  }, timeout: const Timeout(Duration(minutes: 20)));
-
-  testWidgets('Korean Expert match and Flutter text scale override', (
+  await _playMatch(
     tester,
-  ) async {
-    tester.binding.platformDispatcher.localesTestValue = const [Locale('ko')];
-    tester.binding.platformDispatcher.textScaleFactorTestValue = 2.0;
-    addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
-    addTearDown(
-      tester.binding.platformDispatcher.clearTextScaleFactorTestValue,
-    );
+    binding,
+    board: board,
+    initial: initial,
+    prefix: prefix,
+    expertOpponent: false,
+  );
 
-    await tester.pumpWidget(const App(key: ValueKey('ko-expert-app')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('start-mode-versus-ai')));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const Key('start-difficulty-strategic')),
-      120,
-      scrollable: find.byType(Scrollable),
-    );
-    await tester.tap(find.byKey(const Key('start-difficulty-strategic')));
-    await tester.pumpAndSettle();
-    await _capture(
-      tester,
-      binding,
-      '10-ko-expert-flutter-text-scale-2p0-setup',
-    );
-    await tester.ensureVisible(find.byKey(const Key('start-match')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('start-match')));
-    await _waitForBoard(tester);
-    await _capture(
-      tester,
-      binding,
-      '11-ko-expert-flutter-text-scale-2p0-board',
-    );
-    await _dismissCoachIfVisible(tester);
+  final l10n = localizationsOf(tester.element(find.byType(GamePage)));
+  await tester.tap(find.text(l10n.newMatch));
+  final fresh = _expectedEngine.initialMatch(board.definition.rules);
+  await _waitForBoardHash(tester, fresh.round.snapshotHash);
+  _expectOpeningBoard(tester, fresh, board);
+  await _capture(tester, binding, '$prefix-restart');
 
-    await _playMatch(
-      tester,
-      binding,
-      prefix: 'ko-expert-flutter-text-scale-2p0',
-      expertOpponent: true,
-    );
-  }, timeout: const Timeout(Duration(minutes: 20)));
+  await tester.tap(find.byKey(const Key('leave-match')));
+  await tester.pumpAndSettle();
+  expect(find.byKey(const Key('leave-match-dialog')), findsOneWidget);
+  await _capture(tester, binding, '$prefix-leave-dialog');
+  await tester.tap(find.byKey(const Key('leave-match-cancel')));
+  await tester.pumpAndSettle();
+  expect(find.byType(GamePage), findsOneWidget);
+  await tester.tap(find.byKey(const Key('leave-match')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const Key('leave-match-confirm')));
+  await tester.pumpAndSettle();
+  expect(find.byKey(const Key('start-title')), findsOneWidget);
+}
+
+Future<void> _runKoreanExpertScenario(
+  WidgetTester tester,
+  IntegrationTestWidgetsFlutterBinding binding,
+  BuiltInBoard board,
+) async {
+  tester.binding.platformDispatcher.localesTestValue = const [Locale('ko')];
+  tester.binding.platformDispatcher.textScaleFactorTestValue = 2.0;
+  addTearDown(tester.binding.platformDispatcher.clearLocalesTestValue);
+  addTearDown(tester.binding.platformDispatcher.clearTextScaleFactorTestValue);
+
+  final prefix = '${board.id}-ko-expert-flutter-text-scale-2p0';
+  await tester.pumpWidget(App(key: ValueKey('$prefix-app')));
+  await tester.pumpAndSettle();
+  await _tapSetupControl(tester, find.byKey(const Key('start-mode-versus-ai')));
+  await _selectBoard(tester, board);
+  await _prepareScreenshotCapture(tester, binding);
+  await _capture(tester, binding, '$prefix-board-choice');
+  await _tapSetupControl(
+    tester,
+    find.byKey(const Key('start-difficulty-strategic')),
+  );
+  await _capture(tester, binding, '$prefix-setup');
+  await _tapSetupControl(tester, find.byKey(const Key('start-match')));
+  await _waitForBoard(tester);
+
+  final initial = _expectedEngine.initialMatch(board.definition.rules);
+  await _waitForBoardHash(tester, initial.round.snapshotHash);
+  _expectOpeningBoard(tester, initial, board);
+  await _capture(tester, binding, '$prefix-board');
+  await _dismissCoachIfVisible(tester);
+
+  await _playMatch(
+    tester,
+    binding,
+    board: board,
+    initial: initial,
+    prefix: prefix,
+    expertOpponent: true,
+  );
 }
 
 Future<void> _playMatch(
   WidgetTester tester,
   IntegrationTestWidgetsFlutterBinding binding, {
+  required BuiltInBoard board,
+  required rust.MatchSnapshot initial,
   required String prefix,
   required bool expertOpponent,
 }) async {
-  var expected = _engine.initialMatch(baselineBoardDefinition.rules);
+  var expected = initial;
   _expectVisibleSnapshot(tester, expected);
   var moves = 0;
   var capturedGameplay = false;
@@ -136,9 +227,9 @@ Future<void> _playMatch(
       final beforeWins = (expected.firstPlayerWins, expected.secondPlayerWins);
       final l10n = localizationsOf(tester.element(find.byType(GamePage)));
       await tester.tap(find.text(l10n.nextRound));
-      expected = _engine.advanceRound(expected);
+      expected = _expectedEngine.advanceRound(expected);
       await _waitForBoardHash(tester, expected.round.snapshotHash);
-      _expectVisibleSnapshot(tester, expected);
+      _expectOpeningBoard(tester, expected, board);
       expect(
         (expected.firstPlayerWins, expected.secondPlayerWins),
         beforeWins,
@@ -153,19 +244,19 @@ Future<void> _playMatch(
       final stopwatch = Stopwatch()..start();
       final responseFrames = await _waitForBoardChange(tester, previousHash);
       stopwatch.stop();
-      final expertMove = await _engine.chooseBotMove(
+      final expertMove = await _expectedEngine.chooseBotMove(
         expected,
         rust.BotPolicy.strategic,
       );
       expect(expertMove, isNotNull);
-      expected = _engine.applyMove(expected, expertMove!).snapshot;
+      expected = _expectedEngine.applyMove(expected, expertMove!).snapshot;
       _expectVisibleSnapshot(tester, expected);
       moves++;
       debugPrint(
-        'Expert response observed after $responseFrames pump frames '
-        '(${responseFrames * 100} ms test-clock, '
-        '${stopwatch.elapsedMilliseconds} ms wall-clock wait) '
-        'on simulator, move $moves, phase ${expected.phase.name}',
+        'Expert response for ${board.id} observed after '
+        '${stopwatch.elapsedMilliseconds} ms wall-clock wait across '
+        '$responseFrames test pumps; this is UI response timing, not a CPU '
+        'benchmark. Move $moves, phase ${expected.phase.name}.',
       );
       if (!capturedGameplay && expected.phase == rust.GameMatchPhase.playing) {
         await _capture(tester, binding, '$prefix-gameplay');
@@ -174,7 +265,7 @@ Future<void> _playMatch(
       continue;
     }
 
-    final legalMoves = _engine.legalMoves(expected);
+    final legalMoves = _expectedEngine.legalMoves(expected);
     expect(legalMoves, isNotEmpty, reason: 'a playing turn needs a legal move');
     final move = legalMoves.first;
     final piece = expected.round.pieces.singleWhere(
@@ -195,7 +286,7 @@ Future<void> _playMatch(
       rust.GameDirection.right => (piece.x + 1, piece.y),
     };
     final previousHash = expected.round.snapshotHash;
-    expected = _engine.applyMove(expected, move).snapshot;
+    expected = _expectedEngine.applyMove(expected, move).snapshot;
     await _tapCell(tester, selected.snapshot, destination.$1, destination.$2);
     await _waitForBoardChange(tester, previousHash);
     _expectVisibleSnapshot(tester, expected);
@@ -209,6 +300,7 @@ Future<void> _playMatch(
   }
 
   expect(moves, greaterThan(0));
+  expect(capturedGameplay, isTrue);
   expect(capturedRound, isTrue);
   expect(find.byKey(const Key('result-scope-match')), findsOneWidget);
   expect(expected.matchWinner, isNotNull);
@@ -221,8 +313,9 @@ Future<void> _playMatch(
 
 Future<void> _exerciseCoachAndHelp(
   WidgetTester tester,
-  IntegrationTestWidgetsFlutterBinding binding,
-) async {
+  IntegrationTestWidgetsFlutterBinding binding, {
+  required String prefix,
+}) async {
   await tester.tap(find.byKey(const Key('coach-help')));
   await tester.pumpAndSettle();
   expect(find.byKey(const Key('first-play-coach')), findsOneWidget);
@@ -230,7 +323,7 @@ Future<void> _exerciseCoachAndHelp(
       .widget<Semantics>(find.byKey(const Key('coach-message')))
       .properties
       .label;
-  await _capture(tester, binding, '02-en-local-coach-step-1');
+  await _capture(tester, binding, '$prefix-coach-step-1');
   await tester.tap(find.byKey(const Key('coach-next')));
   await tester.pumpAndSettle();
   final secondMessage = tester
@@ -252,7 +345,7 @@ Future<void> _exerciseCoachAndHelp(
   await tester.tap(find.byKey(const Key('coach-help')));
   await tester.pumpAndSettle();
   expect(find.byKey(const Key('first-play-coach')), findsOneWidget);
-  await _capture(tester, binding, '03-en-local-help-reopened');
+  await _capture(tester, binding, '$prefix-help-reopened');
   await tester.tap(find.byKey(const Key('coach-dismiss')));
   await tester.pumpAndSettle();
   expect(find.byKey(const Key('first-play-coach')), findsNothing);
@@ -265,6 +358,97 @@ Future<void> _dismissCoachIfVisible(WidgetTester tester) async {
     await tester.tap(dismiss);
     await tester.pumpAndSettle();
   }
+}
+
+Future<void> _tapSetupControl(WidgetTester tester, Finder control) async {
+  expect(control, findsOneWidget);
+  await tester.ensureVisible(control);
+  await tester.pumpAndSettle();
+  await tester.tap(control);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _selectBoard(WidgetTester tester, BuiltInBoard board) {
+  return _tapSetupControl(tester, find.byKey(Key('start-board-${board.id}')));
+}
+
+Future<void> _prepareScreenshotCapture(
+  WidgetTester tester,
+  IntegrationTestWidgetsFlutterBinding binding,
+) async {
+  if (!Platform.isAndroid) {
+    return;
+  }
+  await binding.convertFlutterSurfaceToImage();
+  await tester.pump();
+}
+
+List<(int, int)> _expectedPlayableCells(BuiltInBoard board) => switch (board) {
+  BuiltInBoard.baseline => _baselinePlayableCells,
+  BuiltInBoard.clippedCorners => _clippedCornersPlayableCells,
+};
+
+void _expectOpeningBoard(
+  WidgetTester tester,
+  rust.MatchSnapshot expected,
+  BuiltInBoard board,
+) {
+  _expectVisibleSnapshot(tester, expected);
+  final visible = tester.widget<RoundBoard>(find.byType(RoundBoard));
+  expect(
+    visible.snapshot.tiles.map((tile) => (tile.x, tile.y)),
+    unorderedEquals(_expectedPlayableCells(board)),
+    reason: '${board.id} must keep its complete topology',
+  );
+  expect(
+    visible.snapshot.tiles.map((tile) => tile.kind),
+    everyElement(rust.GameTileKind.normal),
+    reason: '${board.id} must reset every tile for a new round',
+  );
+  expect(
+    visible.snapshot.pieces,
+    unorderedEquals(_expectedStartingPieces),
+    reason: '${board.id} must reset its starting pieces',
+  );
+  expect(
+    expected.startingPieces,
+    unorderedEquals(_expectedStartingPieces),
+    reason: 'the independent engine must retain ${board.id} starting pieces',
+  );
+}
+
+Future<void> _expectMissingCornerTapIsIgnored(WidgetTester tester) async {
+  final before = tester.widget<RoundBoard>(find.byType(RoundBoard));
+  expect(
+    before.snapshot.tiles.any((tile) => tile.x == 0 && tile.y == 0),
+    isFalse,
+    reason: 'the clipped-corners board must not render its top-left corner',
+  );
+  final selectedPiece = before.snapshot.pieces.singleWhere(
+    (piece) => piece.id == 0,
+  );
+  final initialHash = before.snapshot.snapshotHash;
+
+  await _tapCell(tester, before.snapshot, selectedPiece.x, selectedPiece.y);
+  expect(
+    tester.widget<RoundBoard>(find.byType(RoundBoard)).selectedPieceId,
+    selectedPiece.id,
+    reason: 'the real starting piece must be selected before the corner tap',
+  );
+
+  await _tapCell(tester, before.snapshot, 0, 0);
+  await tester.pumpAndSettle();
+  final after = tester.widget<RoundBoard>(find.byType(RoundBoard));
+  expect(
+    after.snapshot.snapshotHash,
+    initialHash,
+    reason: 'tapping a missing corner must not commit a move',
+  );
+  expect(
+    after.selectedPieceId,
+    selectedPiece.id,
+    reason: 'a missing corner must not clear the selected real piece',
+  );
 }
 
 Future<void> _tapCell(

@@ -1,0 +1,162 @@
+{
+  "base_sha": "b32b5bf0e484580561339a600943fd3c93991b89",
+  "source_files": {
+    "lib/game/board/board_definition.dart": "2717fda4e44847f0aa95b69a9b426dcb7f8e6e966f59c6796ddf08c67c8e1341",
+    "lib/game/start/start_page.dart": "9f78272592a84f2cba3c705e4ebe89bcb283224163e039e0a62809d8dc18ac06",
+    "lib/l10n/arb/app_en.arb": "9c018ff713e81c1895acf1d0e5acb2da37b8dbd0435e4d0a45c6636d73292380",
+    "lib/l10n/arb/app_ko.arb": "0df38b72cbe49e9f028d7996d9d0cc2dccc5520ff7494c6324849eb9e47c040a",
+    "integration_test/ios_gameplay_flow_test.dart": "3d49619d32d01f8e73469ac2fc6c99f73f6171a6630d335425489deed65feff5",
+    "tool/rules_engine_host_test.dart": "5c9fc88916ff038a1c46accd04ae4c04472862ba902359f9b4f3af59b5db4164",
+    "test_driver/ios_gameplay_flow_driver.dart": "70363ec2e58cb1bfee9599578bccbd0435c669ff5df2d48adf056272e04eae9a",
+    "pubspec.lock": "807e68e16a078c021551e924c6db611dc9bccb4750330a08ee9292532d2cd371"
+  },
+  "android": {
+    "runtime": "Pixel_10 Android17 emulator-5554",
+    "exit_code": 0,
+    "final_copy": true,
+    "scenarios": 4,
+    "expert_waits": {
+      "baseline": {
+        "observed_turns": 8,
+        "min_ms": 1048,
+        "max_ms": 1406,
+        "all_ms": [1400, 1281, 1283, 1048, 1406, 1283, 1281, 1057]
+      },
+      "clipped-corners": {
+        "observed_turns": 20,
+        "min_ms": 1042,
+        "max_ms": 1285,
+        "all_ms": [
+          1285, 1167, 1165, 1049, 1043, 1042, 1048, 1049, 1057, 1049, 1161, 1165, 1164, 1047, 1046,
+          1054, 1047, 1140, 1047, 1052
+        ]
+      }
+    },
+    "log_sha256": "5d9dd85ef25c556d6ce3145f823475fa2880e47d3bf2bb079af515ec42190f6b",
+    "screenshots": {
+      "build/screenshots/board-selection-android/baseline-en-local-restart.png": "9bbee703dbf7672bc501635392cc1764b9dd96a698406a4f8125b0d70830c90a",
+      "build/screenshots/board-selection-android/baseline-en-local-help-reopened.png": "3e19778e43d88dedd9d75d9bd6bcb1d11f3d9053d5889cbfd46dc279a5d3541a",
+      "build/screenshots/board-selection-android/clipped-corners-ko-expert-flutter-text-scale-2p0-round-result.png": "3f5ce800a64b6a1ddbfc53fc5006cb65fabe997177b81c5c2ab4dc3d33690f5b",
+      "build/screenshots/board-selection-android/baseline-en-local-gameplay.png": "ee0512045a3fc507546b90c733a7710f82906f4385a2d4027862802a38132760",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-gameplay.png": "5f23a0f7c08ea00cddef46b77dd15031b7d9d494137962bc04681fc84a76209c",
+      "build/screenshots/board-selection-android/baseline-ko-expert-flutter-text-scale-2p0-match-result.png": "2de3f401483f54d6e86d42524d29b3c200fb6e345677890a772360c00c7fcbfb",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-round-result.png": "108b151b3b27bf6e298917dbae9f040358d66a2ddafc3e981aff5390c0d7e74b",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-leave-dialog.png": "3b0b695cc50fa24fe64752b8e44bd26342d504612c30c7536da4cda6ee15ca88",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-selection.png": "326e7e6c4d1f9bdaed232d1046acedc28428f33409d7fdc98bb12d4775618aff",
+      "build/screenshots/board-selection-android/baseline-ko-expert-flutter-text-scale-2p0-setup.png": "81fec720a410929998e35f90ecf4d37cfb6512e3db1f96628b14c186692aee73",
+      "build/screenshots/board-selection-android/baseline-ko-expert-flutter-text-scale-2p0-board.png": "e726883935a34cfc512044c0b8e26d76fffe6c1ae65a2b62b6292eb288c822b1",
+      "build/screenshots/board-selection-android/clipped-corners-ko-expert-flutter-text-scale-2p0-selection.png": "0db25f3d5a2542754cb093f4f5c268c4f83c09d4b54aea34fd4d3836d068b64e",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-restart.png": "e9380ff26aa9b6768beaff7ce646dc3521ba1e5e0b12249ec757dd12c7ef1e8a",
+      "build/screenshots/board-selection-android/clipped-corners-ko-expert-flutter-text-scale-2p0-setup.png": "43f55c1fbf5d8a362c5faa5241a0f70d6e8ddb6c278d071412233e6caf6155b0",
+      "build/screenshots/board-selection-android/baseline-en-local-leave-dialog.png": "92d0ee3a7279af3985e9ed6bb0dcc4519d12f921c30fd3a2ea558ded865b696c",
+      "build/screenshots/board-selection-android/clipped-corners-ko-expert-flutter-text-scale-2p0-board.png": "782d9214d7d72d2e45940266bf1b5c36ee27ace1f439687e258588db8ecf91f9",
+      "build/screenshots/board-selection-android/clipped-corners-ko-expert-flutter-text-scale-2p0-gameplay.png": "c82f48625ad4e4e95e820dc8798d19c407d148bf4412340f392ecb4412d172d7",
+      "build/screenshots/board-selection-android/clipped-corners-ko-expert-flutter-text-scale-2p0-board-choice.png": "86300aec5a73d68275ac3d936181b2a04b411a815e4ea0b78c14c4f144cb1505",
+      "build/screenshots/board-selection-android/baseline-en-local-round-result.png": "0d9cf705011483266c03401d66bc7e6485ca338efd44a30bee9ee19da00f580e",
+      "build/screenshots/board-selection-android/baseline-ko-expert-flutter-text-scale-2p0-selection.png": "6496061491de788bef4f18784945630a79b7701e29e99f8e382cda692d010527",
+      "build/screenshots/board-selection-android/baseline-ko-expert-flutter-text-scale-2p0-board-choice.png": "166b1df2cb16f3caf725e6b2aed31e6fb18b8483f69f88831ecd9357e451e574",
+      "build/screenshots/board-selection-android/baseline-ko-expert-flutter-text-scale-2p0-gameplay.png": "9786be5d9ca0bb32b5906cb623968f76b2d6218834062e87459e6a5730906bfe",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-coach-step-1.png": "06ecec6dde4028ca71fe63847e4150dc39557c5a326e199f26070692c771dd8f",
+      "build/screenshots/board-selection-android/baseline-en-local-match-result.png": "efaacfe0edcfea846b58a55904e943a86d8af6b0cef66ed7669aafa9c07fdab9",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-help-reopened.png": "06ecec6dde4028ca71fe63847e4150dc39557c5a326e199f26070692c771dd8f",
+      "build/screenshots/board-selection-android/baseline-en-local-selection.png": "cff666f9227ea3e746d6cf7080eefcb7799879bdd259d0e17182fc35ce33b675",
+      "build/screenshots/board-selection-android/baseline-en-local-coach-step-1.png": "3e19778e43d88dedd9d75d9bd6bcb1d11f3d9053d5889cbfd46dc279a5d3541a",
+      "build/screenshots/board-selection-android/clipped-corners-ko-expert-flutter-text-scale-2p0-match-result.png": "eecea2e6ac032fea63b467325793d359f6262ffed88a1122471cb8a839ef891a",
+      "build/screenshots/board-selection-android/baseline-en-local-setup.png": "fb5d25a8f717d5c323401d5ea2420defcee5e1658f51e953e6288d0243900b97",
+      "build/screenshots/board-selection-android/baseline-en-local-board.png": "3e19778e43d88dedd9d75d9bd6bcb1d11f3d9053d5889cbfd46dc279a5d3541a",
+      "build/screenshots/board-selection-android/baseline-ko-expert-flutter-text-scale-2p0-round-result.png": "ce11b19dd2e25dcdd971c69a6c19457424a574bd922da6a7a85cc9ad3c81a673",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-board.png": "50566a1de56e91b1c9b254dcf8d3480bc700fb5da79b84c69303cf2e5f224106",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-match-result.png": "e58deb897ac74940f66249be498be73ebb347a104987e8f81ae189d5c203168f",
+      "build/screenshots/board-selection-android/clipped-corners-en-local-setup.png": "960d7e0cfcbfbe0998c8031c043ea26a56d0b7d64e993bc1623bea9018c777b1"
+    }
+  },
+  "ios": {
+    "runtime": "iPad Pro 11-inch M5 iPadOS26.5 9B40EF49-8D4C-4FEC-B09A-EA0AA68E2373",
+    "exit_code": 0,
+    "scenarios": 4,
+    "expert_waits": {
+      "baseline": {
+        "observed_turns": 8,
+        "min_ms": 1064,
+        "max_ms": 1294,
+        "all_ms": [1294, 1179, 1183, 1064, 1287, 1164, 1166, 1068]
+      },
+      "clipped-corners": {
+        "observed_turns": 20,
+        "min_ms": 1039,
+        "max_ms": 1177,
+        "all_ms": [
+          1177, 1048, 1045, 1048, 1049, 1083, 1051, 1050, 1049, 1057, 1172, 1049, 1039, 1052, 1050,
+          1054, 1048, 1044, 1049, 1053
+        ]
+      }
+    },
+    "screenshots": {
+      "build/screenshots/board-selection-ios/baseline-en-local-restart.png": "bd4a5cd92258c2b179c61d9cc905857a74b5d4b56758fcc820b26aa32670cd8a",
+      "build/screenshots/board-selection-ios/baseline-en-local-help-reopened.png": "7e9f14174a69cbad93dda85c68c7aeced948415145ce2901067a512ac162334d",
+      "build/screenshots/board-selection-ios/clipped-corners-ko-expert-flutter-text-scale-2p0-round-result.png": "598307b12d2489686ec19577c6d9784839f9dedda94fd6f257501bdbe9649f37",
+      "build/screenshots/board-selection-ios/baseline-en-local-gameplay.png": "bd4b352b42f9dc2d3f8375f93d5bef8a8a7d17cc40f18f9e6452a756de0bfe1a",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-gameplay.png": "aedf314c925a086ffb3b0d7cff30a6301227a3da07110a34b794654baa9d7b25",
+      "build/screenshots/board-selection-ios/baseline-ko-expert-flutter-text-scale-2p0-match-result.png": "726f45ccd0814cd9d07b692471655fe94d4e9a0025e1b565a6f33fcc1418916e",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-round-result.png": "5a5e0e96be0700c945c19eab5076987f19e58653fc9c40544c140e8134b5be8a",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-leave-dialog.png": "743efa8826a50ea3f879cd19f57694216692fe93ffc4191d1e9153db4c4087b7",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-selection.png": "30d00d5baafb75b265e943c56b8d892d8e73950a5069c796f609cf80f7b1e76e",
+      "build/screenshots/board-selection-ios/baseline-ko-expert-flutter-text-scale-2p0-setup.png": "c1884ee049a6eca264fd0d2991639bf710ddb1a19a78848ef619f39cd9de8fc8",
+      "build/screenshots/board-selection-ios/baseline-ko-expert-flutter-text-scale-2p0-board.png": "19050af4d8e8754d2a1a7ad60ac0749de5bf20ebe1501d263d99b1f4c59451f8",
+      "build/screenshots/board-selection-ios/clipped-corners-ko-expert-flutter-text-scale-2p0-selection.png": "487663a79997de909c443ec7397082ebd0a0607f7038ed99c36aaffbbe7f959e",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-restart.png": "5cef7ab811e3330bc0dae302b5555af73ec3eb4484822f7d85eb52d3720e0303",
+      "build/screenshots/board-selection-ios/clipped-corners-ko-expert-flutter-text-scale-2p0-setup.png": "96471d0cdd6389adf6fabb9d976acfb2a4a7d0f8e5add4f481ae6e618caa7c59",
+      "build/screenshots/board-selection-ios/baseline-en-local-leave-dialog.png": "2556346950aa95cfe2e38e7ebf4c4a97570117b555a2a64375cc2728d4b6dd13",
+      "build/screenshots/board-selection-ios/clipped-corners-ko-expert-flutter-text-scale-2p0-board.png": "d30c1c513b2636c8663c517575e7203f4e764c9f5cf0be840d8b8f6ee1a94a43",
+      "build/screenshots/board-selection-ios/clipped-corners-ko-expert-flutter-text-scale-2p0-gameplay.png": "5f5e31895d7e865763e43e6924215d372c803d3a6d65f9119d87ffee94ebab52",
+      "build/screenshots/board-selection-ios/clipped-corners-ko-expert-flutter-text-scale-2p0-board-choice.png": "f46965e2493abcd2ecd30114b62d4626041113995728c73544651134b7bd6ae5",
+      "build/screenshots/board-selection-ios/baseline-en-local-round-result.png": "c055417fbc41dd4e810cf4e869c62104f8d9df64e858a151bf53d483e0bf6de7",
+      "build/screenshots/board-selection-ios/baseline-ko-expert-flutter-text-scale-2p0-selection.png": "8999bf0ed568456baad865249a6b68c506a25806a416e6c566a5bd624d1996d0",
+      "build/screenshots/board-selection-ios/baseline-ko-expert-flutter-text-scale-2p0-board-choice.png": "4ac261e6a220d37a3f1cc3a1d0909dff98bdb26f4f56829fd331aa931a7dc4ce",
+      "build/screenshots/board-selection-ios/baseline-ko-expert-flutter-text-scale-2p0-gameplay.png": "a55fecae5d625ee73956dd209d2352e62be3970d4a1aca587d6d567b13725226",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-coach-step-1.png": "2de1f512864f9c9d34c0835b52984d40499ba2f54ba06661701ba6e665f24853",
+      "build/screenshots/board-selection-ios/baseline-en-local-match-result.png": "d62943e63731f5a2b223a2678779a60bcf79bb56dfe836dfae963094a756b484",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-help-reopened.png": "2de1f512864f9c9d34c0835b52984d40499ba2f54ba06661701ba6e665f24853",
+      "build/screenshots/board-selection-ios/baseline-en-local-selection.png": "cf0d4917d8961ef208afbc76a6f3e1248ef4d95ecd61b06ef578659180038179",
+      "build/screenshots/board-selection-ios/baseline-en-local-coach-step-1.png": "7e9f14174a69cbad93dda85c68c7aeced948415145ce2901067a512ac162334d",
+      "build/screenshots/board-selection-ios/clipped-corners-ko-expert-flutter-text-scale-2p0-match-result.png": "482a75b621ed0bddda4646f0c2d2a08fc8571d2459d98748380e2c4fed6ee0f5",
+      "build/screenshots/board-selection-ios/baseline-en-local-setup.png": "45a3c32587e7f1190af30efd41adc5f28fed9f76b4c70ad30abaa28a48db6326",
+      "build/screenshots/board-selection-ios/baseline-en-local-board.png": "7e9f14174a69cbad93dda85c68c7aeced948415145ce2901067a512ac162334d",
+      "build/screenshots/board-selection-ios/baseline-ko-expert-flutter-text-scale-2p0-round-result.png": "82f0c4d95e9b74b367ca291851d5893be37bcabc238e68c8e678b8c8895e6f7f",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-board.png": "5cef7ab811e3330bc0dae302b5555af73ec3eb4484822f7d85eb52d3720e0303",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-match-result.png": "a43af0430ff1f6600964b5f868cd63f63cb4e797cda5873f68d2d2db0fc51d68",
+      "build/screenshots/board-selection-ios/clipped-corners-en-local-setup.png": "2a0a2b69e2d7f532919c861cd56364a0a7cc127d8700718d7a20b85e5d4c2a89"
+    },
+    "log_sha256": "f937c403d5e09b9ea363733125e99f0ae4a47f63f4f452797af1cfdb14d9792d"
+  },
+  "initial_android_before_copy_fix": {
+    "expert_waits": {
+      "baseline": {
+        "observed_turns": 8,
+        "min_ms": 1176,
+        "max_ms": 10785,
+        "all_ms": [9260, 6287, 6630, 1176, 10785, 8007, 4974, 1289]
+      },
+      "clipped-corners": {
+        "observed_turns": 20,
+        "min_ms": 1029,
+        "max_ms": 6035,
+        "all_ms": [
+          6035, 4868, 4623, 4396, 3154, 2796, 2786, 2332, 2358, 1029, 5927, 4641, 4905, 5040, 3347,
+          2767, 2410, 2717, 1909, 1163
+        ]
+      }
+    },
+    "source_files": {
+      "lib/game/board/board_definition.dart": "2717fda4e44847f0aa95b69a9b426dcb7f8e6e966f59c6796ddf08c67c8e1341",
+      "lib/game/start/start_page.dart": "9f78272592a84f2cba3c705e4ebe89bcb283224163e039e0a62809d8dc18ac06",
+      "lib/l10n/arb/app_en.arb": "9c018ff713e81c1895acf1d0e5acb2da37b8dbd0435e4d0a45c6636d73292380",
+      "lib/l10n/arb/app_ko.arb": "51929439c0e223198167855498afc487325007d8b9606f49b062ab9f908009d3",
+      "integration_test/ios_gameplay_flow_test.dart": "3d49619d32d01f8e73469ac2fc6c99f73f6171a6630d335425489deed65feff5",
+      "tool/rules_engine_host_test.dart": "5c9fc88916ff038a1c46accd04ae4c04472862ba902359f9b4f3af59b5db4164",
+      "test_driver/ios_gameplay_flow_driver.dart": "70363ec2e58cb1bfee9599578bccbd0435c669ff5df2d48adf056272e04eae9a",
+      "pubspec.lock": "807e68e16a078c021551e924c6db611dc9bccb4750330a08ee9292532d2cd371"
+    },
+    "log_sha256": "280ba71e265ea13c5fecc2ba1f9ba0b3d58c3b544c36a495a8cb571c51ea1ec8"
+  }
+}

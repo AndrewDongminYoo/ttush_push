@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ttush_push/game/ads/ad_gateway.dart';
+import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/match/match_controller.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/game/view/game_page.dart';
@@ -19,10 +20,10 @@ const _selectedControlColor = Color(0xFF6C8CFF);
 
 /// The screen a launch opens on, so the seats are chosen before the board.
 ///
-/// It decides nothing about the match itself: the choice is an [Opponent],
-/// which [GamePage] hands to the controller, and every rule still belongs to
-/// Rust. The difficulty names here are the only place a policy is described in
-/// a player's words rather than the engine's.
+/// It decides nothing about the match itself: [Opponent] and [BuiltInBoard]
+/// choices configure [GamePage], and every rule still belongs to Rust. The
+/// difficulty names here are the only place a policy is described in a
+/// player's words rather than the engine's.
 class StartPage extends StatefulWidget {
   const StartPage({super.key, this.rulesEngine, this.adGateway});
 
@@ -39,6 +40,8 @@ class StartPage extends StatefulWidget {
 class _StartPageState extends State<StartPage> {
   bool _versusAi = false;
 
+  BuiltInBoard _board = BuiltInBoard.baseline;
+
   /// Normal is the opening difficulty: random reads as broken rather than
   /// easy, and minimax is not a first match.
   Opponent _difficulty = Opponent.greedy;
@@ -52,6 +55,7 @@ class _StartPageState extends State<StartPage> {
           rulesEngine: widget.rulesEngine,
           adGateway: widget.adGateway,
           opponent: _opponent,
+          boardDefinition: _board.definition,
         ),
       ),
     );
@@ -60,6 +64,16 @@ class _StartPageState extends State<StartPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = localizationsOf(context);
+
+    String boardLabel(BuiltInBoard board) => switch (board) {
+      BuiltInBoard.baseline => l10n.boardClassic,
+      BuiltInBoard.clippedCorners => l10n.boardClippedCorners,
+    };
+
+    String boardDescription(BuiltInBoard board) => switch (board) {
+      BuiltInBoard.baseline => l10n.boardClassicDescription,
+      BuiltInBoard.clippedCorners => l10n.boardClippedCornersDescription,
+    };
 
     return Theme(
       data: Theme.of(context).copyWith(
@@ -168,6 +182,51 @@ class _StartPageState extends State<StartPage> {
                         ),
                       ),
                     ],
+                    const SizedBox(height: 16),
+                    _Panel(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            child: Text(
+                              l10n.board,
+                              style: const TextStyle(color: _mutedTextColor),
+                            ),
+                          ),
+                          RadioGroup<BuiltInBoard>(
+                            groupValue: _board,
+                            onChanged: (board) {
+                              if (board == null) {
+                                return;
+                              }
+                              setState(() => _board = board);
+                            },
+                            child: Column(
+                              children: [
+                                for (final board in BuiltInBoard.values)
+                                  RadioListTile<BuiltInBoard>(
+                                    key: Key('start-board-${board.id}'),
+                                    value: board,
+                                    title: Text(
+                                      boardLabel(board),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      boardDescription(board),
+                                      style: const TextStyle(
+                                        color: _mutedTextColor,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     ElevatedButton(
                       key: const Key('start-match'),
