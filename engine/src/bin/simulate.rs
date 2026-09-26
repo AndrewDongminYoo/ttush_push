@@ -4,7 +4,12 @@ use std::fmt;
 use std::process;
 
 use engine::bot::{GreedyBot, MinimaxBot, Policy, RandomBot, StrategicBot};
-use engine::{Direction, GameState, Move, Outcome, Player, WinReason, apply_move, outcome};
+use engine::{
+    BoardConfig, Direction, GameState, Move, Outcome, Player, Tile, WinReason, apply_move, outcome,
+};
+
+#[path = "simulate/board.rs"]
+mod board;
 
 #[derive(Debug)]
 struct Options {
@@ -15,6 +20,7 @@ struct Options {
     second: PolicyKind,
     trace_game: Option<u64>,
     swap_seeds: bool,
+    board: Option<board::SelectedBoard>,
 }
 
 /// Which way of playing a side uses. Named rather than boxed in the options
@@ -153,7 +159,7 @@ fn run() -> Result<(), String> {
         "mean_turns={}",
         mean_turns(statistics.total_turns, options.games)
     );
-    println!("board=baseline");
+    print_board_metadata(&options);
     if options.swap_seeds {
         println!("seed_assignment=swapped");
     }
@@ -175,6 +181,7 @@ fn parse_options(arguments: impl IntoIterator<Item = String>) -> Result<Options,
     let mut second = PolicyKind::Random;
     let mut trace_game = None;
     let mut swap_seeds = false;
+    let mut board = None;
     let mut arguments = arguments.into_iter();
 
     while let Some(flag) = arguments.next() {
@@ -204,6 +211,7 @@ fn parse_options(arguments: impl IntoIterator<Item = String>) -> Result<Options,
                         .map_err(|_| format!("invalid trace game index: {value}"))?,
                 )
             }
+            "--board-file" => board = Some(board::read(&value)?),
             _ => return Err(format!("unknown argument: {flag}\n{}", usage())),
         }
     }
@@ -223,6 +231,7 @@ fn parse_options(arguments: impl IntoIterator<Item = String>) -> Result<Options,
         second,
         trace_game,
         swap_seeds,
+        board,
     })
 }
 
@@ -236,6 +245,7 @@ fn parse_positive(flag: &str, value: &str) -> Result<u64, String> {
 fn usage() -> &'static str {
     "usage: simulate --games <positive integer> --seed <u64> \
 [--max-turns <positive integer>] [--first <policy>] [--second <policy>] [--trace-game <u64>] [--swap-seeds]\n\
+[--board-file <path>]\n\
 policies: random | greedy | minimax | minimax:<depth> | strategic"
 }
 
@@ -264,6 +274,11 @@ fn simulate(options: &Options) -> SimulationStatistics {
     let mut aggregate = Statistics::default();
     let mut openings: BTreeMap<(u8, &'static str), Statistics> = BTreeMap::new();
     let mut selected_trace = None;
+    let board = options
+        .board
+        .as_ref()
+        .map(|selected| selected.config.clone())
+        .unwrap_or_else(BoardConfig::baseline);
 
     for game in 0..options.games {
         // Each game gets its own seed, so a policy's choices vary between
@@ -277,7 +292,8 @@ fn simulate(options: &Options) -> SimulationStatistics {
         };
         let mut first = options.first.build(first_seed);
         let mut second = options.second.build(second_seed);
-        let mut state = GameState::baseline();
+        let mut state = GameState::new(board.clone(), Player::First)
+            .expect("the parsed board configuration must create a game state");
         let mut seen_states = HashSet::new();
         let mut turns = 0;
         let mut first_move = None;
@@ -350,10 +366,12 @@ fn simulate(options: &Options) -> SimulationStatistics {
         game_statistics.total_turns = turns;
         game_statistics.max_observed_turns = turns;
         aggregate.add(&game_statistics);
-        openings
-            .entry(first_move.expect("the baseline board has a legal opening move"))
-            .or_default()
-            .add(&game_statistics);
+        if let Some(first_move) = first_move {
+            openings
+                .entry(first_move)
+                .or_default()
+                .add(&game_statistics);
+        }
         if trace.is_some() {
             selected_trace = trace;
         }
@@ -363,6 +381,46 @@ fn simulate(options: &Options) -> SimulationStatistics {
         aggregate,
         openings,
         trace: selected_trace,
+    }
+}
+
+fn print_board_metadata(options: &Options) {
+    let Some(selected) = &options.board else {
+        println!("board=baseline");
+        return;
+    };
+
+    println!("board={}", selected.id);
+    let tiles = selected
+        .initial_tiles
+        .iter()
+        .map(|tile| format!("{},{},{}", tile.x, tile.y, tile_name(tile.kind)))
+        .collect::<Vec<_>>()
+        .join(";");
+    println!("initial_tiles={tiles}");
+
+    let pieces = selected
+        .initial_pieces
+        .iter()
+        .map(|piece| {
+            format!(
+                "{},{},{},{}",
+                piece.id,
+                player_name(piece.owner),
+                piece.x,
+                piece.y
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(";");
+    println!("initial_pieces={pieces}");
+}
+
+fn tile_name(tile: Tile) -> &'static str {
+    match tile {
+        Tile::Normal => "normal",
+        Tile::Damaged => "damaged",
+        Tile::Hole => "hole",
     }
 }
 

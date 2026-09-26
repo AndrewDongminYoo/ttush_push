@@ -63,8 +63,8 @@ jobs:
       - name: Install Flutter dependencies
         run: flutter pub get
 
-      - name: Build the Rust host library
-        run: cargo build --release --manifest-path engine/Cargo.toml --lib
+      - name: Build the Rust host library and simulator
+        run: cargo build --release --manifest-path engine/Cargo.toml --lib --bin simulate
 
       - name: Test the generated bridge
         run: flutter test tool/rules_engine_host_test.dart

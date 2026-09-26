@@ -133,6 +133,79 @@ const _expectedStartingPieces = <rust.GamePiece>[
 ];
 
 void main() {
+  test('simulates the exported app boards and replays their traces', () async {
+    await RustLib.init(externalLibrary: ExternalLibrary.open(_hostLibraryPath));
+    addTearDown(RustLib.dispose);
+    final directory = await Directory.systemTemp.createTemp('ttush-boards-');
+    addTearDown(() => directory.delete(recursive: true));
+    final export = await Process.run('dart', [
+      'run',
+      'tool/export_simulation_boards.dart',
+      directory.path,
+    ]);
+    expect(export.exitCode, 0, reason: '${export.stderr}');
+    const rulesEngine = FrbRulesEngine();
+
+    for (final board in BuiltInBoard.values) {
+      var match = rulesEngine.initialMatch(board.definition.rules);
+      final process = await Process.run('engine/target/release/simulate', [
+        '--games',
+        '1',
+        '--seed',
+        '42',
+        '--max-turns',
+        '200',
+        '--trace-game',
+        '0',
+        '--board-file',
+        '${directory.path}/${board.id}.board',
+      ]);
+      expect(process.exitCode, 0, reason: '${process.stderr}');
+      final report = <String, String>{
+        for (final line in (process.stdout as String).trim().split('\n'))
+          line.substring(0, line.indexOf('=')): line.substring(
+            line.indexOf('=') + 1,
+          ),
+      };
+      expect(report['board'], board.id);
+      // Read the CLI's parsed state, not its input file or the exporter helper.
+      expect(
+        report['initial_tiles']!.split(';'),
+        unorderedEquals([
+          for (final tile in match.round.tiles)
+            '${tile.x},${tile.y},${tile.kind.name}',
+        ]),
+      );
+      expect(
+        report['initial_pieces']!.split(';'),
+        unorderedEquals([
+          for (final piece in match.round.pieces)
+            '${piece.id},${piece.owner.name},${piece.x},${piece.y}',
+        ]),
+      );
+      final turns = int.parse(report['trace.turns']!);
+      expect(turns, greaterThan(0));
+      for (var index = 1; index <= turns; index++) {
+        expect(
+          report['trace.move.$index.player'],
+          match.round.currentPlayer.name,
+        );
+        final move = rust.GameMove(
+          pieceId: int.parse(report['trace.move.$index.piece']!),
+          direction: rust.GameDirection.values.byName(
+            report['trace.move.$index.direction']!,
+          ),
+        );
+        expect(rulesEngine.legalMoves(match), contains(move));
+        match = rulesEngine.applyMove(match, move).snapshot;
+      }
+      expect(match.phase, rust.GameMatchPhase.roundOver);
+      expect(report['trace.winner'], match.roundWinner!.name);
+      expect(report['trace.termination'], match.roundWinReason!.name);
+      expect(report['turn_limits'], '0');
+    }
+  });
+
   test('preserves initial tile states through the host bridge', () async {
     await RustLib.init(externalLibrary: ExternalLibrary.open(_hostLibraryPath));
     addTearDown(RustLib.dispose);

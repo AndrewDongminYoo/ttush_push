@@ -1,4 +1,6 @@
+use std::fs;
 use std::process::{Command, Output};
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use engine::bot::{Policy, RandomBot, StrategicBot};
 use engine::{
@@ -26,6 +28,58 @@ fn run_simulation_command(args: &[&str]) -> Output {
         .args(args)
         .output()
         .expect("simulation process starts")
+}
+
+fn run_simulation_with_board(contents: &str, args: &[&str]) -> Output {
+    static NEXT_BOARD_FILE: AtomicUsize = AtomicUsize::new(0);
+
+    let path = std::env::temp_dir().join(format!(
+        "ttush-simulation-board-{}-{}.txt",
+        std::process::id(),
+        NEXT_BOARD_FILE.fetch_add(1, Ordering::Relaxed),
+    ));
+    fs::write(&path, contents).expect("board fixture writes");
+    let path = path.to_str().expect("temporary path is UTF-8");
+    let mut with_board = args.to_vec();
+    with_board.extend(["--board-file", path]);
+    let output = run_simulation_command(&with_board);
+    fs::remove_file(path).expect("board fixture removes");
+
+    output
+}
+
+fn baseline_board_file() -> String {
+    let mut rows = vec!["ttush-board-v1 baseline-copy".to_owned()];
+    for x in 0..5 {
+        for y in 0..5 {
+            rows.push(format!("cell {x} {y}"));
+        }
+    }
+    rows.extend([
+        "piece 0 first 1 0".to_owned(),
+        "piece 1 first 3 0".to_owned(),
+        "piece 2 second 1 4".to_owned(),
+        "piece 3 second 3 4".to_owned(),
+    ]);
+    rows.join("\n")
+}
+
+fn output_without_board_metadata(output: &str) -> String {
+    let report = output
+        .lines()
+        .filter(|line| {
+            !line.starts_with("board=")
+                && !line.starts_with("initial_tiles=")
+                && !line.starts_with("initial_pieces=")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    if output.ends_with('\n') {
+        format!("{report}\n")
+    } else {
+        report
+    }
 }
 
 fn value(output: &str, key: &str) -> u64 {
@@ -806,4 +860,169 @@ fn swap_seeds_reverses_wrapping_random_streams_and_labels_only_swapped_reports()
         );
         state = apply_move(&state, expected_move).expect("random move replays");
     }
+}
+
+#[test]
+fn board_file_controls_the_round_and_reports_the_complete_initial_configuration() {
+    // Replacing the selected BoardConfig with the baseline makes this first
+    // move, terminal outcome, and sparse-tile expansion diverge together.
+    let board = "ttush-board-v1 control-a\n\
+cell 0 0\n\
+cell 0 1\n\
+cell 1 0\n\
+cell 1 1\n\
+piece 0 first 0 0\n\
+tile 0 1 hole\n\
+tile 1 1 damaged\n";
+    let output = run_simulation_with_board(
+        board,
+        &[
+            "--games",
+            "1",
+            "--seed",
+            "7",
+            "--max-turns",
+            "5",
+            "--first",
+            "random",
+            "--second",
+            "random",
+            "--trace-game",
+            "0",
+        ],
+    );
+
+    assert!(
+        output.status.success(),
+        "simulation failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let output = String::from_utf8(output.stdout).expect("simulation output is UTF-8");
+    assert!(output.contains("board=control-a"), "{output}");
+    assert!(
+        output.contains("initial_tiles=0,0,normal;0,1,hole;1,0,normal;1,1,damaged"),
+        "{output}"
+    );
+    assert!(output.contains("initial_pieces=0,first,0,0"), "{output}");
+    assert_eq!(trace_value(&output, "trace.move.1.player"), "first");
+    assert_eq!(trace_value(&output, "trace.move.1.piece"), "0");
+    assert_eq!(trace_value(&output, "trace.move.1.direction"), "right");
+    assert_eq!(trace_value(&output, "trace.turns"), "1");
+    assert_eq!(trace_value(&output, "trace.termination"), "immobilization");
+    assert_eq!(trace_value(&output, "trace.winner"), "first");
+}
+
+#[test]
+fn board_file_rejects_invalid_input_without_running_the_baseline() {
+    // Each case must fail before report output; accepting any one as the
+    // baseline would make an experiment look valid while ignoring its board.
+    let cases = [
+        ("ttush-board-v2 control\n", "unknown board file version"),
+        ("ttush-board-v1\n", "missing board identifier"),
+        ("ttush-board-v1 control_a\n", "invalid board identifier"),
+        ("ttush-board-v1 control\ncell 0\n", "invalid board row 2"),
+        (
+            "ttush-board-v1 control\ncell 256 0\n",
+            "invalid x coordinate",
+        ),
+        (
+            "ttush-board-v1 control\ncell 0 0\ncell 0 0\n",
+            "duplicate cell",
+        ),
+        (
+            "ttush-board-v1 control\ncell 0 0\npiece 0 first 0 0\npiece 1 second 0 0\n",
+            "OverlappingPieces",
+        ),
+        (
+            "ttush-board-v1 control\ncell 0 0\npiece 0 second 1 0\n",
+            "PieceOutsideBoard",
+        ),
+        (
+            "ttush-board-v1 control\ncell 0 0\npiece 0 first 0 0\ntile 0 0 hole\n",
+            "PieceOnHole",
+        ),
+        (
+            "ttush-board-v1 control\ncell 0 0\ntile 0 0 molten\n",
+            "invalid tile kind",
+        ),
+        (
+            "ttush-board-v1 control\ncell 0 0\nunknown 0 0\n",
+            "unknown board row",
+        ),
+    ];
+
+    for (board, diagnostic) in cases {
+        let output = run_simulation_with_board(board, &["--games", "1", "--seed", "7"]);
+        assert_eq!(output.status.code(), Some(2));
+        assert!(
+            output.stdout.is_empty(),
+            "invalid input produced a report: {}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        assert!(
+            String::from_utf8_lossy(&output.stderr).contains(diagnostic),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    let missing = run_simulation_command(&[
+        "--games",
+        "1",
+        "--seed",
+        "7",
+        "--board-file",
+        "/tmp/ttush-board-file-does-not-exist",
+    ]);
+    assert_eq!(missing.status.code(), Some(2));
+    assert!(missing.stdout.is_empty());
+    assert!(
+        String::from_utf8_lossy(&missing.stderr).contains("cannot read board file"),
+        "{}",
+        String::from_utf8_lossy(&missing.stderr)
+    );
+}
+
+#[test]
+fn board_file_baseline_keeps_outcomes_and_reports_deterministically() {
+    // A parsed equivalent board must retain every pre-existing report value,
+    // and repeated input must produce byte-for-byte identical output.
+    let args = [
+        "--games",
+        "2",
+        "--seed",
+        "19",
+        "--max-turns",
+        "10",
+        "--first",
+        "random",
+        "--second",
+        "strategic",
+        "--trace-game",
+        "0",
+    ];
+    let default = simulate(&args);
+    let board = baseline_board_file();
+    let first = run_simulation_with_board(&board, &args);
+    let second = run_simulation_with_board(&board, &args);
+
+    assert!(
+        first.status.success(),
+        "simulation failed: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(
+        second.status.success(),
+        "simulation failed: {}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let first = String::from_utf8(first.stdout).expect("simulation output is UTF-8");
+    let second = String::from_utf8(second.stdout).expect("simulation output is UTF-8");
+
+    assert_eq!(first, second);
+    assert_eq!(
+        output_without_board_metadata(&first),
+        output_without_board_metadata(&default)
+    );
+    assert!(first.contains("board=baseline-copy"), "{first}");
 }

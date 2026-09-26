@@ -30,7 +30,8 @@ It does not include completion of the original blueprint's strategic analysis or
 - **Implemented build support; release decision and runtime verification pending: Web.** The [Web workflow](../../.github/workflows/main.yaml) invokes [the production build script](../../tool/build_web.sh).
   [#71](https://github.com/AndrewDongminYoo/ttush_push/issues/71) retains the ship-or-defer decision and browser acceptance; a build does not establish a deployed, playable release.
 - **Implemented reporting; analysis verification pending: original blueprint Phase 4.** [PR #82](https://github.com/AndrewDongminYoo/ttush_push/pull/82) added Strategic simulation and first-move outcome reporting on the baseline board.
-  The simulator also supports selected-game traces and swapped seed assignments; it still constructs only the baseline board.
+  The simulator also supports selected-game traces, swapped seed assignments, and exported app board definitions through `--board-file`.
+  The [board-comparison contract](../specs/2026-09-26-board-comparison-control.md) preserves the baseline default and defines the bounded variant experiment.
   Its [bounded protocol](2026-09-25-strategic-simulation-protocol.md) separates smoke runs from balance evidence.
   [#67](https://github.com/AndrewDongminYoo/ttush_push/issues/67) remains open for board-variant experiments, representative forced lines, and initial-position conclusions.
   The historical 100,000-round Random baseline in the bot-policy specification is neither Expert evidence nor exhaustive proof.
