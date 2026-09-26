@@ -1,5 +1,6 @@
 [package]
 name = "engine"
+default-run = "simulate"
 version = "0.1.0"
 edition = "2024"
 

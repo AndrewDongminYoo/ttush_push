@@ -18,6 +18,8 @@ The aggregate gate builds the release Rust host library and runs `tool/rules_eng
 The same gate builds the `simulate` binary, exports the current Dart board catalog, compares each CLI initial configuration with the app bridge, and replays the reported round through that bridge.
 `dart run tool/export_simulation_boards.dart <output-directory>` writes offline experiment inputs; `simulate --board-file <path>` consumes one while preserving the baseline default when omitted.
 This does not add file loading to the app.
+`cargo run --release --manifest-path engine/Cargo.toml --bin analyze -- --board-file <path> --moves-file <path> --depth <1..32> --nodes <1..1000000>` replays a recorded position and checks every legal root alternative with terminal-only search.
+Its `unknown` result includes depth or node cutoffs and is not a draw; the [analysis contract](docs/specs/2026-09-26-forced-line-analysis.md) defines the move-file format and per-alternative budget.
 
 The gate's last step, `merry run parity`, is what covers packaging, and it covers it only opportunistically: it runs the integration test on every simulator or emulator that is **already** running and skips when none is, because booting one costs more than a pre-commit gate may. So a green gate says nothing about native packaging on its own. Read the step's own last line, which is either `parity: covered N runtime(s)` or `parity: SKIPPED`, and start a runtime and re-run after any change to mobile runner or build integration.
 
