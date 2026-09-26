@@ -9,6 +9,7 @@ Initial tile overrides also support damaged tiles through the configuration API;
 The implementation was tested in the existing checkout based on `c97f5747135df5a264aefc75333345153070a75b`.
 The [provenance record](2026-09-26-large-board-validation/provenance.json) identifies native source inputs and capture hashes.
 Screenshots remain local build artifacts, rather than committed binary assets.
+The later [match setup review](2026-09-26-match-setup-review.md) supersedes these setup-screen captures; board and gameplay evidence below retains its original source provenance.
 
 ## Local verification
 

@@ -1,4 +1,7 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ttush_push/app/app.dart';
 import 'package:ttush_push/game/board/board_definition.dart';
@@ -55,6 +58,26 @@ void main() {
       matching: find.text('Opponent: $label'),
     );
   }
+
+  testWidgets('keeps Start visible while AI board choices scroll', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await pumpApp(tester);
+    await tester.tap(find.byKey(const Key('start-mode-versus-ai')));
+    await tester.pumpAndSettle();
+
+    final start = find.byKey(const Key('start-match'));
+    expect(_isWithinViewport(tester.getRect(start)), isTrue);
+    await tester.ensureVisible(
+      find.byKey(const Key('start-board-large-holes')),
+    );
+    await tester.pumpAndSettle();
+    expect(_isWithinViewport(tester.getRect(start)), isTrue);
+  });
 
   for (final id in ['large', 'large-holes']) {
     testWidgets('forwards the selected $id board to the match', (tester) async {
@@ -168,27 +191,41 @@ void main() {
     );
   });
 
-  testWidgets('ignores a null board radio value', (tester) async {
+  testWidgets('announces selection and activates a board with the keyboard', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
     final engine = FakeRulesEngine.playing(initial: matchOf(snapshot));
-
     await pumpApp(tester, engine: engine);
-    final boardChoice = find.byKey(const Key('start-board-clipped-corners'));
-    await tester.ensureVisible(boardChoice);
+    final choice = find.byKey(const Key('start-board-clipped-corners'));
+    await tester.ensureVisible(choice);
     await tester.pumpAndSettle();
-    await tester.tap(boardChoice);
-    await tester.pumpAndSettle();
-
-    final group = tester.widget<RadioGroup<BuiltInBoard>>(
-      find.ancestor(
-        of: boardChoice,
-        matching: find.byType(RadioGroup<BuiltInBoard>),
-      ),
+    final button = find.descendant(
+      of: choice,
+      matching: find.byType(OutlinedButton),
     );
-    group.onChanged(null);
+    expect(
+      tester.getSemantics(choice).flagsCollection.isSelected,
+      Tristate.isFalse,
+    );
+    Focus.of(
+      tester.element(
+        find.descendant(of: button, matching: find.text('Clipped corners')),
+      ),
+    ).requestFocus();
     await tester.pump();
-
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSemantics(choice).flagsCollection.isSelected,
+      Tristate.isTrue,
+    );
+    expect(
+      tester.getSemantics(choice).getSemanticsData().label,
+      contains('Clipped corners'),
+    );
+    semantics.dispose();
     await startMatch(tester);
-
     expect(
       engine.initialDefinitions.single,
       same(BuiltInBoard.clippedCorners.definition.rules),
@@ -296,6 +333,21 @@ void main() {
     expect(opponentValue('Human'), findsOneWidget);
   });
 
+  testWidgets('returns from AI to local play and hides difficulty', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await tester.tap(find.byKey(const Key('start-mode-versus-ai')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('start-difficulty-strategic')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('start-mode-two-players')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('start-difficulty-strategic')), findsNothing);
+    await startMatch(tester);
+    expect(opponentValue('Human'), findsOneWidget);
+  });
+
   testWidgets('opens a match against AI on Normal', (tester) async {
     await pumpApp(tester);
 
@@ -349,37 +401,31 @@ void main() {
     }
   });
 
-  testWidgets('keeps both radio states visible on the dark panel', (
-    tester,
-  ) async {
-    // The app's ThemeData is light, so a radio left to resolve its own fill
-    // lands on black: measured 1.20:1 against the panel, which is no outline
-    // at all until the tile is selected.
-    await pumpApp(tester);
-
-    final tile = find.byKey(const Key('start-mode-versus-ai'));
-    final panel = tester.widget<Material>(
-      find.ancestor(of: tile, matching: find.byType(Material)).first,
-    );
-    final background = panel.color;
-    expect(background, isNotNull);
-
-    final fill = Theme.of(tester.element(tile)).radioTheme.fillColor;
-    expect(fill, isNotNull, reason: 'the radio fill is named, not inherited');
-
-    for (final states in const [
-      <WidgetState>{},
-      {WidgetState.selected},
-    ]) {
-      final resolved = fill!.resolve(states);
-      expect(resolved, isNotNull, reason: '$states');
-      expect(
-        _contrastRatio(resolved!, background!),
-        greaterThanOrEqualTo(3),
-        reason: '$states against the panel',
-      );
-    }
-  });
+  testWidgets(
+    'shows distinct high-contrast selected and unselected indicators',
+    (tester) async {
+      await pumpApp(tester);
+      for (final id in ['two-players', 'versus-ai']) {
+        final card = find.byKey(Key('start-mode-$id'));
+        final button = tester.widget<OutlinedButton>(
+          find.descendant(of: card, matching: find.byType(OutlinedButton)),
+        );
+        final background = button.style!.backgroundColor!.resolve({})!;
+        final indicator = tester.widget<Icon>(
+          find.descendant(
+            of: card,
+            matching: find.byIcon(
+              id == 'two-players' ? Icons.check_circle : Icons.circle_outlined,
+            ),
+          ),
+        );
+        expect(
+          _contrastRatio(indicator.color!, background),
+          greaterThanOrEqualTo(3),
+        );
+      }
+    },
+  );
 
   testWidgets('leaves the match from a control, not only a gesture', (
     tester,
