@@ -117,7 +117,7 @@ bridge:
   host:
     (description): Builds and loads the Rust library through the generated Dart bridge.
     (scripts):
-      - cargo build --release --manifest-path engine/Cargo.toml --lib
+      - cargo build --release --manifest-path engine/Cargo.toml --lib --bin simulate
       - flutter test tool/rules_engine_host_test.dart
 
 parity:

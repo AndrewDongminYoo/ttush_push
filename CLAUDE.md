@@ -15,6 +15,9 @@ It reads the staged blobs rather than the working tree, so it answers about the 
 It does not stand in for the whole of CI. The `spell-check` job reads every `**/*.md` through `cspell.json`, and no local linter does: `trunk check` looks only at modified files and has no cspell among its enabled linters. Run `npx cspell lint --config cspell.json --gitignore-root . '**/*.md'` after touching any markdown, including from a linked checkout whose parent is ignored. The `semantic-pull-request` job reads the PR title and has no local form at all.
 
 The aggregate gate builds the release Rust host library and runs `tool/rules_engine_host_test.dart` on macOS or Linux. That test calls `RustLib.init` through the generated bridge and reuses the device integration test's snapshot and bot-policy parity fixture, so a codegen/runtime/version mismatch fails before app startup. It does not validate Android or iOS packaging.
+The same gate builds the `simulate` binary, exports the current Dart board catalog, compares each CLI initial configuration with the app bridge, and replays the reported round through that bridge.
+`dart run tool/export_simulation_boards.dart <output-directory>` writes offline experiment inputs; `simulate --board-file <path>` consumes one while preserving the baseline default when omitted.
+This does not add file loading to the app.
 
 The gate's last step, `merry run parity`, is what covers packaging, and it covers it only opportunistically: it runs the integration test on every simulator or emulator that is **already** running and skips when none is, because booting one costs more than a pre-commit gate may. So a green gate says nothing about native packaging on its own. Read the step's own last line, which is either `parity: covered N runtime(s)` or `parity: SKIPPED`, and start a runtime and re-run after any change to mobile runner or build integration.
 
