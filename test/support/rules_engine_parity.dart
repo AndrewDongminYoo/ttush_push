@@ -3,6 +3,58 @@ import 'package:ttush_push/game/board/board_definition.dart';
 import 'package:ttush_push/game/rules/rules_engine.dart';
 import 'package:ttush_push/src/rust/api.dart';
 
+void expectInitialTileStates(RulesEngine rulesEngine) {
+  const definition = GameBoardDefinition(
+    playableCells: [
+      GameBoardCell(x: 0, y: 0),
+      GameBoardCell(x: 1, y: 0),
+      GameBoardCell(x: 2, y: 0),
+      GameBoardCell(x: 0, y: 1),
+      GameBoardCell(x: 1, y: 1),
+      GameBoardCell(x: 2, y: 1),
+    ],
+    startingPieces: [
+      GamePiece(id: 0, owner: GamePlayer.first, x: 0, y: 0),
+      GamePiece(id: 1, owner: GamePlayer.second, x: 1, y: 0),
+    ],
+    initialTiles: [
+      GameTile(x: 0, y: 0, kind: GameTileKind.damaged),
+      GameTile(x: 2, y: 0, kind: GameTileKind.hole),
+    ],
+  );
+  final initial = rulesEngine.initialMatch(definition);
+  GameTileKind tileAt(MatchSnapshot match, int x, int y) =>
+      match.round.tiles.singleWhere((tile) => tile.x == x && tile.y == y).kind;
+
+  expect(tileAt(initial, 0, 0), GameTileKind.damaged);
+  expect(tileAt(initial, 2, 0), GameTileKind.hole);
+  expect(tileAt(initial, 1, 1), GameTileKind.normal);
+  expect(initial.initialTiles, initial.round.tiles);
+  const knockout = GameMove(pieceId: 0, direction: GameDirection.right);
+  expect(rulesEngine.legalMoves(initial), contains(knockout));
+  final result = rulesEngine.applyMove(initial, knockout);
+  expect(result.resolution.tileTransition.from, GameTileKind.damaged);
+  expect(result.resolution.tileTransition.to, GameTileKind.hole);
+  expect(tileAt(result.snapshot, 0, 0), GameTileKind.hole);
+  expect(result.snapshot.phase, GameMatchPhase.roundOver);
+  expect(result.snapshot.roundWinReason, GameWinReason.knockout);
+  expect(result.snapshot.initialTiles, initial.initialTiles);
+
+  final next = rulesEngine.advanceRound(result.snapshot);
+  expect(next.round.tiles, initial.round.tiles);
+  expect(next.round.pieces, initial.round.pieces);
+  expect(next.round.currentPlayer, GamePlayer.second);
+  expect(next.firstPlayerWins, 1);
+  expect(
+    rulesEngine.legalMoves(next),
+    isNot(contains(const GameMove(pieceId: 1, direction: GameDirection.right))),
+  );
+  expect(
+    rulesEngine.initialMatch(definition).round.snapshotHash,
+    initial.round.snapshotHash,
+  );
+}
+
 Future<void> expectRulesEngineParity(RulesEngine rulesEngine) async {
   var match = rulesEngine.initialMatch(baselineBoardDefinition.rules);
   const fixtureMoves = [

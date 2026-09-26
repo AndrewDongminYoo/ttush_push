@@ -376,6 +376,7 @@ fn baseline_definition() -> GameBoardDefinition {
                 y: 4,
             },
         ],
+        initial_tiles: None,
     }
 }
 
@@ -441,6 +442,7 @@ fn translated_horizon_snapshot(
                 y: 9,
             },
         ],
+        initial_tiles: None,
     })
     .unwrap();
     match_apply_move(start, api_move(0, GameDirection::Right))

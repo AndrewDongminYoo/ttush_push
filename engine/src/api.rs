@@ -65,6 +65,8 @@ pub struct GameBoardCell {
 pub struct GameBoardDefinition {
     pub playable_cells: Vec<GameBoardCell>,
     pub starting_pieces: Vec<GamePiece>,
+    /// Sparse overrides for the opening terrain; omitted cells start normal.
+    pub initial_tiles: Option<Vec<GameTile>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -99,13 +101,14 @@ pub enum GameMatchPhase {
 
 /// A best-of-three match, carried across the bridge by value.
 ///
-/// `starting_pieces` is the layout each round resets to. The round's own
-/// tiles cannot stand in for it: they carry the damage taken since, not the
-/// board a reset restores.
+/// `starting_pieces` and `initial_tiles` are the layout each round resets to.
+/// The round's own tiles carry damage taken during play, so they cannot
+/// replace the initial terrain when restoring a round.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MatchSnapshot {
     pub round: GameSnapshot,
     pub starting_pieces: Vec<GamePiece>,
+    pub initial_tiles: Vec<GameTile>,
     pub first_player_wins: u8,
     pub second_player_wins: u8,
     pub phase: GameMatchPhase,
@@ -245,6 +248,12 @@ fn seed_from_hash(hash: &str) -> u64 {
 }
 
 fn board_config_from_definition(definition: GameBoardDefinition) -> Result<BoardConfig, String> {
+    let initial_tiles = definition
+        .initial_tiles
+        .unwrap_or_default()
+        .into_iter()
+        .map(|tile| (Position::new(tile.x, tile.y), tile.kind.into()))
+        .collect();
     let playable_cell_count = definition.playable_cells.len();
     let playable_cells = definition
         .playable_cells
@@ -266,7 +275,9 @@ fn board_config_from_definition(definition: GameBoardDefinition) -> Result<Board
         })
         .collect();
 
-    BoardConfig::new(playable_cells, initial_pieces).map_err(board_definition_error)
+    BoardConfig::new(playable_cells, initial_pieces)
+        .and_then(|board| board.with_initial_tiles(initial_tiles))
+        .map_err(board_definition_error)
 }
 
 fn match_snapshot_from_state(state: &MatchState) -> MatchSnapshot {
@@ -297,6 +308,16 @@ fn match_snapshot_from_state(state: &MatchState) -> MatchSnapshot {
                 owner: piece.owner.into(),
                 x: piece.position.x,
                 y: piece.position.y,
+            })
+            .collect(),
+        initial_tiles: state
+            .board()
+            .initial_tiles()
+            .iter()
+            .map(|(position, tile)| GameTile {
+                x: position.x,
+                y: position.y,
+                kind: (*tile).into(),
             })
             .collect(),
         first_player_wins: state.round_wins(Player::First),
@@ -333,7 +354,25 @@ fn match_state_from_snapshot(snapshot: MatchSnapshot) -> Result<MatchState, Stri
             )
         })
         .collect::<Vec<_>>();
-    let board = BoardConfig::new(playable_cells, starting_pieces).map_err(state_error)?;
+    let initial_tile_positions = snapshot
+        .initial_tiles
+        .iter()
+        .map(|tile| Position::new(tile.x, tile.y))
+        .collect::<BTreeSet<_>>();
+    if initial_tile_positions.len() != snapshot.initial_tiles.len() {
+        return Err("snapshot contains duplicate initial tile positions".to_owned());
+    }
+    if initial_tile_positions != playable_cells {
+        return Err("invalid snapshot: initial tiles do not match board".to_owned());
+    }
+    let initial_tiles = snapshot
+        .initial_tiles
+        .iter()
+        .map(|tile| (Position::new(tile.x, tile.y), tile.kind.into()))
+        .collect();
+    let board = BoardConfig::new(playable_cells, starting_pieces)
+        .and_then(|board| board.with_initial_tiles(initial_tiles))
+        .map_err(state_error)?;
     let round = state_from_snapshot(snapshot.round)?;
 
     MatchState::from_parts(
@@ -358,6 +397,10 @@ fn match_hash(snapshot: &MatchSnapshot) -> String {
             &mut hash,
             &[piece.id, player_byte(piece.owner), piece.x, piece.y],
         );
+    }
+    hash_byte(&mut hash, snapshot.initial_tiles.len() as u8);
+    for tile in &snapshot.initial_tiles {
+        hash_bytes(&mut hash, &[tile.x, tile.y, tile_byte(tile.kind)]);
     }
     hash_bytes(
         &mut hash,

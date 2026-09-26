@@ -37,6 +37,8 @@ const _expectedPlayableCellsById = <String, List<(int, int)>>{
     (4, 3),
     (4, 4),
   ],
+  'large': _largePlayableCells,
+  'large-holes': _largePlayableCells,
   'clipped-corners': [
     (0, 1),
     (0, 2),
@@ -62,6 +64,67 @@ const _expectedPlayableCellsById = <String, List<(int, int)>>{
   ],
 };
 
+const _largePlayableCells = <(int, int)>[
+  (0, 0),
+  (0, 1),
+  (0, 2),
+  (0, 3),
+  (0, 4),
+  (0, 5),
+  (0, 6),
+  (1, 0),
+  (1, 1),
+  (1, 2),
+  (1, 3),
+  (1, 4),
+  (1, 5),
+  (1, 6),
+  (2, 0),
+  (2, 1),
+  (2, 2),
+  (2, 3),
+  (2, 4),
+  (2, 5),
+  (2, 6),
+  (3, 0),
+  (3, 1),
+  (3, 2),
+  (3, 3),
+  (3, 4),
+  (3, 5),
+  (3, 6),
+  (4, 0),
+  (4, 1),
+  (4, 2),
+  (4, 3),
+  (4, 4),
+  (4, 5),
+  (4, 6),
+  (5, 0),
+  (5, 1),
+  (5, 2),
+  (5, 3),
+  (5, 4),
+  (5, 5),
+  (5, 6),
+  (6, 0),
+  (6, 1),
+  (6, 2),
+  (6, 3),
+  (6, 4),
+  (6, 5),
+  (6, 6),
+];
+
+const _largeStartingPieces = <rust.GamePiece>[
+  rust.GamePiece(id: 0, owner: rust.GamePlayer.first, x: 1, y: 1),
+  rust.GamePiece(id: 1, owner: rust.GamePlayer.first, x: 3, y: 1),
+  rust.GamePiece(id: 2, owner: rust.GamePlayer.first, x: 5, y: 1),
+  rust.GamePiece(id: 3, owner: rust.GamePlayer.second, x: 1, y: 5),
+  rust.GamePiece(id: 4, owner: rust.GamePlayer.second, x: 3, y: 5),
+  rust.GamePiece(id: 5, owner: rust.GamePlayer.second, x: 5, y: 5),
+];
+
 const _expectedStartingPieces = <rust.GamePiece>[
   rust.GamePiece(id: 0, owner: rust.GamePlayer.first, x: 1, y: 0),
   rust.GamePiece(id: 1, owner: rust.GamePlayer.first, x: 3, y: 0),
@@ -70,6 +133,13 @@ const _expectedStartingPieces = <rust.GamePiece>[
 ];
 
 void main() {
+  test('preserves initial tile states through the host bridge', () async {
+    await RustLib.init(externalLibrary: ExternalLibrary.open(_hostLibraryPath));
+    addTearDown(RustLib.dispose);
+
+    expectInitialTileStates(const FrbRulesEngine());
+  });
+
   test('loads the host bridge and returns the parity fixture', () async {
     await RustLib.init(externalLibrary: ExternalLibrary.open(_hostLibraryPath));
     addTearDown(RustLib.dispose);
@@ -84,11 +154,30 @@ void main() {
 
     expect(
       BuiltInBoard.values.map((board) => board.id),
-      orderedEquals(_expectedPlayableCellsById.keys),
+      unorderedEquals(_expectedPlayableCellsById.keys),
     );
     for (final board in BuiltInBoard.values) {
       final match = rulesEngine.initialMatch(board.definition.rules);
       final expectedCells = _expectedPlayableCellsById[board.id]!;
+      final expectedPieces = switch (board) {
+        BuiltInBoard.large || BuiltInBoard.largeHoles => _largeStartingPieces,
+        _ => _expectedStartingPieces,
+      };
+      final expectedTiles = [
+        for (final (x, y) in expectedCells)
+          rust.GameTile(
+            x: x,
+            y: y,
+            kind:
+                board == BuiltInBoard.largeHoles &&
+                    y == 3 &&
+                    [1, 3, 5].contains(x)
+                ? rust.GameTileKind.hole
+                : rust.GameTileKind.normal,
+          ),
+      ];
+      expect(match.round.tiles, unorderedEquals(expectedTiles));
+      expect(match.initialTiles, unorderedEquals(expectedTiles));
 
       expect(
         match.round.tiles.map((tile) => (tile.x, tile.y)),
@@ -97,12 +186,12 @@ void main() {
       );
       expect(
         match.round.pieces,
-        unorderedEquals(_expectedStartingPieces),
+        unorderedEquals(expectedPieces),
         reason: '${board.id} opening pieces returned by the host bridge',
       );
       expect(
         match.startingPieces,
-        unorderedEquals(_expectedStartingPieces),
+        unorderedEquals(expectedPieces),
         reason: '${board.id} reset pieces returned by the host bridge',
       );
     }

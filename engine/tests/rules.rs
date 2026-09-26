@@ -343,6 +343,166 @@ fn baseline_is_a_symmetric_five_by_five_experiment_configuration() {
 }
 
 #[test]
+fn board_config_applies_sparse_initial_tiles_to_the_full_opening_map() {
+    let pieces = vec![
+        Piece::new(PieceId(0), Player::First, position(1, 1)),
+        Piece::new(PieceId(1), Player::First, position(3, 1)),
+        Piece::new(PieceId(2), Player::First, position(5, 1)),
+        Piece::new(PieceId(3), Player::Second, position(1, 5)),
+        Piece::new(PieceId(4), Player::Second, position(3, 5)),
+        Piece::new(PieceId(5), Player::Second, position(5, 5)),
+    ];
+    let board = BoardConfig::rectangular(7, 7, pieces)
+        .unwrap()
+        .with_initial_tiles(vec![
+            (position(1, 3), Tile::Hole),
+            (position(3, 3), Tile::Hole),
+            (position(5, 3), Tile::Hole),
+        ])
+        .unwrap();
+
+    let state = GameState::new(board, Player::First).unwrap();
+
+    assert_eq!(state.tile_at(position(1, 3)), Some(Tile::Hole));
+    assert_eq!(state.tile_at(position(3, 3)), Some(Tile::Hole));
+    assert_eq!(state.tile_at(position(5, 3)), Some(Tile::Hole));
+    assert_eq!(state.tile_at(position(0, 0)), Some(Tile::Normal));
+    assert_eq!(state.tile_at(position(6, 6)), Some(Tile::Normal));
+    for (id, owner, expected_position) in [
+        (0, Player::First, position(1, 1)),
+        (1, Player::First, position(3, 1)),
+        (2, Player::First, position(5, 1)),
+        (3, Player::Second, position(1, 5)),
+        (4, Player::Second, position(3, 5)),
+        (5, Player::Second, position(5, 5)),
+    ] {
+        let piece = state.piece(PieceId(id)).unwrap();
+        assert_eq!(piece.owner, owner);
+        assert_eq!(piece.position, expected_position);
+    }
+}
+
+#[test]
+fn board_config_rejects_invalid_initial_tile_overrides() {
+    let piece = Piece::new(PieceId(0), Player::First, position(1, 1));
+
+    assert_eq!(
+        BoardConfig::rectangular(3, 3, vec![piece.clone()])
+            .unwrap()
+            .with_initial_tiles(vec![
+                (position(0, 0), Tile::Damaged),
+                (position(0, 0), Tile::Hole),
+            ]),
+        Err(StateError::DuplicateInitialTile(position(0, 0))),
+    );
+    assert_eq!(
+        BoardConfig::rectangular(3, 3, vec![piece.clone()])
+            .unwrap()
+            .with_initial_tiles(vec![(position(4, 4), Tile::Hole)]),
+        Err(StateError::InitialTileOutsideBoard(position(4, 4))),
+    );
+    assert_eq!(
+        BoardConfig::rectangular(3, 3, vec![piece])
+            .unwrap()
+            .with_initial_tiles(vec![(position(1, 1), Tile::Hole)]),
+        Err(StateError::PieceOnHole),
+    );
+}
+
+#[test]
+fn configured_damaged_departure_and_hole_entry_apply_from_the_opening_state() {
+    let board = BoardConfig::rectangular(
+        5,
+        3,
+        vec![
+            Piece::new(PieceId(0), Player::First, position(1, 1)),
+            Piece::new(PieceId(1), Player::Second, position(4, 2)),
+        ],
+    )
+    .unwrap()
+    .with_initial_tiles(vec![
+        (position(1, 1), Tile::Damaged),
+        (position(1, 0), Tile::Hole),
+    ])
+    .unwrap();
+    let state = GameState::new(board, Player::First).unwrap();
+
+    assert_eq!(
+        apply_move(&state, Move::new(PieceId(0), Direction::Right))
+            .unwrap()
+            .tile_at(position(1, 1)),
+        Some(Tile::Hole),
+    );
+    assert_eq!(
+        apply_move(&state, Move::new(PieceId(0), Direction::Up)),
+        Err(IllegalMove::Hole),
+    );
+}
+
+#[test]
+fn configured_initial_hole_knocks_out_a_pushed_piece() {
+    let board = BoardConfig::rectangular(
+        5,
+        3,
+        vec![
+            Piece::new(PieceId(0), Player::First, position(1, 1)),
+            Piece::new(PieceId(1), Player::Second, position(2, 1)),
+        ],
+    )
+    .unwrap()
+    .with_initial_tiles(vec![(position(3, 1), Tile::Hole)])
+    .unwrap();
+    let state = GameState::new(board, Player::First).unwrap();
+
+    let knockout = apply_move(&state, Move::new(PieceId(0), Direction::Right)).unwrap();
+
+    assert_eq!(knockout.piece(PieceId(1)), None);
+    assert_eq!(
+        outcome(&knockout),
+        Outcome::Winner(Player::First, WinReason::Knockout),
+    );
+}
+
+#[test]
+fn next_round_restores_configured_initial_tiles_after_round_damage() {
+    let board = BoardConfig::rectangular(
+        4,
+        2,
+        vec![
+            Piece::new(PieceId(0), Player::First, position(1, 0)),
+            Piece::new(PieceId(1), Player::Second, position(2, 0)),
+            Piece::new(PieceId(2), Player::Second, position(0, 1)),
+        ],
+    )
+    .unwrap()
+    .with_initial_tiles(vec![
+        (position(0, 1), Tile::Damaged),
+        (position(3, 0), Tile::Hole),
+    ])
+    .unwrap();
+    let state = MatchState::new(board, Player::First).unwrap();
+    let round_over = state
+        .apply_move(Move::new(PieceId(0), Direction::Right))
+        .unwrap();
+
+    assert_eq!(
+        round_over.round().tile_at(position(1, 0)),
+        Some(Tile::Damaged),
+    );
+
+    let next_round = round_over.advance_round().unwrap();
+
+    assert_eq!(
+        next_round.round().tile_at(position(0, 1)),
+        Some(Tile::Damaged),
+    );
+    assert_eq!(
+        next_round.round().tile_at(position(1, 0)),
+        Some(Tile::Normal),
+    );
+}
+
+#[test]
 fn normal_move_rejects_outside_hole_and_friendly_destinations() {
     let mover = PieceId(1);
     let outside = state_with_pieces(&[(mover, position(0, 0))], &[(PieceId(2), position(4, 4))]);

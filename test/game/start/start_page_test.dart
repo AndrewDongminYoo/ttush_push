@@ -56,6 +56,33 @@ void main() {
     );
   }
 
+  for (final id in ['large', 'large-holes']) {
+    testWidgets('forwards the selected $id board to the match', (tester) async {
+      final engine = FakeRulesEngine.playing(initial: matchOf(snapshot));
+      await pumpApp(tester, engine: engine);
+      final choice = find.byKey(Key('start-board-$id'));
+      expect(choice, findsOneWidget);
+      await tester.ensureVisible(choice);
+      await tester.pumpAndSettle();
+      await tester.tap(choice);
+      await tester.pumpAndSettle();
+      await startMatch(tester);
+
+      expect(engine.initialDefinitions, hasLength(1));
+      expect(
+        engine.initialDefinitions.single,
+        same(
+          BuiltInBoard.values
+              .singleWhere((board) => board.id == id)
+              .definition
+              .rules,
+        ),
+      );
+      expect(engine.initialDefinitions.single.playableCells, hasLength(49));
+      expect(engine.initialDefinitions.single.startingPieces, hasLength(6));
+    });
+  }
+
   testWidgets('forwards the selected clipped-corners board to the match', (
     tester,
   ) async {
@@ -66,6 +93,8 @@ void main() {
     final boardChoice = find.byKey(const Key('start-board-clipped-corners'));
     expect(boardChoice, findsOneWidget);
 
+    await tester.ensureVisible(boardChoice);
+    await tester.pumpAndSettle();
     await tester.tap(boardChoice);
     await tester.pumpAndSettle();
     await startMatch(tester);
@@ -83,6 +112,10 @@ void main() {
     final engine = FakeRulesEngine.playing(initial: matchOf(snapshot));
 
     await pumpApp(tester, engine: engine);
+    await tester.ensureVisible(
+      find.byKey(const Key('start-board-clipped-corners')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('start-board-clipped-corners')));
     await tester.pumpAndSettle();
     await startMatch(tester);
@@ -109,6 +142,10 @@ void main() {
       engine: engine,
       key: const ValueKey('first-app-state'),
     );
+    await tester.ensureVisible(
+      find.byKey(const Key('start-board-clipped-corners')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('start-board-clipped-corners')));
     await tester.pumpAndSettle();
     await startMatch(tester);
@@ -136,6 +173,8 @@ void main() {
 
     await pumpApp(tester, engine: engine);
     final boardChoice = find.byKey(const Key('start-board-clipped-corners'));
+    await tester.ensureVisible(boardChoice);
+    await tester.pumpAndSettle();
     await tester.tap(boardChoice);
     await tester.pumpAndSettle();
 
@@ -221,6 +260,15 @@ void main() {
       await tester.tap(boardChoice);
       await tester.pump();
 
+      for (final board in [BuiltInBoard.large, BuiltInBoard.largeHoles]) {
+        final choice = find.byKey(Key('start-board-${board.id}'));
+        await tester.ensureVisible(choice);
+        await tester.pumpAndSettle();
+        expect(_isWithinViewport(tester.getRect(choice)), isTrue);
+        await tester.tap(choice);
+        await tester.pump();
+      }
+
       final start = find.byKey(const Key('start-match'));
       await tester.ensureVisible(start);
       await tester.pumpAndSettle();
@@ -230,7 +278,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         engine.initialDefinitions.single,
-        same(BuiltInBoard.clippedCorners.definition.rules),
+        same(BuiltInBoard.largeHoles.definition.rules),
       );
       expect(tester.takeException(), isNull);
     }

@@ -68,11 +68,15 @@ class _StartPageState extends State<StartPage> {
     String boardLabel(BuiltInBoard board) => switch (board) {
       BuiltInBoard.baseline => l10n.boardClassic,
       BuiltInBoard.clippedCorners => l10n.boardClippedCorners,
+      BuiltInBoard.large => l10n.boardLarge,
+      BuiltInBoard.largeHoles => l10n.boardLargeHoles,
     };
 
     String boardDescription(BuiltInBoard board) => switch (board) {
       BuiltInBoard.baseline => l10n.boardClassicDescription,
       BuiltInBoard.clippedCorners => l10n.boardClippedCornersDescription,
+      BuiltInBoard.large => l10n.boardLargeDescription,
+      BuiltInBoard.largeHoles => l10n.boardLargeHolesDescription,
     };
 
     return Theme(

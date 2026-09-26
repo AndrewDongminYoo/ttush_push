@@ -122,5 +122,9 @@
       }
     }
   },
+  "boardLarge": "Large board",
+  "boardLargeDescription": "7 × 7 · 3 pieces per side",
+  "boardLargeHoles": "Large board with holes",
+  "boardLargeHolesDescription": "7 × 7 · 3 central holes",
   "retry": "Retry"
 }

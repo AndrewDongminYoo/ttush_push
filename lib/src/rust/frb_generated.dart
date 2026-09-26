@@ -339,11 +339,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GameBoardDefinition dco_decode_game_board_definition(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return GameBoardDefinition(
       playableCells: dco_decode_list_game_board_cell(arr[0]),
       startingPieces: dco_decode_list_game_piece(arr[1]),
+      initialTiles: dco_decode_opt_list_game_tile(arr[2]),
     );
   }
 
@@ -473,18 +474,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   MatchSnapshot dco_decode_match_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 9)
-      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
     return MatchSnapshot(
       round: dco_decode_game_snapshot(arr[0]),
       startingPieces: dco_decode_list_game_piece(arr[1]),
-      firstPlayerWins: dco_decode_u_8(arr[2]),
-      secondPlayerWins: dco_decode_u_8(arr[3]),
-      phase: dco_decode_game_match_phase(arr[4]),
-      roundWinner: dco_decode_opt_box_autoadd_game_player(arr[5]),
-      roundWinReason: dco_decode_opt_box_autoadd_game_win_reason(arr[6]),
-      matchWinner: dco_decode_opt_box_autoadd_game_player(arr[7]),
-      snapshotHash: dco_decode_String(arr[8]),
+      initialTiles: dco_decode_list_game_tile(arr[2]),
+      firstPlayerWins: dco_decode_u_8(arr[3]),
+      secondPlayerWins: dco_decode_u_8(arr[4]),
+      phase: dco_decode_game_match_phase(arr[5]),
+      roundWinner: dco_decode_opt_box_autoadd_game_player(arr[6]),
+      roundWinReason: dco_decode_opt_box_autoadd_game_win_reason(arr[7]),
+      matchWinner: dco_decode_opt_box_autoadd_game_player(arr[8]),
+      snapshotHash: dco_decode_String(arr[9]),
     );
   }
 
@@ -566,6 +568,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   int? dco_decode_opt_box_autoadd_u_8(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_u_8(raw);
+  }
+
+  @protected
+  List<GameTile>? dco_decode_opt_list_game_tile(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_list_game_tile(raw);
   }
 
   @protected
@@ -727,9 +735,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_playableCells = sse_decode_list_game_board_cell(deserializer);
     var var_startingPieces = sse_decode_list_game_piece(deserializer);
+    var var_initialTiles = sse_decode_opt_list_game_tile(deserializer);
     return GameBoardDefinition(
       playableCells: var_playableCells,
       startingPieces: var_startingPieces,
+      initialTiles: var_initialTiles,
     );
   }
 
@@ -888,6 +898,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_round = sse_decode_game_snapshot(deserializer);
     var var_startingPieces = sse_decode_list_game_piece(deserializer);
+    var var_initialTiles = sse_decode_list_game_tile(deserializer);
     var var_firstPlayerWins = sse_decode_u_8(deserializer);
     var var_secondPlayerWins = sse_decode_u_8(deserializer);
     var var_phase = sse_decode_game_match_phase(deserializer);
@@ -900,6 +911,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return MatchSnapshot(
       round: var_round,
       startingPieces: var_startingPieces,
+      initialTiles: var_initialTiles,
       firstPlayerWins: var_firstPlayerWins,
       secondPlayerWins: var_secondPlayerWins,
       phase: var_phase,
@@ -1024,6 +1036,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_u_8(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  List<GameTile>? sse_decode_opt_list_game_tile(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_list_game_tile(deserializer));
     } else {
       return null;
     }
@@ -1209,6 +1232,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_game_board_cell(self.playableCells, serializer);
     sse_encode_list_game_piece(self.startingPieces, serializer);
+    sse_encode_opt_list_game_tile(self.initialTiles, serializer);
   }
 
   @protected
@@ -1355,6 +1379,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_game_snapshot(self.round, serializer);
     sse_encode_list_game_piece(self.startingPieces, serializer);
+    sse_encode_list_game_tile(self.initialTiles, serializer);
     sse_encode_u_8(self.firstPlayerWins, serializer);
     sse_encode_u_8(self.secondPlayerWins, serializer);
     sse_encode_game_match_phase(self.phase, serializer);
@@ -1477,6 +1502,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_u_8(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_list_game_tile(
+    List<GameTile>? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_list_game_tile(self, serializer);
     }
   }
 
