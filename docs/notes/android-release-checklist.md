@@ -175,4 +175,4 @@ Use [#81](https://github.com/AndrewDongminYoo/ttush_push/issues/81) as the singl
 
 The following privacy URL and DNS statements were recorded in [commit 2cb3668 on 2026-09-02](https://github.com/AndrewDongminYoo/ttush_push/commit/2cb3668) and are retained as historical release evidence.
 
-The privacy policy is no longer among them. The landing site is deployed and `https://ttush-push-landing.vercel.app/ko/privacy` answers, which is the URL Play asks for. Expect it to move: the site is bound for `ttush-push.donminzzi.kr`, which has no DNS record yet, so whatever URL is given to Play now has to be updated when the domain is attached.
+The privacy policy is no longer among the production-release items the checklist then listed as outstanding. The landing site is deployed and `https://ttush-push-landing.vercel.app/ko/privacy` answers, which is the URL Play asks for. Expect it to move: the site is bound for `ttush-push.donminzzi.kr`, which has no DNS record yet, so whatever URL is given to Play now has to be updated when the domain is attached.
