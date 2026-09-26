@@ -467,5 +467,38 @@
     "Flutter text scale override, not OS accessibility settings.",
     "UI wall-clock waits, not physical-device CPU benchmarks.",
     "No balance or human playtest conclusion."
-  ]
+  ],
+  "performance_correction": {
+    "reason": "Initial CI large Expert response2.051970s exceeded unchanged2s host limit.",
+    "source_sha256": {
+      "engine/src/lib.rs": "b9b29a369a60c49e79da48496b9c5c22a9c3e7fc79d0390a1d7d705cbb451b5a",
+      "engine/tests/rules.rs": "f75ebca938cd51568c4d9b5b0e476857b559836b6970dc4e5e267946d5a4ab90"
+    },
+    "log_sha256": {
+      "check-performance.log": "5ee8a5a025f0ab706792b5d07a237b24b442252f8c013a1266878b729eb0eab7",
+      "performance-before.log": "42bbf0c078ab527977aab7a6b9e0032559718f1622a8176fb9d5504472c52ec6",
+      "performance-after.log": "0dc74df1de3efc1f6f31f2cd8eb536256266754ed1543512e65309072fb6dc7c",
+      "android-parity-performance.log": "70fa39a704078d49f822f3717060c0fdb92c3883d767cbc05283cd554aa9113f",
+      "ios-parity-performance.log": "cc650744b60f5afb2c9a8ffed034920d39e952f2ebe3d143f7d2fe686574cff6",
+      "ci-bridge-failed.log": "86d1b68920ca046bd97bb853a25b438f76380049498150edd00c978045b70a3b"
+    },
+    "native_parity": {
+      "android": {
+        "exit_code": 0,
+        "tests_passed": 4
+      },
+      "ios": {
+        "exit_code": 0,
+        "tests_passed": 4
+      }
+    },
+    "local_gate": {
+      "exit_code": 0,
+      "flutter_tests": 212,
+      "rust_tests": 88,
+      "host_tests": 6,
+      "aggregate_native_parity": "SKIPPED with runtimes stopped"
+    },
+    "capture_equivalence": "Only engine/src/lib.rs differs among captured native source inputs. The private Arc map preserves values, equality and hashing. Catalog, localized copy, presentation and bridge API are unchanged. Existing full-game screenshots remain evidence of layout, not post-optimization timing."
+  }
 }

@@ -383,6 +383,24 @@ fn board_config_applies_sparse_initial_tiles_to_the_full_opening_map() {
 }
 
 #[test]
+fn customizing_initial_tiles_preserves_cloned_board_configs() {
+    let original = BoardConfig::baseline();
+    let customized = original
+        .clone()
+        .with_initial_tiles(vec![(position(2, 2), Tile::Hole)])
+        .unwrap();
+
+    assert_eq!(original.initial_tiles()[&position(2, 2)], Tile::Normal);
+    assert_eq!(customized.initial_tiles()[&position(2, 2)], Tile::Hole);
+    assert_eq!(
+        GameState::new(original, Player::First)
+            .unwrap()
+            .tile_at(position(2, 2)),
+        Some(Tile::Normal)
+    );
+}
+
+#[test]
 fn board_config_rejects_invalid_initial_tile_overrides() {
     let piece = Piece::new(PieceId(0), Player::First, position(1, 1));
 

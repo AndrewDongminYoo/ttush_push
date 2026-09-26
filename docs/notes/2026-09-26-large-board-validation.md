@@ -14,20 +14,34 @@ Screenshots remain local build artifacts, rather than committed binary assets.
 
 The catalog regression first failed because the large-board selector was absent.
 The engine regression first observed Normal where an initial Hole was expected, and the bridge regression first received zero initial tiles instead of 49.
-After implementation, the complete `CARGO_BUILD_JOBS=2 merry run check` command exited zero: 212 Flutter tests with the configured coverage threshold, 87 Rust tests, six loaded host bridge tests, analysis, formatting, clippy, release version-guard tests, and Trunk.
+After the performance correction below, the complete `CARGO_BUILD_JOBS=2 merry run check` command exited zero: 212 Flutter tests with the configured coverage threshold, 88 Rust tests, six loaded host bridge tests, analysis, formatting, clippy, release version-guard tests, and Trunk.
 Its final native parity step explicitly skipped because all native runtimes were stopped for this run.
 Separate native tests provide packaging evidence below.
 
 Rust tests read actual tile states, damaged departure, hole knockout, invalid overrides, next-round restoration, and rejection of edited initial terrain metadata.
 Round parity fixtures remain unchanged.
 The host bridge compares all offered layouts against independent cell and piece expectations and exercises initial terrain through the generated bridge.
-Final host Expert response waits were 551 ms for baseline, 452 ms for clipped corners, 1,285 ms for large, and 1,214 ms for large with holes, all below the existing two-second assertion.
+Final host Expert response waits were 451 ms for baseline, 452 ms for clipped corners, 1,095 ms for large, and 1,018 ms for large with holes, all below the existing two-second assertion.
 These waits include a concurrent 450 ms pacing delay and are not CPU benchmarks.
 
 An independent core review observed one baseline strategic performance assertion at 2.0568 seconds while Android work was active.
 Its isolated rerun, subsequent full Rust suite, and final idle aggregate gate passed.
 This transient failure is retained as evidence of load sensitivity, rather than described as an uninterrupted green run.
 Independent app and engine reviews found no remaining correctness blocker.
+
+### CI performance correction
+
+The first [CI bridge job](https://github.com/AndrewDongminYoo/ttush_push/actions/runs/36224312173/job/108355262844) failed because the large-board Expert response took 2.051970 seconds against the existing two-second limit.
+The initial terrain map was deeply copied whenever search cloned a game state.
+Store only that immutable map in `Arc`, and use `Arc::make_mut` when customizing a cloned configuration.
+Each new round still owns an independent mutable tile map.
+Public accessors, value equality and hashes, search budgets, and the timing assertion remain unchanged.
+
+An independent review confirmed the copy path and approved the correction.
+A same-host observation before and after rebuilding the release library changed the large response from 1,304 to 1,091 ms and the hole variant from 1,184 to 1,006 ms.
+These individual observations support reduced copy cost, not a statistical performance guarantee.
+A new regression verifies that customization leaves the original cloned configuration unchanged.
+The final aggregate gate above includes this regression.
 
 ## Native scenarios
 
@@ -64,6 +78,11 @@ Each platform retained 34 fresh PNGs; iOS captures are under `build/screenshots/
 Selected setup, initial boards, and result captures were inspected directly on both platforms.
 The iPad build was deferred until boot-related host load dropped below the ten-core count.
 Only task-owned runtimes were used and shut down after verification.
+
+The screenshots and full gameplay timings were captured before the private storage optimization, from source equivalent to `ac7cc605041725e6c39481fb0d8db4cdf20be9d0`.
+The catalog, localized copy, rendering, bridge API, and initial tile values are unchanged by that correction.
+The provenance record retains the capture inputs separately from the corrected engine source and subsequent native parity checks.
+After the correction, Android and iOS each passed all four native bridge tests again, including initial damaged terrain, holes, and next-round restoration.
 
 ```sh
 CARGO_BUILD_JOBS=2 merry run check

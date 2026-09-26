@@ -1,5 +1,6 @@
 mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be accurate, and you can change it according to your needs. */
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::Arc;
 
 pub mod api;
 pub mod bot;
@@ -108,7 +109,7 @@ pub enum MatchPhase {
 pub struct BoardConfig {
     playable_cells: BTreeSet<Position>,
     initial_pieces: Vec<Piece>,
-    initial_tiles: BTreeMap<Position, Tile>,
+    initial_tiles: Arc<BTreeMap<Position, Tile>>,
 }
 
 impl BoardConfig {
@@ -180,7 +181,7 @@ impl BoardConfig {
         Ok(Self {
             playable_cells,
             initial_pieces,
-            initial_tiles,
+            initial_tiles: Arc::new(initial_tiles),
         })
     }
 
@@ -189,11 +190,12 @@ impl BoardConfig {
         initial_tiles: Vec<(Position, Tile)>,
     ) -> Result<Self, StateError> {
         let mut overridden = BTreeSet::new();
+        let tiles = Arc::make_mut(&mut self.initial_tiles);
         for (position, tile) in initial_tiles {
             if !overridden.insert(position) {
                 return Err(StateError::DuplicateInitialTile(position));
             }
-            let Some(initial_tile) = self.initial_tiles.get_mut(&position) else {
+            let Some(initial_tile) = tiles.get_mut(&position) else {
                 return Err(StateError::InitialTileOutsideBoard(position));
             };
             *initial_tile = tile;
@@ -237,7 +239,7 @@ impl GameState {
     }
 
     pub fn new(board: BoardConfig, current_player: Player) -> Result<Self, StateError> {
-        let tiles = board.initial_tiles.clone();
+        let tiles = board.initial_tiles().clone();
 
         Self::from_parts(board, tiles, current_player)
     }
